@@ -9,7 +9,7 @@ import yaml
 def create_app(test_config=None):
     
     #initializing application
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
     
     #updating config values
     app.config.from_mapping(
@@ -19,18 +19,21 @@ def create_app(test_config=None):
         SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(app.instance_path, 'db.sqlite'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
     )
-
-    #loading configuration from .py file
-    app.config.from_pyfile(os.path.join(os.environ['VIRTUAL_ENV'], 'config/config.py'))
     
+    #create instance directory
     try:
         os.makedirs(app.instance_path)
     except OSError:
         pass
+
+    #loading configuration from file
+    app.config.from_pyfile('config.py', silent=True)
     
     #loading logging config
-    dictConfig(yaml.safe_load(open(os.path.join((os.environ['VIRTUAL_ENV']), 'config/logging.yaml'))))
-    for logger in (app.logger, logging.getLogger('sqlalchemy'), logging.getLogger('wtforms')):
+    logging_cfg = os.path.join(app.instance_path, 'logging.yaml')
+    if os.path.exists(logging_cfg):
+        dictConfig(yaml.safe_load(open(logging_cfg)))
+        for logger in (app.logger, logging.getLogger('sqlalchemy'), logging.getLogger('wtforms')):
             logger.addHandler(default_handler)
     
     #registering sqlalchemy
