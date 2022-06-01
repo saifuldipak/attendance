@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    {# --rendering form errors-- #}
+    {% if form %}
+        {% if form.errors %}
+        <ul class="error">
+            {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+                {% for error in field_errors %}
+                    <li>{{ form[field_name].label }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+    {% endif %}
+
+
+    {# --rendering leave forms-- #}
+    {% if type == 'leave' %}
+        {% if leave == 'Casual' %}
+            <div class="form-style-2-heading">Leave application - Casual</div>
+        {% elif leave == 'Medical' %}
+            <div class="form-style-2-heading">Leave application - Medical</div>
+        {% endif %}
+            <div class="form-style-2">
+                {% if team == 'fiber' %}
+                    <form method="post" action="{{ url_for('leave.application_fiber', type=leave) }}" enctype="multipart/form-data">
+                {% else %}
+                    <form method="post" action="{{ url_for('leave.application', type=leave) }}" enctype="multipart/form-data"> 
+                {% endif %}    
+                
+                {{ form.csrf_token }}
+                    
+                    {% if team == 'fiber' %}
+                        <label for="empid">
+                            <span>{{ form.empid.label }}</span>
+                            {{ form.empid }}                    
+                        </label>
+                    {% endif %}
+                    
+                    <label for="start_date">
+                        <span>{{ form.start_date.label }}</span>
+                            {{ form.start_date }}
+                    </label>
+                    <label for="end_date">
+                        <span>{{ form.end_date.label }} </span>
+                        {{ form.end_date }}
+                    </label>
+                    <label for="remark">
+                        <span>{{ form.remark.label }} </span>
+                        {{ form.remark }}
+                    </label>
+                    
+                    {% if leave == 'Medical' %}
+                        <label for="file1">
+                            <span>{{ form.file1.label }}</span>
+                            {{ form.file1 }}                    
+                        </label>
+                        <label for="file2">
+                            <span>{{ form.file2.label }}</span>
+                            {{ form.file2 }}                    
+                        </label>
+                        <label for="file3">
+                            <span>{{ form.file3.label }}</span>
+                            {{ form.file3 }}                    
+                        </label>
+                    {% endif %}
+
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Submit" /></label>
+                    </label>
+                </form>             
+            </div>
+    {% endif %}
+
+    {# --rendering employee create form-- #}
+    {% if form_type == 'employee_create' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.create') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Create Employee Record</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                    {{ form.username }}
+                        </label>
+                        <label for="fullname">
+                            <span>{{ form.fullname.label }}</span>
+                                {{ form.fullname }}
+                        </label>
+                        <label for="password">
+                            <span>{{ form.password.label }}</span>
+                                {{ form.password }}
+                        </label>
+                        <label for="rpassword">
+                            <span>{{ form.rpassword.label }}</span>
+                                {{ form.rpassword }}
+                        </label>
+                        <label for="phone">
+                            <span>{{ form.phone.label }}</span>
+                                   {{ form.phone }}
+                        </label>
+                        <label for="email">
+                            <span>{{ form.email.label }}</span>
+                                {{ form.email }}
+                        </label>
+                        <label for="department">    
+                        <span>{{ form.department.label }}</span>
+                                {{ form.department }}
+                        </label>
+                        <label for="team">
+                            <span>{{ form.team.label }}</span>
+                                {{ form.team }}
+                        </label>
+                        <label for="position">
+                            <span>{{ form.position.label }}</span>
+                                {{ form.position }}
+                        </label>
+                        <label for="role">
+                            <span>{{ form.role.label }}</span>
+                                {{ form.role }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Submit" /></label>
+                        </label>
+                            
+                    </form>
+                </div>  
+    {% endif %}
+
+    {# --employee delete form-- #}
+    {% if form_type == 'employee_delete' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.delete') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Delete Employee Record</div>
+                        <label for="employee_id">
+                            <span>{{ form.empid.label }}</span>
+                                {{ form.empid }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Submit" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee update form-- #}
+    {% if form_type == 'employee_update' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Update Employee Record</div>
+                        <label for="employee_id">
+                            <span>{{ form.empid.label }}</span>
+                                {{ form.empid }}
+                        </label>
+                        <label for="team">
+                            <span>{{ form.team.label }}</span>
+                                {{ form.team }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Add" /></label>
+                        </label>
+    {% endif %}
+    
+    {# --attendance upload form-- #}
+    {% if form_type == 'attendance_upload' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.upload') }}" enctype="multipart/form-data">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Upload attedance file</div>
+                        <label for="file">
+                            <span>{{ form.file1.label }}</span>
+                                {{ form.file1 }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Add" /></label>
+                        </label>
+    {% endif %}
+
+    {# --attendance query form for all-- #}
+    {% if type == 'attnquery' %}
+            <div class="form-style-2">
+                {% if user == 'all' %}
+                    <form method="post" action="{{ url_for('attendance.query_all') }}">
+                {% elif user == 'team' %}
+                    <form method="post" action="{{ url_for('attendance.query_team') }}">
+                {% else %}
+                    <form method="post" action="{{ url_for('attendance.query_self') }}">
+                {% endif %}   
+                   
+                {{ form.csrf_token }}
+                <div class="form-style-2-heading">Query attedance record</div>
+                    <label for="month">
+                        <span>{{ form.month.label }}</span>
+                            {{ form.month }}
+                    </label>
+                    {% if user == 'all' or user == 'team' %}
+                    <label for="type">
+                        <span>{{ form.type.label }}</span>
+                            {{ form.type }}
+                    </label>
+                    <label for="empid">
+                        <span>{{ form.username.label }}</span>
+                            {{ form.username }}
+                    </label>
+                    {% endif %}
+                        
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Query" /></label>
+                        </label>
+                        </form>
+    {% endif %}
+
+    {# --attendance application form-- #}
+    {% if type == 'attn_application' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.application') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Attendance Application</div>
+                    <label for="start_date">
+                        <span>{{ form.start_date.label }}</span>
+                            {{ form.start_date }}
+                    </label>
+                    <label for="end_date">
+                        <span>{{ form.end_date.label }} </span>
+                        {{ form.end_date }}
+                    </label>
+                    <label for="remark">
+                        <span>{{ form.remark.label }} </span>
+                        {{ form.remark }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Query" /></label>
+                    </label>
+    {% endif %}
+
+    {# --attendance summary form-- #}
+    {% if type == 'attn_summary' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.summary') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Prepare Attendance Summary</div>
+                    <label for="month">
+                        <span>{{ form.month.label }}</span>
+                            {{ form.month }}
+                    </label>
+                    <label for="year">
+                        <span>{{ form.year.label }} </span>
+                        {{ form.year }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Prepare" /></label>
+                    </label>
+    {% endif %}
+
+    {# --leave deduction form-- #}
+    {% if type == 'leave_deduction' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('leave.deduction') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Process Leave Deduction</div>
+                    <label for="month">
+                        <span>{{ form.month.label }}</span>
+                            {{ form.month }}
+                    </label>
+                    <label for="year">
+                        <span>{{ form.year.label }} </span>
+                        {{ form.year }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Process" /></label>
+                    </label>
+    {% endif %}
+
+    {#-- password change form --#}
+    {% if type == 'change_pass' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.password_self') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Change Password</div>
+                    <label for="month">
+                        <span>{{ form.password.label }}</span>
+                            {{ form.password }}
+                    </label>
+                    <label for="year">
+                        <span>{{ form.rpassword.label }} </span>
+                            {{ form.rpassword }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Submit" /></label>
+                    </label>
+    {% endif %}
+
+{% endblock %}

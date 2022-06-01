@@ -1,0 +1,26 @@
+version: 1
+formatters:
+    default:
+        format: '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+handlers:
+    wsgi:
+        class: logging.StreamHandler
+        formatter: default
+        stream: ext://flask.logging.wsgi_errors_stream
+        level: WARNING
+    file:
+        class: logging.FileHandler
+        formatter: default
+        filename: /home/username/attendance/attendance-venv/var/attendance-instance/attendance.log
+        level: WARNING
+    mail:
+        class: logging.handlers.SMTPHandler
+        mailhost: 127.0.0.1
+        fromaddr: user1@yourdomain
+        toaddrs: ['user2@yourdomain']
+        subject: Attendance app Error
+        level: ERROR
+        formatter: default
+root:
+    level: WARNING
+    handlers: [wsgi, file, mail]

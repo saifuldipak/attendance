@@ -1,0 +1,198 @@
+<!doctype html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Employ attendance app {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    
+</head>
+
+<body>
+    <span>@{{ session["username"] }}</span>
+
+    {#-- Attendance menu for each employee --#}
+    <div class="dropdown">
+        <button class="dropbtn">Attendance</button>
+            <div class="dropdown-content">
+                <a href="{{ url_for('forms.attn_application') }}" class="navbar-item">
+                    Application
+                </a>
+                <a href="{{ url_for('attendance.appl_status_self') }}" class="navbar-item">
+                    Application Status
+                </a>
+                <a href="{{ url_for('forms.attnquery_self') }}" class="navbar-item">
+                    Details
+                </a>
+            </div>
+    </div>
+
+    {#-- Leave menu for each employee --#}
+    <div class="dropdown">
+        <button class="dropbtn">Leave</button>
+            <div class="dropdown-content">
+                <a href="{{ url_for('forms.leave', type='Casual') }}" class="navbar-item">
+                    Application-Casual
+                </a>
+                <a href="{{ url_for('forms.leave', type='Medical') }}" class="navbar-item">
+                    Application-Medical
+                </a>
+                <a href="{{ url_for('leave.status', type='personal') }}" class="navbar-item">
+                    Application Status
+                </a>
+                <a href="{{ url_for('leave.summary', type='personal') }}" class="navbar-item">
+                    Summary
+                </a>
+            </div>
+    </div>
+
+    {#-- User menu for each employee --#}
+    <div class="dropdown">
+        <button class="dropbtn">User</button>
+            <div class="dropdown-content">
+                <a href="{{ url_for('employee.details_self') }}" class="navbar-item">
+                    Details
+                </a>
+                <a href="{{ url_for('forms.password_self') }}" class="navbar-item">
+                    Change password
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="navbar-item">
+                    Logout
+                </a>
+                
+            </div>
+    </div>
+
+    {#-- Team menu for managers --#}
+    {% if session['role'] == 'Manager' %}
+        <div class="dropdown">
+            <button class="dropbtn">Team</button>
+                <div class="dropdown-content">
+                    <p>Leave
+                    {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
+                        <a href="{{ url_for('forms.leave_fiber', type='Casual') }}" class="navbar-item">
+                            -- Appl Casual
+                        </a>
+                        <a href="{{ url_for('forms.leave_fiber', type='Medical') }}" class="navbar-item">
+                            -- Appl Medical
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('leave.status', type='team') }}" class="navbar-item">
+                        -- Appl Status
+                    </a>
+                    <a href="{{ url_for('leave.summary', type='team') }}" class="navbar-item">
+                        -- Summary
+                    </a>
+                    </p>
+                    Attendance
+                    <a href="{{ url_for('attendance.appl_status_team') }}" class="navbar-item">
+                        -- Appl Status
+                    </a>
+                    <a href="{{ url_for('forms.attnquery_team', type='team') }}" class="navbar-item">
+                        -- Query
+                    </a>
+                    {% if session['role'] == 'Admin' %}
+                        <a href="{{ url_for('forms.upload') }}" class="navbar-item">
+                        -- Upload
+                        </a>
+                    {% endif %}
+                </div>
+        </div>
+    {% endif %}
+
+    {#-- Team menu for admins --#}
+    {% if session['access'] == 'Admin' %}
+        <div class="dropdown">
+            <button class="dropbtn">Team</button>
+                <div class="dropdown-content">
+                    <p>Leave
+                    <a href="{{ url_for('leave.status', type='all') }}" class="navbar-item">
+                        -- Application Status
+                    </a>
+                    <a href="{{ url_for('leave.summary', type='all') }}" class="navbar-item">
+                        -- Summary
+                    </a>
+                    <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">
+                        -- Deduction
+                    </a>
+                    </p>
+                    Attendance
+                    <a href="{{ url_for('attendance.appl_status_all') }}" class="navbar-item">
+                        -- Application Status
+                    </a>
+                    <a href="{{ url_for('attendance.query_menu') }}" class="navbar-item">
+                        -- Query
+                    </a>
+                    <a href="{{ url_for('forms.upload') }}" class="navbar-item">
+                        -- Upload
+                    </a>
+                    <a href="{{ url_for('forms.attn_summary') }}" class="navbar-item">
+                        -- Summary
+                    </a>  
+                </div>
+        </div>
+
+        <div class="dropdown">
+            <button class="dropbtn">Employee</button>
+                <div class="dropdown-content">
+                    <a href="{{ url_for('employee.search', action='employee_search') }}" class="navbar-item">
+                        Search
+                    </a>
+                    <a href="{{ url_for('forms.employee', action='create') }}" class="navbar-item">
+                        Create
+                    </a>
+                    <a href="{{ url_for('forms.employee', action='delete') }}" class="navbar-item">
+                        Delete
+                    </a> 
+                    <a href="{{ url_for('employee.update_menu') }}" class="navbar-item">
+                        Update
+                    </a>
+        
+                </div>
+        </div>   
+    {% endif %}
+    
+
+    {#-- Rendering flash messages --#}
+    <div class="main-container">
+        {% with messages = get_flashed_messages(category_filter=(['error'])) %}
+            {% if messages %}
+                <ul class="error">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% with messages = get_flashed_messages(category_filter=(['message'])) %}
+            {% if messages %}
+                <ul class="message">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% with messages = get_flashed_messages(category_filter=(['warning'])) %}
+            {% if messages %}
+                <ul class="warning">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        
+        
+        
+    {% block content %}
+    {% endblock %}
+    </div>
+        
+</body>
+
+</html>
+

@@ -1,0 +1,44 @@
+<!doctype html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Employ attendance app {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    
+</head>
+
+<body>
+
+    <div class="main-container">
+        <div class="form-style-2-heading"><h1>Welcome to Attendance App</h1></div>
+        {% with messages = get_flashed_messages(category_filter=(['error'])) %}
+            {% if messages %}
+                <ul class=error>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% with messages = get_flashed_messages(category_filter=(['message'])) %}
+            {% if messages %}
+                <ul class=message>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+        
+    <script src="{{ url_for('static', filename='formcheck.js') }}"></script>
+</body>
+
+</html>
+

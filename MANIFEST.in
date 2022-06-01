@@ -1,0 +1,4 @@
+graft attendance/static
+graft attendance/templates
+graft attendance/config
+global-exclude *.pyc

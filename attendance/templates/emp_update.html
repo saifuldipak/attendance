@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Update Employee Data</h1>
+    
+    <div class="navbar2">
+            <a href="{{ url_for('forms.update_team') }}" class="navbar2">
+                Team
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.update_dept') }}" class="navbar2">
+                Department
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.update_email') }}" class="navbar2">
+                Email
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.update_phone') }}" class="navbar2">
+                Phone
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.reset_pass') }}" class="navbar2">
+                Password
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.update_role') }}" class="navbar2">
+                    Role
+            </a>
+    </div>
+    
+    {# --employee team update form-- #}
+    {% if type == 'team' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='team') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Team</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="team">
+                            <span>{{ form.team.label }}</span>
+                                {{ form.team }}
+                        </label>
+                        <label for="action">
+                            <span>{{ form.action.label }}</span>
+                                {{ form.action }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Submit" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee department update form-- #}
+    {% if type == 'dept' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='dept') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Team</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="team">
+                            <span>{{ form.dept.label }}</span>
+                                {{ form.dept }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Submit" /></label>
+                        </label>
+    {% endif %}
+    
+    {# --employee email update form-- #}
+    {% if type == 'email' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='email') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Email</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="email">
+                            <span>{{ form.email.label }}</span>
+                                {{ form.email }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Update" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee phone update form-- #}
+    {% if type == 'phone' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='phone') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Phone</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="email">
+                            <span>{{ form.phone.label }}</span>
+                                {{ form.phone }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Update" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee password reset form-- #}
+    {% if type == 'pass' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='pass') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Password</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Reset" /></label>
+                        </label>
+    {% endif %}
+    
+    {# --employee role update form-- #}
+    {% if type == 'role' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='role') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Role</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="password">
+                            <span>{{ form.role.label }}</span>
+                                {{ form.role }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Update" /></label>
+                        </label>
+    {% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Query Attendnace Record</h1>
+    
+    <div class="navbar2">
+            <a href="{{ url_for('forms.attnquery_all', type='date') }}" class="navbar2">
+                By Date
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.attnquery_all', type='username') }}" class="navbar2">
+                By Username
+            </a>
+    </div>
+    
+    {# --query by date form-- #}
+    {% if type == 'date' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.query_all', query_type='date') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">By Date</div>
+                        <label for="date">
+                            <span>{{ form.date.label }}</span>
+                                {{ form.date }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Query" /></label>
+                        </label>
+    {% endif %}
+
+    {# --query by username form-- #}
+    {% if type == 'username' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.query_all', query_type='username') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">By Username</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="month">
+                            <span>{{ form.month.label }}</span>
+                                {{ form.month }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Query" /></label>
+                        </label>
+    {% endif %}
+    
+    
+{% endblock %}

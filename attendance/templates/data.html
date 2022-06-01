@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% if type == 'leave_status' %}
+        <div class="form-style-2-heading">Leave application status</div>
+        <table class="data">
+            <th>Name</th>
+            <th>&nbsp</th>
+            <th>Type</th>
+            <th>&nbsp</th>
+            <th>Star Date</th>
+            <th>&nbsp</th>
+            <th>Duration(days)</th>
+            <th>&nbsp</th>
+            <th>Status</th>
+            <th>&nbsp</th>
+            {% if type == 'personal' or type == 'team' %}
+                <th>Action</th>
+            {% endif %}
+
+            {% for application in applications %}
+                <tr>
+                    {% if application %}
+                        <td>{{ application['employee']['fullname'] }}</td>
+                        <td></td>
+                        <td><a href="{{ url_for('leave.details', id=application['id']) }}"> {{ application['type'] }}</a></td>
+                        <td></td>
+                        <td>{{ application['start_date'] }}</td>
+                        <td></td>
+                        <td>{{ application['duration'] }}</td>
+                        <td></td>
+                        <td>{{ application['status'] }}</td>
+                        <td></td>
+                        {% if application['status'] == "Approval Pending" %}
+                            {% if type == 'team' %}
+                                <td><a href="{{ url_for('leave.approval', leave_id=application['id']) }}">Approve</a></td>
+                            {% elif type == 'personal' %}
+                                <td><a href="{{ url_for('leave.cancel', leave_id=application['id']) }}">Cancel</a></td> 
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+            
+    {% endif %}
+
+
+    {% if action == 'employee_search' %}
+        <h1>Employee Record Search</h1>
+
+        <form method="post">
+            <label for='department'>Department:</label>
+                <select name='department', id='department'>
+                    <option value='all'>All</option>
+                    <option value='accounts'>Accounts</option>
+                    <option value='sales'>Sales</option>
+                    <option value='technical'>Technical</option>
+                </select>
+            <input type='submit' value='Search'>
+        </form> 
+
+        <table class="data">
+            <th>ID</th>
+            <th>&nbsp</th>
+            <th>User Name</th>
+            <th>&nbsp</th>
+            <th>Full Name</th>
+            <th>&nbsp</th>
+            <th>Department</th>
+            <th>&nbsp</th>
+            {% for employee in employees %}
+                <tr>
+                    {% if employee %}
+                        <td>{{ employee['id'] }}</td>
+                        <td></td>
+                        <td><a href="{{ url_for('employee.details', id=employee['id']) }}">{{ employee['username'] }}</a></td>
+                        <td></td>
+                        <td>{{ employee['fullname'] }}</td>
+                        <td></td>
+                        <td>{{ employee['department'] }}</td>
+                        <td></td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+    </table>
+    {% endif %}
+
+    {#-- Leave Summary --#}
+    {% if data_type == 'leave_summary' %}
+        <div class="form-style-2-heading">Available Leave</div>
+        <table class="data">
+            <th>Name</th>
+            <th>&nbsp</th>
+            <th>Casual</th>
+            <th>&nbsp</th>
+            <th>Medical</th>
+            <th>&nbsp</th>
+            <th>Earned</th>
+            <th>&nbsp</th>
+        
+        {% if leaves %}
+            {% for leave in leaves %}
+                <tr>
+                    <td>{{ leave['employee']['fullname'] }}</td>
+                    <td></td>
+                    <td>{{ leave['casual'] }}</td>
+                    <td></td>
+                    <td>{{ leave['medical'] }}</td>
+                    <td></td>
+                    <td>{{ leave['earned'] }}</td>
+                    <td></td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    
+    {% endif %}
+    
+    {#-- Leave Details --#}
+    {% if data_type == 'leave_details' %}
+        <div class="form-style-2-heading">Leave Details</div>
+        {% if details %}
+            <div class="data">
+                Name : {{ details['employee']['fullname'] }} <br>
+                Type : {{ details['type'] }} <br>
+                Start date : {{ details['start_date'] }} <br>
+                End date : {{ details['end_date'] }} <br>
+                Duration : {{ details['duration'] }} <br>
+                Remark : {{ details['remark'] }} <br>
+                File : 
+                {% if details['file_url'] %}
+                    {% set files = details['file_url'].split(';') %}
+                        {% for file in files %}
+                            <a href={{ url_for('leave.files', name=file) }}>File {{ loop.index }}</a>
+                        {% endfor %}
+                {% endif %}
+                 <br>
+                Submission date : {{ details['submission_date'] }} <br>
+                Approval date : {{ details['approval_date'] }} <br>
+                Status : {{ details['status'] }}
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {#-- Employee Details --#}
+    {% if type == 'employee_details' %}
+        <div class="form-style-2-heading">Employee Details</div>
+        {% if employee %}
+            <div class="data">
+                ID : {{ employee['id'] }} <br>
+                Username: {{ employee['username'] }} <br>
+                Full Name: {{ employee['fullname'] }} <br>
+                Phone: {{ employee['phone'] }} <br>
+                Email: {{ employee['email'] }} <br>
+                Department: {{ employee['department']}} <br>
+                Designation: {{ employee['designation']}} <br>
+                Role: {{ employee['role'] }} <br>
+                Access: {{ employee['access']}}<br>
+                
+                {% for team in employee.teams %}
+                    Team {{ loop.index }}: {{ team['name'] }} <br>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {#-- Attendance application details --#}
+    {% if type == 'attn_appl_details' %}
+        <div class="form-style-2-heading">Attendance Application Details</div>
+        {% if details %}
+            <div class="data">
+                Name : {{ details['employee']['fullname'] }} <br>
+                Type : {{ details['type'] }} <br>
+                Start date : {{ details['start_date'] }} <br>
+                End date : {{ details['end_date'] }} <br>
+                Duration : {{ details['duration'] }} <br>
+                Remark : {{ details['remark'] }} <br>
+                Submission date : {{ details['submission_date'] }} <br>
+                Approval date : {{ details['approval_date'] }} <br>
+                Status : {{ details['status'] }}
+            </div>
+        {% endif %}
+    {% endif %}
+    
+    {#-- Attendance data summary--#}
+    {% if type == 'attn_summary' %}
+        <div class="form-style-2-heading">Attendance Summary</div>
+        <span><b>Month:</b> {{ form.month.data }}<br>
+        <table class="data">
+            <th>Full Name</th>
+            <th>&nbsp</th>
+            <th>Absent</th>
+            <th>&nbsp</th>
+            <th>Late</th>
+            <th>&nbsp</th>
+
+            {% if query == 'team' %}
+                {% for list in summary %}
+                    {% for user in list %}
+                    <tr>
+                        <td>{{ user[0] }}</td>
+                        <th>&nbsp</th>
+                        <td>{{ user[1] }}</td>
+                        <th>&nbsp</th>
+                        <td>{{ user[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+            {% endif %}
+
+            {% if query == 'all' %}
+                {% for row in summary %}
+                    <tr>
+                        <td>{{ row.employee.fullname }}</td>
+                        <th>&nbsp</th>
+                        <td>{{ row.absent }}</td>
+                        <th>&nbsp</th>
+                        <td>{{ row.late }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        
+        </table>
+    {% endif %}
+
+    {#-- Attendance data details--#}
+    {% if type == 'attn_details' %}
+        <div class="form-style-2-heading">Attendance Status</div>
+        {% if query_type == 'username' %}
+            <p><b>Employee:</b> {{ fullname }}<br>
+            <b>Month:</b> {{ form.month.data }} </p>
+        {% endif %}
+        {% if user == 'self' %}
+            <b><i>Absent:</i></b> {{ absent[0] }}
+            <b><i>Late:</i></b> {{ late[0] }}
+        {% endif %}
+        <table class="data">
+            {% if query_type == 'date' %}
+             <th>Name</th>
+            {% endif %}
+            <th>Date</th>
+            <th>&nbsp</th>
+            <th>In Time</th>
+            <th>&nbsp</th>
+            <th>Out Time</th>
+            <th>&nbsp</th>
+            <th>Approved</th>
+            <th>&nbsp</th>
+            {% for row in attendance %}
+                <tr>
+                    {% if query_type == 'date' %}
+                        <td>{{ row['fullname'] }}</td>
+                    {% endif %}
+                    <td>{{ row['date'] }}</td>
+                    <td>&nbsp</td>
+                    <td>{{ row['in_time'] }}</td>
+                    <td>&nbsp</td>
+                    <td>{{ row['out_time'] }}</td>
+                    <td>&nbsp</td>
+                    <td>{{ row['approved'] }}</td>
+                    <td>&nbsp</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    {% if type == 'attn_appl_status' %}
+        <div class="form-style-2-heading">Attendance Application Status</div>
+        <table class="data">
+            <th>Name</th>
+            <th>&nbsp</th>
+            <th>Type</th>
+            <th>&nbsp</th>
+            <th>Star Date</th>
+            <th>&nbsp</th>
+            <th>Duration(days)</th>
+            <th>&nbsp</th>
+            <th>Status</th>
+            <th>&nbsp</th>
+            
+            {% if user!='all' %}
+                <th>Action</th>
+            {% endif %}
+
+            {% for application in applications %}
+                <tr>
+                    {% if application %}
+                        <td>{{ application['employee']['fullname'] }}</td>
+                        <td></td>
+                        <td><a href="{{ url_for('attendance.appl_details', id=application['id']) }}">{{ application['type'] }}</a></td>
+                        <td></td>
+                        <td>{{ application['start_date'] }}</td>
+                        <td></td>
+                        <td>{{ application['duration'] }}</td>
+                        <td></td>
+                        <td>{{ application['status'] }}</td>
+                        <td></td>
+                        {% if application['status'] == "Approval Pending" %}
+                            {% if user == 'team' %}
+                                <td><a href="{{ url_for('attendance.approval', id=application['id']) }}">Approve</a></td>
+                            {% elif user == 'self' %}
+                                <td><a href="{{ url_for('attendance.cancel', id=application['id']) }}">Cancel</a></td> 
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+            
+    {% endif %}
+
+
+
+{% endblock %}

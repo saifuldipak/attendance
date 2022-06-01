@@ -1,0 +1,14 @@
+[Unit]
+Description=Gunicorn instance to serve Attendance
+After=network.target
+
+[Service]
+User=username
+Group=www-data
+WorkingDirectory=/home/username/attendance
+Environment="PATH=/home/username/attendance/attendance-venv/bin"
+Environment="VIRTUAL_ENV=/home/username/attendance/attendance-venv"
+ExecStart=/home/username/attendance/attendance-venv/bin/gunicorn --workers 3 --bind unix:/tmp/attendance/attendance.sock "attendance:create_app()"
+
+[Install]
+WantedBy=multi-user.target
