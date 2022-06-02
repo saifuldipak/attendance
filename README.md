@@ -9,77 +9,101 @@ This is an app to keep record of employee attendance data from attendance machin
 2. Python3
 
 ## Installation
-1. First create a python virtual environment 
+1. First create and activate a python virtual environment 
 ```bash
-mkdir ~/attendance
-cd ~/attendance
-python3 -m venv attendance-venv
-source attendance-venv/bin/activate
+$ mkdir ~/attendance
+$ cd ~/attendance
+$ python3 -m venv venv
+$ source venv/bin/activate
 ```
+
 2. Copy attendance-x.x.x-py3-none-any.whl to directory created in step one and install
 ```bash
-pip install attendnace-x.x.x-py3-none-any.whl
+(venv)$ pip install attendnace-x.x.x-py3-none-any.whl
 ```
-3. Edit the config file 'config.py' and 'logging.yaml' 
+
+3. Run the app to create instance directory
 ```bash
+(venv)$ export FLASK_APP=attendance
+(venv)$ flask run
+#to exit type
+(venv)$ CTRL+c
+```
+
+4. Edit the config file 'config.py' and 'logging.yaml' 
+```bash
+#copy config files to instance folder, replace 'x' with your installed python 
+#version number. run command "$ python3 --version" to get the versio
+(venv)$ cd ~/attendance/venv/lib/python3.x/site-packages/attendance/config
+(venv)$ cp config.py logging.yaml ~/attendance/venv/var/attendance-instance/
+
 #generating secret key string
-python -c 'import secrets; print(secrets.token_hex())'
+(venv)$ cd ~/attendance/venv/var/attendance-instance
+(venv)$ python -c 'import secrets; print(secrets.token_hex())'
 
 #put the string in the 'config.py' file 'SECRET_KEY'
-nano attendance-venv/config/config.py
+(venv)$ nano config.py
 
 #In "file:" section
 #replace 'username' in 'filename' value with your linux account name  
 #In "mail:" section
 #replace appropriate values for mailhost, fromaddr, toaddrs
-nano attendance-venv/config/logging.yaml 
+(venv)$ nano logging.yaml 
 ```
-4. Configuring systemd
-```bash
-#replace 'username' with your Linux username name
-nano attendance-venv/config/attendance.service
 
-#copy the file to systemd configuration folder
-cp attendance-venv/config/attendance.service /etc/systemd/system/
+5. Create database and admin user
+```bash
+(venv)$ flask initdb
+```
+
+6. Configuring systemd
+```bash
+(venv)$ deactivate
+#copy systemd service file
+$ cd ~/attendance/venv/lib/python3.x/site-packages/attendance/config/
+$ sudo cp attendance.service /etc/systemd/system/
+
+#replace 'username' with your Linux username name
+$ sudo nano /etc/systemd/system/attendance.service
 
 #start attendance service
-sudo systemctl start attendance
-sudo systemctl enable attendance
+$ mkdir /tmp/attendance
+$ sudo systemctl enable --now attendance
 
 #check the status, it should be showing status 'active(running)'
-sudo systemctl status attendance
+$ systemctl status attendance
 ```
-4. Installing and configuring Nginx server
+
+7. Installing and configuring Nginx server
 ```bash
-sudo apt update
-sudo apt install nginx
+$ sudo apt update
+$ sudo apt install nginx
 
 #check status, it should show status 'active(running)'
-sudo systemctl status nginx
+$ systemctl status nginx
 
-#replace your_domain and your_username with appropriate values
-sudo attendance-venv/config/attendance
+#copy attendnace site config file to nginx config directory
+$ sudo cp ~/attendance/venv/lib/python3.8/site-packages/attendance/config/attendance /etc/nginx/sites-available/
 
-#copy to nginx config directory
-cp attendance-venv/config/attendance /etc/nginx/sites-available/
-sudo ln -s /etc/nginx/sites-available/attendance /etc/nginx/sites-enabled
+#edit site config file with appropriate domain name
+$ sudo nano /etc/nginx/sites-vailable/attendance
+
+#create symlink to activate attendance site
+$ sudo ln -s /etc/nginx/sites-available/attendance /etc/nginx/sites-enabled
 
 #check file syntax
-sudo nginx -t
+$ sudo nginx -t
 
 #restart Nginx
-sudo systemctl restart nginx
+$ sudo systemctl restart nginx
 ```
-5. Configure and check firewall
+
+8. Configure and check firewall
 ```bash
-sudo ufw allow 'OpenSSH'
-sudo ufw allow 'Nginx HTTP'
-sudo ufw enable
-sudo ufw status
-```
-6. Create database and admin user
-```bash
-flask initdb
+$ sudo ufw allow 'OpenSSH'
+$ sudo ufw allow 'Nginx HTTP'
+$ sudo ufw enable
+$ sudo ufw status
 ```
 
 ## Usage
