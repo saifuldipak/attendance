@@ -1,0 +1,20 @@
+1.0.0a1 (5-Jun-2022)
+
+Bug fixed:
+Employee create with no email issue fixed
+New parameter added in status functions in Leave module
+Bug fixed in Attendance module
+During app initialization medical leave attachment directory will be created if it does not exists
+Mail module kwargs dict key checking added
+Phone data was missing in employee data insertion statement
+Employee create function modified as per new 'employee' table structure
+
+Style:
+New style added for data representation
+
+From : commit 8db72e4f58c7f7f61d87cfc4801f2028f5ae125d
+To : commit 0146330f8011b3854d0c38cda33ed6717135749f
+
+
+1.0.0a0
+First release
