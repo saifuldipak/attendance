@@ -21,10 +21,19 @@ def create_app(test_config=None):
     )
     
     #create instance directory
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
+    if not os.path.exists(app.instance_path):
+        try:
+            os.makedirs(app.instance_path)
+        except OSError as e:
+            app.logger.error(e)
+
+    #create medical leave application attachment directory
+    file_dir = os.path.join(app.instance_path, 'files')
+    if not os.path.exists(file_dir):
+        try:
+            os.makedirs(file_dir)
+        except OSError as e:
+            app.logger.error(e)
 
     #loading configuration from file
     app.config.from_pyfile('config.py', silent=True)
