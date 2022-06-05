@@ -40,12 +40,12 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
     
     #creating receiver email list
     receivers = [receiver]
-    cc1 = kwargs['cc1']
-    if cc1:
-        receivers.append(cc1)
-    cc2 = kwargs['cc2']
-    if cc2:
-        receivers.append(cc2)
+    
+    if 'cc1' in kwargs:
+        receivers.append(kwargs['cc1'])
+    
+    if 'cc2' in kwargs:
+        receivers.append(kwargs['cc2'])
 
     #creating email subject
     if type == 'leave':
@@ -79,12 +79,11 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
         '''
     
     #creating email body for password reset
-    extra = kwargs['extra']
     if type == 'reset':
-        if not extra:
+        if 'extra' not in kwargs:
             return 'If "type" argument is "reset", you must provide "extra" argument'
         else:
-            body = f'New password : {extra}'
+            body = f"New password : {kwargs['extra']}"
     
     #creating email with header and body
     msg = message.Message()
@@ -92,8 +91,11 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
     msg.add_header('to', receiver)
     
     if type == 'leave' or type == 'attendance':
-        msg.add_header('cc', cc1)
-        msg.add_header('cc', cc2)
+        if 'cc1' in kwargs:
+            msg.add_header('cc', kwargs['cc1'])
+ 
+        if 'cc2' in kwargs:
+            msg.add_header('cc', kwargs['cc2'])
     
     msg.add_header('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     msg.add_header('subject', subject)
