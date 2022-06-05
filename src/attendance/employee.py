@@ -71,15 +71,17 @@ def create():
             flash('Username exists', category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
 
-        email = Employee.query.filter_by(email=form.email.data).first()
-        if email:
-            flash('Email exists', category='error')
-            return render_template('forms.html', form_type='employee_create', form=form)
-        
+        #check if email already exists in database
         if form.email.data:
+            employee = Employee.query.filter_by(email=form.email.data).first()
+            
+            if employee.email:
+                flash('Email exists', category='error')
+                return render_template('forms.html', form_type='employee_create', form=form)         
+            
             email = form.email.data
         else:
-            email = ''
+            email = ''    
 
         if form.department.data == 'Accounts' or form.department.data == 'Sales' or \
             form.role.data == 'Head':
