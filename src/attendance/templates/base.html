@@ -38,7 +38,7 @@
                 <a href="{{ url_for('forms.leave', type='Medical') }}" class="navbar-item">
                     Application-Medical
                 </a>
-                <a href="{{ url_for('leave.status', type='personal') }}" class="navbar-item">
+                <a href="{{ url_for('leave.status_personal') }}" class="navbar-item">
                     Application Status
                 </a>
                 <a href="{{ url_for('leave.summary', type='personal') }}" class="navbar-item">
@@ -78,7 +78,7 @@
                             -- Appl Medical
                         </a>
                     {% endif %}
-                    <a href="{{ url_for('leave.status', type='team') }}" class="navbar-item">
+                    <a href="{{ url_for('leave.status_team') }}" class="navbar-item">
                         -- Appl Status
                     </a>
                     <a href="{{ url_for('leave.summary', type='team') }}" class="navbar-item">

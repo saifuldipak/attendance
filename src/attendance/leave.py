@@ -252,7 +252,7 @@ def status_personal():
     applications = Applications.query.join(Employee).filter_by(id=session['empid']).\
                         order_by(Applications.submission_date.desc()).all()
 
-    return render_template('data.html', type='leave_status', applications=applications)
+    return render_template('data.html', type='leave_status', data='personal', applications=applications)
 
 #Leave application status for team 
 @leave.route('/leave/status/team')
@@ -268,7 +268,7 @@ def status_team():
                         filter(Team.name == team.name).order_by(Applications.status).all()
         applications += applist
 
-    return render_template('data.html', type='leave_status', applications=applications)
+    return render_template('data.html', type='leave_status', data='team', applications=applications)
 
 #Leave application status for all
 @leave.route('/leave/status/all')

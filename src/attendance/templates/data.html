@@ -15,7 +15,7 @@
             <th>&nbsp</th>
             <th>Status</th>
             <th>&nbsp</th>
-            {% if type == 'personal' or type == 'team' %}
+            {% if data == 'personal' or data == 'team' %}
                 <th>Action</th>
             {% endif %}
 
@@ -33,9 +33,9 @@
                         <td>{{ application['status'] }}</td>
                         <td></td>
                         {% if application['status'] == "Approval Pending" %}
-                            {% if type == 'team' %}
+                            {% if data == 'team' %}
                                 <td><a href="{{ url_for('leave.approval', leave_id=application['id']) }}">Approve</a></td>
-                            {% elif type == 'personal' %}
+                            {% elif data == 'personal' %}
                                 <td><a href="{{ url_for('leave.cancel', leave_id=application['id']) }}">Cancel</a></td> 
                             {% else %}
                                 <td></td>
@@ -149,50 +149,49 @@
     {% if type == 'employee_details' %}
         <div class="form-style-2-heading">Employee Details</div>
         <div class="data">
-            <table class="data">
-            {% if employee %}
-                
+            <table class="employee-details">
+            {% if employee %} 
                     <tr>
-                        <td class="table-header-left"> ID</td>
-                        <td class="data-right">{{ employee['id'] }}</td>
+                        <td class="employee-details-header"> ID</td>
+                        <td class="employee-details-data">{{ employee['id'] }}</td>
                     </tr>
                     <tr>
-                        <td class="table-header-left">Username</td>
-                        <td class="data-right">{{ employee['username'] }}</td>
+                        <td class="employee-details-header">Username</td>
+                        <td class="employee-details-data">{{ employee['username'] }}</td>
                     </tr>
                     <tr>
-                        <td class="table-header-left">Full Name</td>
-                        <td class="data-right">{{ employee['fullname'] }}</td> 
+                        <td class="employee-details-header">Full Name</td>
+                        <td class="employee-details-data">{{ employee['fullname'] }}</td> 
                     </tr>
                     <tr>
-                        <td class="table-header-left">Phone</td>
-                        <td class="data-right">{{ employee['phone'] }}</td> 
+                        <td class="employee-details-header">Phone</td>
+                        <td class="employee-details-data">{{ employee['phone'] }}</td> 
                     </tr>
                     <tr>
-                        <td class="table-header-left">Email</td>
-                        <td class="data-right">{{ employee['email'] }}</td>
+                        <td class="employee-details-header">Email</td>
+                        <td class="employee-details-data">{{ employee['email'] }}</td>
                     </tr>
                     <tr>
-                        <td class="table-header-left">Department</td>
-                        <td class="data-right">{{ employee['department']}}</td> 
+                        <td class="employee-details-header">Department</td>
+                        <td class="employee-details-data">{{ employee['department']}}</td> 
                     </tr>
                     <tr>
-                        <td class="table-header-left">Designation</td>
-                        <td class="data-right">{{ employee['designation']}}</td> 
+                        <td class="employee-details-header">Designation</td>
+                        <td class="employee-details-data">{{ employee['designation']}}</td> 
                     </tr>
                     <tr>
-                        <td class="table-header-left">Role</td>
-                        <td class="data-right">{{ employee['role'] }}</td> 
+                        <td class="employee-details-header">Role</td>
+                        <td class="employee-details-data">{{ employee['role'] }}</td> 
                     </tr>
                     <tr>
-                        <td class="table-header-left">Access</td>
-                        <td class="data-right"></td> {{ employee['access']}}
+                        <td class="employee-details-header">Access</td>
+                        <td class="employee-details-data">{{ employee['access']}}</td> 
                     </tr>
                     
                     {% for team in employee.teams %}
                         <tr>
-                            <td class="table-header-left">Team {{ loop.index }}</td>
-                            <td class="data-right">{{ team['name'] }}</td> 
+                            <td class="employee-details-header">Team {{ loop.index }}</td>
+                            <td class="employee-details-data">{{ team['name'] }}</td> 
                         </tr>
                     {% endfor %}
                 </table>
