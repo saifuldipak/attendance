@@ -91,7 +91,7 @@ def create():
         employee = Employee(username=form.username.data, 
                             fullname=form.fullname.data, 
                             password=generate_password_hash(form.password.data),
-                            email=email, department=form.department.data, 
+                            phone=form.phone.data, email=email, department=form.department.data, 
                             designation=form.designation.data, role=form.role.data, access=form.access.data)
 
         db.session.add(employee)
