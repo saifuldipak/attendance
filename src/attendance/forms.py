@@ -21,8 +21,9 @@ months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Augus
 attendance = ['No In', 'No Out', 'Late', 'Early Out']
 years = ['2022', '2023', '2024', '2025']
 actions = ['Add', 'Delete']
-positions = ['Team', 'Manager', 'Head']
-roles = ['User', 'Admin']
+designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 'Jr. Asst. Engineer']
+roles = ['Team', 'Manager', 'Head']
+access = ['User', 'Admin']
 
 #validator function to check file size
 def file_length_check(form, field):
@@ -85,15 +86,17 @@ class Employeecreate(FlaskForm):
     phone = StringField('Phone', render_kw={'class': 'input-field'})
     department = SelectField('Department', render_kw={'class': 'input-field'},
                             choices=departments)
-    team = SelectField('Team',
+    designation = SelectField('Designation', render_kw={'class': 'input-field'}, 
+                            choices=designations)
+    team = SelectField('Team',      
                         render_kw={'class': 'input-field'},
                         choices=teams)
-    position = SelectField('Position',
+    role = SelectField('Role',
                             render_kw={'class': 'input-field'},
-                            choices=positions)
-    role = SelectField('User Type',
+                            choices=roles)
+    access = SelectField('Acess',
                         render_kw={'class': 'input-field'},
-                        choices=roles)
+                        choices=access)
 
 #Delete employee record
 class Employeedelete(FlaskForm):
