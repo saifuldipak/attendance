@@ -374,7 +374,7 @@ def appl_status_team():
         applist = Applications.query.select_from(Applications).\
                     join(Team, Applications.empid==Team.empid).\
                     filter(Team.name == team.name).\
-                    filter(or_(Applications.type!='Casual', Applications.type!='Medical')).\
+                    filter(and_(Applications.type!='Casual', Applications.type!='Medical')).\
                     order_by(Applications.status).all()
         applications += applist
 
