@@ -34,7 +34,7 @@ def user_check(id):
         return True
     elif session['role'] == 'Manager' and session['team'] == team.name:
         return True
-    elif session['role'] == 'Admin' and session['team'] == 'HR':
+    elif session['access'] == 'Admin':
         return True
     else:
         return False
