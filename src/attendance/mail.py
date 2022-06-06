@@ -75,7 +75,6 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
         End date: {application.end_date}
         Remark: {application.remark}
         Status: {application.status}
-        Details: http://localhost:5000/
         '''
     
     #creating email body for password reset
