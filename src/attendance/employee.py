@@ -1,7 +1,7 @@
 import secrets
 from flask import Blueprint, request, flash, redirect, render_template, session, url_for
 from .db import db, Employee, Team, LeaveAvailable
-from .forms import (Changeselfpass, Employeecreate, Employeedelete, Resetpass, Updatedept, 
+from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updatedept, 
                     Updateemail, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
 from .mail import send_mail
@@ -36,17 +36,31 @@ def fiscalyear():
 @login_required
 @admin_required
 def search():
-    if request.method == 'POST':
-        department = request.form['department']
-
-        if department == 'all':
-            employees = Employee.query.all()
-        else:
-            employees = Team.query.join(Employee).filter(Team.department==department).all()
-            
-        return render_template('data.html', action='employee_search', employees=employees)
+    form = Employeesearch()
     
-    return render_template('data.html', action='employee_search')
+    if form.validate_on_submit():
+        #creating string for sql like query
+        string = f'{form.string.data}%'
+        
+        if form.type.data.lower() == 'username':
+            employees = Employee.query.filter(Employee.username.like(string)).all()
+        elif form.type.data.lower() == 'fullname':
+            string = f'%{form.string.data}%'
+            employees = Employee.query.filter(Employee.fullname.like(string)).all()
+        elif form.type.data.lower() == 'department':
+            employees = Employee.query.filter(Employee.department.like(string)).all()
+        elif form.type.data.lower() == 'team':
+            employees = Employee.query.join(Team).filter(Team.name.like(string)).all()
+        elif form.type.data.lower() == 'designation':
+            employees = Employee.query.filter(Employee.designation.like(string)).all()
+        elif form.type.data.lower() == 'access':
+            employees = Employee.query.filter(Employee.access.like(string)).all()
+        else:
+            employees = Employee.query.all()
+
+        return render_template('data.html', action='employee_search', form=form, employees=employees)
+    
+    return render_template('data.html', action='employee_search', form=form)
 
 ## Show detail employee record for every employee ##
 @employee.route('/employee/details/<id>', methods=['GET', 'POST'])

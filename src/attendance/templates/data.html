@@ -4,17 +4,13 @@
 
     {% if type == 'leave_status' %}
         <div class="form-style-2-heading">Leave application status</div>
-        <table class="data">
+        <table class="query-result">
             <th>Name</th>
-            <th>&nbsp</th>
             <th>Type</th>
-            <th>&nbsp</th>
             <th>Star Date</th>
-            <th>&nbsp</th>
             <th>Duration(days)</th>
-            <th>&nbsp</th>
             <th>Status</th>
-            <th>&nbsp</th>
+            
             {% if data == 'personal' or data == 'team' %}
                 <th>Action</th>
             {% endif %}
@@ -23,22 +19,15 @@
                 <tr>
                     {% if application %}
                         <td>{{ application['employee']['fullname'] }}</td>
-                        <td></td>
                         <td><a href="{{ url_for('leave.details', id=application['id']) }}"> {{ application['type'] }}</a></td>
-                        <td></td>
                         <td>{{ application['start_date'] }}</td>
-                        <td></td>
                         <td>{{ application['duration'] }}</td>
-                        <td></td>
                         <td>{{ application['status'] }}</td>
-                        <td></td>
                         {% if application['status'] == "Approval Pending" %}
                             {% if data == 'team' %}
                                 <td><a href="{{ url_for('leave.approval', leave_id=application['id']) }}">Approve</a></td>
                             {% elif data == 'personal' %}
                                 <td><a href="{{ url_for('leave.cancel', leave_id=application['id']) }}">Cancel</a></td> 
-                            {% else %}
-                                <td></td>
                             {% endif %}
                         {% endif %}
                     {% endif %}
@@ -50,49 +39,43 @@
 
 
     {% if action == 'employee_search' %}
-        <h1>Employee Record Search</h1>
-
-        <form method="post">
-            <label for='department'>Department:</label>
-                <select name='department', id='department'>
-                    <option value='all'>All</option>
-                    <option value='accounts'>Accounts</option>
-                    <option value='sales'>Sales</option>
-                    <option value='technical'>Technical</option>
-                </select>
-            <input type='submit' value='Search'>
-        </form> 
-
-        <table class="data">
-            <th>ID</th>
-            <th>&nbsp</th>
-            <th>User Name</th>
-            <th>&nbsp</th>
-            <th>Full Name</th>
-            <th>&nbsp</th>
-            <th>Department</th>
-            <th>&nbsp</th>
-            {% for employee in employees %}
-                <tr>
-                    {% if employee %}
-                        <td>{{ employee['id'] }}</td>
-                        <td></td>
-                        <td><a href="{{ url_for('employee.details', id=employee['id']) }}">{{ employee['username'] }}</a></td>
-                        <td></td>
-                        <td>{{ employee['fullname'] }}</td>
-                        <td></td>
-                        <td>{{ employee['department'] }}</td>
-                        <td></td>
-                    {% endif %}
-                </tr>
-            {% endfor %}
-    </table>
+        <div class="employee-search">
+            <form method="post" action="{{ url_for('employee.search') }}">
+                {{ form.csrf_token }}
+                <div class="form-style-2-heading">Search Employee Record</div>
+                    <label for="string">
+                        <span>{{ form.string.label }}</span>
+                                {{ form.string }}
+                    </label>
+                    <label for="type">
+                        <span>{{ form.type.label }}</span>
+                            {{ form.type }}
+                    </label>
+                <input type='submit' value='Search'>
+            </form> 
+        </div>
+        
+            <table class="query-result">
+                <th>User Name</th>
+                <th>Full Name</th>
+                <th>Department</th>
+                {% for employee in employees %}
+                    <tr>
+                        {% if employee %}
+                            <td><a href="{{ url_for('employee.details', id=employee['id']) }}">{{ employee['username'] }}</a></td>
+                            <td>{{ employee['fullname'] }}</td>        
+                            <td>{{ employee['department'] }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </table>
+        
     {% endif %}
 
     {#-- Leave Summary --#}
     {% if data_type == 'leave_summary' %}
         <div class="form-style-2-heading">Available Leave</div>
-        <table class="data">
+        <table class="query-result">
             <th>Name</th>
             <th>&nbsp</th>
             <th>Casual</th>
@@ -221,7 +204,7 @@
     {% if type == 'attn_summary' %}
         <div class="form-style-2-heading">Attendance Summary</div>
         <span><b>Month:</b> {{ form.month.data }}<br>
-        <table class="data">
+        <table class="query-result">
             <th>Full Name</th>
             <th>&nbsp</th>
             <th>Absent</th>
@@ -269,7 +252,7 @@
             <b><i>Absent:</i></b> {{ absent[0] }}
             <b><i>Late:</i></b> {{ late[0] }}
         {% endif %}
-        <table class="data">
+        <table class="query-result">
             {% if query_type == 'date' %}
              <th>Name</th>
             {% endif %}
@@ -301,17 +284,12 @@
 
     {% if type == 'attn_appl_status' %}
         <div class="form-style-2-heading">Attendance Application Status</div>
-        <table class="data">
+        <table class="query-result">
             <th>Name</th>
-            <th>&nbsp</th>
             <th>Type</th>
-            <th>&nbsp</th>
             <th>Star Date</th>
-            <th>&nbsp</th>
             <th>Duration(days)</th>
-            <th>&nbsp</th>
             <th>Status</th>
-            <th>&nbsp</th>
             
             {% if user!='all' %}
                 <th>Action</th>
@@ -321,22 +299,15 @@
                 <tr>
                     {% if application %}
                         <td>{{ application['employee']['fullname'] }}</td>
-                        <td></td>
                         <td><a href="{{ url_for('attendance.appl_details', id=application['id']) }}">{{ application['type'] }}</a></td>
-                        <td></td>
                         <td>{{ application['start_date'] }}</td>
-                        <td></td>
                         <td>{{ application['duration'] }}</td>
-                        <td></td>
                         <td>{{ application['status'] }}</td>
-                        <td></td>
                         {% if application['status'] == "Approval Pending" %}
                             {% if user == 'team' %}
                                 <td><a href="{{ url_for('attendance.approval', id=application['id']) }}">Approve</a></td>
                             {% elif user == 'self' %}
                                 <td><a href="{{ url_for('attendance.cancel', id=application['id']) }}">Cancel</a></td> 
-                            {% else %}
-                                <td></td>
                             {% endif %}
                         {% endif %}
                     {% endif %}

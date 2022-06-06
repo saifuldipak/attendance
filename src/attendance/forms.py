@@ -24,6 +24,7 @@ actions = ['Add', 'Delete']
 designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 'Jr. Asst. Engineer']
 roles = ['Team', 'Manager', 'Head']
 access = ['User', 'Admin']
+types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
 
 #validator function to check file size
 def file_length_check(form, field):
@@ -254,6 +255,11 @@ class Updaterole(FlaskForm):
 
 forms = Blueprint('forms', __name__)
 
+#Employee search
+class Employeesearch(FlaskForm):
+    string = StringField('Search string', render_kw={'class': 'input-field'})
+    type = SelectField('Search by', render_kw={'class': 'input-field'}, choices=types)
+
 #Leave application
 @forms.route('/forms/leave/<type>', methods=['GET', 'POST'])
 @login_required
@@ -410,3 +416,11 @@ def leave_fiber(type):
     form.empid.choices = [(i.id, i.fullname) for i in names]
     
     return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
+
+#Search employee 
+@forms.route('/forms/employee/search')
+@login_required
+@admin_required
+def employee_search():
+    form = Employeesearch()
+    return render_template('data.html', action='employee_search', form=form)
