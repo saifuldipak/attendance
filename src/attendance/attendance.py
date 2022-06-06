@@ -387,7 +387,7 @@ def appl_status_team():
 @login_required
 @admin_required
 def appl_status_all():
-    applications = Applications.query.filter(or_(Applications.type!='Casual', 
+    applications = Applications.query.filter(and_(Applications.type!='Casual', 
                                                 Applications.type!='Medical')).\
                                         order_by(Applications.status).all()
     
