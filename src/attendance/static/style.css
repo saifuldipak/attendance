@@ -1,5 +1,5 @@
 body {
-    background-color: rgb(98, 189, 125);
+    background-color: rgb(113, 216, 144);
 }
 
 h1 {
@@ -51,8 +51,8 @@ td.item {
 
  /* Dropdown Button */
  .dropbtn {
-    background-color: rgb(98, 189, 125);
-    color: white;
+    background-color: transparent;
+    color: rgb(52, 51, 51);
     padding: 10px;
     font-size: 18px;
     border: none;
@@ -220,22 +220,89 @@ a:visited.navbar2 {
     text-decoration: none;
 }
 
+/* employee details */
 .employee-details {
-    border: white;
-    border-style: solid;
-    border-width: 1px;
+    border: none;
     
 }
 
 .employee-details-header {
-    background-color: #4fec8c;
+    background-color: #039660;
     font-weight: bold;
     padding: 8px;
+    color: white;
     
 }
 
 .employee-details-data {
-    background-color: #8be5ad;
+    background-color: white;
     padding: 8px;
 
+}
+
+.employee-search {
+    margin: 4px;
+}
+
+/*employee search data */
+.employee-data {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    margin: 10px;
+    background-color: rgb(243, 240, 240);
+}
+
+.employee-data td, .employee-data th {
+    /*border-bottom: 1px solid rgb(76, 74, 74);*/
+    padding: 8px;
+}
+
+.employee-data tr:nth-child(odd) {
+    background-color: #b7ebbe;
+}
+
+.employee-data th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: center;
+    background-color: #04AA6D;
+    color: white;
+}
+  
+.employee-data tr:hover {
+    background-color: rgb(108, 234, 137);
+}
+  
+/* logged in username */
+.username {
+    color:rgb(57, 63, 58)
+}
+
+/* all types of query result presentation */
+.query-result {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    margin: 10px;
+    background-color: rgb(243, 240, 240);
+}
+
+.query-result td, .query-result th {
+    /*border-bottom: 1px solid rgb(76, 74, 74);*/
+    padding: 8px;
+}
+
+.query-result tr:nth-child(odd) {
+    background-color: #b7ebbe;
+}
+
+.query-result th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: center;
+    background-color: #04AA6D;
+    color: white;
+}
+  
+.query-result tr:hover {
+    background-color: rgb(108, 234, 137);
 }

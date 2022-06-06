@@ -10,8 +10,23 @@
 </head>
 
 <body>
-    <span>@{{ session["username"] }}</span>
-
+    
+    {#-- User menu for each employee --#}
+    <div class="dropdown">
+        <button class="dropbtn">@{{ session["username"] }}</button>
+            <div class="dropdown-content">
+                <a href="{{ url_for('employee.details_self') }}" class="navbar-item">
+                    Details
+                </a>
+                <a href="{{ url_for('forms.password_self') }}" class="navbar-item">
+                    Change password
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="navbar-item">
+                    Logout
+                </a>
+                
+            </div>
+    </div>
     {#-- Attendance menu for each employee --#}
     <div class="dropdown">
         <button class="dropbtn">Attendance</button>
@@ -45,28 +60,13 @@
                     Summary
                 </a>
             </div>
-    </div>
+        </div>
 
-    {#-- User menu for each employee --#}
-    <div class="dropdown">
-        <button class="dropbtn">User</button>
-            <div class="dropdown-content">
-                <a href="{{ url_for('employee.details_self') }}" class="navbar-item">
-                    Details
-                </a>
-                <a href="{{ url_for('forms.password_self') }}" class="navbar-item">
-                    Change password
-                </a>
-                <a href="{{ url_for('auth.logout') }}" class="navbar-item">
-                    Logout
-                </a>
-                
-            </div>
-    </div>
+    
 
     {#-- Team menu for managers --#}
     {% if session['role'] == 'Manager' %}
-        <div class="dropdown">
+    <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
                     <p>Leave
@@ -98,12 +98,12 @@
                         </a>
                     {% endif %}
                 </div>
-        </div>
+            </div>
     {% endif %}
 
     {#-- Team menu for admins --#}
     {% if session['access'] == 'Admin' %}
-        <div class="dropdown">
+    <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
                     <p>Leave
@@ -131,9 +131,9 @@
                         -- Summary
                     </a>  
                 </div>
-        </div>
+            </div> 
 
-        <div class="dropdown">
+            <div class="dropdown">
             <button class="dropbtn">Employee</button>
                 <div class="dropdown-content">
                     <a href="{{ url_for('employee.search', action='employee_search') }}" class="navbar-item">
@@ -152,6 +152,7 @@
                 </div>
         </div>   
     {% endif %}
+    
     
 
     {#-- Rendering flash messages --#}
