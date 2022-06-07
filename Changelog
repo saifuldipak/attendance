@@ -1,5 +1,21 @@
-1.0.0a1 (5-Jun-2022)
+1.0.0a2 (6-Jun-2022)
+--------------------
+Bug fixed:
+Attendance module appl_status_all function query logic
+static url removed from mail module send_mail function
+check_id function will only check sesion variable 'access' for 'Admin' user
 
+Feature:
+Employee search function added
+
+Style:
+All types of query result presentation changed
+
+From: commit 780925e
+To: commit 42b10c0 
+
+1.0.0a1 (5-Jun-2022)
+--------------------
 Bug fixed:
 Employee create with no email issue fixed
 New parameter added in status functions in Leave module
@@ -15,6 +31,6 @@ New style added for data representation
 From : commit 8db72e4f58c7f7f61d87cfc4801f2028f5ae125d
 To : commit 0146330f8011b3854d0c38cda33ed6717135749f
 
-
-1.0.0a0
+1.0.0a0 (2-Jun-2022)
+--------
 First release
