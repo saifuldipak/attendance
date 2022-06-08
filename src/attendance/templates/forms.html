@@ -227,6 +227,25 @@
                 <form method="post" action="{{ url_for('attendance.application') }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Attendance Application</div>
+                    {% if team == 'fiber' %}
+                        <form method="post" action="{{ url_for('attendance.application_fiber', type=leave) }}" enctype="multipart/form-data">
+                    {% else %}
+                        <form method="post" action="{{ url_for('leave.application', type=leave) }}" enctype="multipart/form-data"> 
+                    {% endif %}    
+                
+                {{ form.csrf_token }}
+                    
+                    {% if team == 'fiber' %}
+                        <label for="empid">
+                            <span>{{ form.empid.label }}</span>
+                            {{ form.empid }}                    
+                        </label>
+                    {% endif %}
+                    
+                    
+                    
+                    
+                    
                     <label for="start_date">
                         <span>{{ form.start_date.label }}</span>
                             {{ form.start_date }}

@@ -21,7 +21,7 @@ months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Augus
 attendance = ['No In', 'No Out', 'Late', 'Early Out']
 years = ['2022', '2023', '2024', '2025']
 actions = ['Add', 'Delete']
-designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 'Jr. Asst. Engineer']
+designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 'Jr. Asst. Engineer', 'Driver', 'Peon']
 roles = ['Team', 'Manager', 'Head']
 access = ['User', 'Admin']
 types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
@@ -170,6 +170,10 @@ class Attnapplication(FlaskForm):
             self.end_date.errors.append('End date must be same or later than Start date')
             return False
         return True
+
+#Attendance application for Fiber
+class Attnapplfiber(Attnapplication):
+    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
 
 #Attendance summary
 class Attnsummary(FlaskForm):
@@ -424,3 +428,14 @@ def leave_fiber(type):
 def employee_search():
     form = Employeesearch()
     return render_template('data.html', action='employee_search', form=form)
+
+#Attendance application Fiber
+@forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
+@login_required
+def attn_fiber():
+    form = Attnapplfiber()
+    
+    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
+    form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+    return render_template('forms.html', type='attn_application', team='fiber', form=form)

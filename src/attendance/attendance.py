@@ -4,7 +4,7 @@ from sqlalchemy import and_, or_, extract, func
 import pandas as pd
 from .check import date_check, user_check
 from .mail import send_mail
-from .forms import Attnqueryall, Attnqueryalldate, Attnqueryallusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary
+from .forms import Attnapplfiber, Attnqueryall, Attnqueryalldate, Attnqueryallusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary
 from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
 from .auth import login_required, admin_required, manager_required
 
@@ -290,9 +290,10 @@ def application():
         db.session.commit()
         flash('Attendance application submitted')
 
-        #getting leave application data from database for the above submitted leave
+        #getting attendance application data from database for the above submitted leave
         application = Applications.query.filter_by(start_date=form.start_date.data, 
-                                            end_date=form.end_date.data, empid=session['empid']).first()
+                                            end_date=form.end_date.data, type='Present', 
+                                            empid=session['empid']).first()
        
         #Getting manager email address of the above employee
         manager = Employee.query.join(Team).filter(Team.name==session['team'], 
@@ -506,3 +507,70 @@ def summary():
             flash('Attendance summary created', category='message')
     
     return redirect(url_for('forms.attn_summary'))
+
+##Casual and Medical attendance application submission for Fiber##
+@attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
+@login_required
+@manager_required
+def application_fiber(type):
+    
+    form = Attnapplfiber()
+
+    if form.validate_on_submit():
+        #checking employee id 
+        employee = Employee.query.filter_by(id=form.empid.data).first()
+        if not employee:
+            flash('Employee does not exists', category='error')
+            return redirect(url_for('forms.attn_fiber', type=type))
+
+        #checking dates with date_check() function
+        msg = date_check(employee.id, form.start_date.data, form.end_date.data)
+        if msg:
+            flash(msg, category='error')
+            return redirect(url_for('forms.attn_fiber', type=type))
+                
+        #submit application
+        duration = (form.start_date.data - form.end_date.data).days + 1
+        application = Applications(empid=employee.id, start_date=form.start_date.data, 
+                                    end_date=form.end_date.data, duration=duration, 
+                                    type='Present', remark=form.remark.data, 
+                                    submission_date=datetime.now(), status='Approval Pending')
+        db.session.add(application)
+        db.session.commit()
+        flash('Attendance application submitted')
+        
+        #getting attendance application data from database for the above submitted leave
+        application = Applications.query.filter_by(empid=employee.id, 
+                                                start_date=form.start_date.data, 
+                                                end_date=form.end_date.data, type='Present').first()
+       
+        #Getting manager email address of the above employee
+        manager = Employee.query.join(Team).filter(Team.name==session['team'], 
+                                                    Employee.role=='Manager').first()
+
+        #Getting admin email
+        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+        if not admin:
+            flash('Failed to send mail (HR email not found)', category='warning')
+            return redirect(request.url)
+
+        #Getting department head email
+        head = Employee.query.filter(Employee.department==manager.department, 
+                                        Employee.role=='Head').first()
+        if not head:
+            flash('Failed to send mail (Department head email not found)', category='warning')
+            return redirect(request.url)
+        
+        #sending mail to all concerned
+        host = current_app.config['SMTP_HOST']
+        port = current_app.config['SMTP_PORT']
+        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
+                        cc1=head.email, application=application, type='attendance', action='approved')
+        
+        if rv:
+            msg = 'Mail sending failed (' + str(rv) + ')' 
+            flash(msg, category='error')
+    else:
+        return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
+
+    return redirect(request.url)

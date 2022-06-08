@@ -86,6 +86,11 @@
                     </a>
                     </p>
                     Attendance
+                    {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
+                        <a href="{{ url_for('forms.attn_fiber') }}" class="navbar-item">
+                            -- Application
+                            </a>
+                    {% endif %}
                     <a href="{{ url_for('attendance.appl_status_team') }}" class="navbar-item">
                         -- Appl Status
                     </a>
