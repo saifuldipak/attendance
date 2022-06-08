@@ -219,7 +219,7 @@ def application_fiber(type):
                                                     Employee.role=='Manager').first()
 
         #Getting admin email
-        admin = Employee.query.join(Team).filter(Team.name=='HR', Employee.role=='Admin').first()
+        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
 
         if not admin:
             flash('Failed to send mail (HR email not found)', category='error')
@@ -376,8 +376,12 @@ def approval():
         flash('You are not authorized', category='error')
         return redirect(url_for('leave.status', type='team'))
 
+    #Getting leave summary record
     summary = LeaveAvailable.query.filter_by(empid=leave.empid).first()
-    
+    if not summary:
+        flash('Leave summary not found', category='error')
+        current_app.logger.warning('Leave summary not found, leave id: %s', leave_id)
+
     # if casual leave not available, add earned with casual, 
     # if still not available print error
     if leave.type == 'Casual':
@@ -523,6 +527,5 @@ def deduction():
         flash('Leave deducted')
     else:
         flash('No record found in attendance summary', category='warning')
-    
     
     return redirect(url_for('forms.leave_deduction'))
