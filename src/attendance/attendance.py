@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from threading import local
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 from sqlalchemy import and_, or_, extract, func
 import pandas as pd
@@ -308,7 +309,7 @@ def application():
         employee = Employee.query.filter_by(id=session['empid']).first()
 
         if not manager:
-            flash('Manager record not found for your team', category='error')
+            flash('Manager record not found for your team', category='warning')
             return redirect(request.url)
         
         #send mail to all concern
@@ -318,7 +319,7 @@ def application():
                         type='attendance', action='submitted', application=application)
         if rv:
             msg = 'Mail sending failed (' + str(rv) + ')' 
-            flash(msg, category='error')
+            flash(msg, category='warning')
     else:
         return render_template('forms.html', type='attn_application', form=form)
     
@@ -384,8 +385,7 @@ def appl_status_team():
                     order_by(Applications.status).all()
         applications += applist
 
-    return render_template('data.html', type='attn_appl_status', user='team', 
-                                applications=applications)
+    return render_template('data.html', type='attn_appl_status', user='team', applications=applications)
 
 
 #Attendance application status for all 
@@ -400,26 +400,28 @@ def appl_status_all():
     return render_template('data.html', type='attn_appl_status', user='all', 
                         applications=applications)
 
-#Attendance application approval
+##Attendance application approval##
 @attendance.route('/attendance/application/approval')
 @login_required
 @manager_required
 def approval():
     id = request.args.get('id')
-
+    
     if not user_check(id):
         flash('You are not authorizes to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
+    #Approve application and update appr_leave_attn table
     application = Applications.query.filter_by(id=id).first()
     start_date = application.start_date
     end_date = application.end_date
+    type = request.args.get('type')
     
     while  start_date <= end_date:
         attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==application.empid).\
                                         filter(ApprLeaveAttn.date==start_date).first()
         if attendance:
-            attendance.approved = 'Present'
+            attendance.approved = type
         
         start_date += timedelta(days=1)
     
@@ -428,25 +430,36 @@ def approval():
     db.session.commit()
     flash('Application approved')
     
-    #Getting HR email 
-    admin = Employee.query.join(Team).filter(Employee.role=='Admin', Team.name=='HR').first()
-
-    #Getting manager email
+    #Send mail to all concerned
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if not admin:
+        current_app.logger.warning('HR email not found')
+        msg = 'warning'
+    
     manager = Employee.query.filter_by(id=session['empid']).first()
+    if not manager:
+        current_app.logger.warning('Team Manager email not found')
+        msg = 'warning'
 
-    #Getting department head email
     head = Employee.query.filter(Employee.department==application.employee.department, 
                                     Employee.role=='Head').first()
+    if not head:
+        current_app.logger.warning('Dept. Head email not found')
+        msg = 'warning'
+    
+    if 'msg' in locals():
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
 
-    #send mail to concern parties
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
+    
     rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
                     cc1=application.employee.email, cc2=head.email, type='attendance', 
                     action='approved', application=application)
     if rv:
         msg = 'Mail sending failed (' + str(rv) + ')' 
-        flash(msg, category='error')
+        flash(msg, category='warning')
     
     return redirect(url_for('attendance.appl_status_team'))
 
@@ -590,7 +603,7 @@ def application_fiber():
         
         if rv:
             msg = 'Mail sending failed (' + str(rv) + ')' 
-            flash(msg, category='error')
+            flash(msg, category='warning')
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
