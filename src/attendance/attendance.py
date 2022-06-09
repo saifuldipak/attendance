@@ -517,56 +517,72 @@ def summary():
 @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
 @login_required
 @manager_required
-def application_fiber(type):
+def application_fiber():
     
     form = Attnapplfiber()
 
     if form.validate_on_submit():
-        #checking employee id 
+        
         employee = Employee.query.filter_by(id=form.empid.data).first()
         if not employee:
             flash('Employee does not exists', category='error')
-            return redirect(url_for('forms.attn_fiber', type=type))
-
-        #checking dates with date_check() function
+            return redirect(url_for('forms.attn_fiber'))
+        
         msg = date_check(employee.id, form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
-            return redirect(url_for('forms.attn_fiber', type=type))
-                
-        #submit application
-        duration = (form.start_date.data - form.end_date.data).days + 1
+            return redirect(url_for('forms.attn_fiber'))
+            
+        #Submit & approve application
+        if form.end_date.data: 
+            duration = (form.end_date.data - form.start_date.data).days + 1
+        else:
+            duration = 1
+        
+        if not form.end_date.data:
+            form.end_date.data = form.start_date.data
+        
         application = Applications(empid=employee.id, start_date=form.start_date.data, 
                                     end_date=form.end_date.data, duration=duration, 
-                                    type='Present', remark=form.remark.data, 
-                                    submission_date=datetime.now(), status='Approval Pending')
+                                    type=form.type.data, remark=form.remark.data, 
+                                    submission_date=datetime.now(), status='Approved')
         db.session.add(application)
         db.session.commit()
         flash('Attendance application submitted')
         
-        #getting attendance application data from database for the above submitted leave
+        #Updating appr_leave_attn table
+        start_date = form.start_date.data
+        end_date = form.end_date.data
+        while start_date <= end_date:
+            attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==start_date, 
+                            ApprLeaveAttn.empid==employee.id).first()
+        
+            if attendance:
+                attendance.approved = form.type.data
+            
+            start_date += timedelta(days=1)
+
+        db.session.commit()
+        
+        #Send mail to all concerned with application details
         application = Applications.query.filter_by(empid=employee.id, 
                                                 start_date=form.start_date.data, 
-                                                end_date=form.end_date.data, type='Present').first()
+                                                end_date=form.end_date.data, type=form.type.data).first()
        
-        #Getting manager email address of the above employee
         manager = Employee.query.join(Team).filter(Team.name==session['team'], 
                                                     Employee.role=='Manager').first()
 
-        #Getting admin email
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
         if not admin:
             flash('Failed to send mail (HR email not found)', category='warning')
             return redirect(request.url)
 
-        #Getting department head email
         head = Employee.query.filter(Employee.department==manager.department, 
                                         Employee.role=='Head').first()
         if not head:
             flash('Failed to send mail (Department head email not found)', category='warning')
             return redirect(request.url)
         
-        #sending mail to all concerned
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
         rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
@@ -578,4 +594,4 @@ def application_fiber(type):
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
-    return redirect(request.url)
+    return redirect(url_for('forms.attn_fiber'))

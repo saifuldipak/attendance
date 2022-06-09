@@ -224,46 +224,44 @@
     {# --attendance application form-- #}
     {% if type == 'attn_application' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.application') }}">
-                    {{ form.csrf_token }}
-                    <div class="form-style-2-heading">Attendance Application</div>
-                    {% if team == 'fiber' %}
-                        <form method="post" action="{{ url_for('attendance.application_fiber', type=leave) }}" enctype="multipart/form-data">
-                    {% else %}
-                        <form method="post" action="{{ url_for('attendance.application', type=leave) }}" enctype="multipart/form-data"> 
-                    {% endif %}    
+                <div class="form-style-2-heading">Attendance Application</div>
+                {% if team == 'fiber' %}
+                    <form method="post" action="{{ url_for('attendance.application_fiber') }}">
+                {% else %}
+                    <form method="post" action="{{ url_for('attendance.application') }}"> 
+                {% endif %}    
                 
                 {{ form.csrf_token }}
                     
-                    {% if team == 'fiber' %}
-                        <label for="empid">
-                            <span>{{ form.empid.label }}</span>
-                            {{ form.empid }}                    
-                        </label>
-                    {% endif %}
-                    
-                    <label for="start_date">
-                        <span>{{ form.start_date.label }}</span>
-                            {{ form.start_date }}
+                {% if team == 'fiber' %}
+                    <label for="empid">
+                        <span>{{ form.empid.label }}</span>
+                        {{ form.empid }}                    
                     </label>
-                    <label for="end_date">
-                        <span>{{ form.end_date.label }} </span>
-                        {{ form.end_date }}(optional)
-                    </label>
-                    <label for="end_date">
-                        <span>{{ form.type.label }}</span>
-                            {% for subfield in form.type %}
-                            <span>{{ subfield }}{{ subfield.label }} </span> 
-                            {% endfor %}
-                    </label>
-                    <label for="remark">
-                        <span>{{ form.remark.label }} </span>
-                        {{ form.remark }}
-                    </label>
-                    <label>
-                        <span> </span>
-                        <input type="submit" value="Submit" /></label>
-                    </label>
+                {% endif %}
+                
+                <label for="start_date">
+                    <span>{{ form.start_date.label }}</span>
+                        {{ form.start_date }}
+                </label>
+                <label for="end_date">
+                    <span>{{ form.end_date.label }} </span>
+                    {{ form.end_date }}(optional)
+                </label>
+                <label for="end_date">
+                    <span>{{ form.type.label }}</span>
+                        {% for subfield in form.type %}
+                        <span>{{ subfield }}{{ subfield.label }} </span> 
+                        {% endfor %}
+                </label>
+                <label for="remark">
+                    <span>{{ form.remark.label }} </span>
+                    {{ form.remark }}
+                </label>
+                <label>
+                    <span> </span>
+                    <input type="submit" value="Submit" /></label>
+                </label>
     {% endif %}
 
     {# --attendance summary form-- #}
