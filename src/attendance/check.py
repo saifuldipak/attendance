@@ -44,13 +44,12 @@ def date_check(empid, start_date, end_date):
 #user is the manager of the applicant's team or
 #user role is admin and user is a member of HR team
 def user_check(id):
-    employee = Employee.query.join(Applications).filter(Applications.id==id).first()
-    team = Team.query.filter_by(empid=employee.id).first()
-    #manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
+    employee = Employee.query.join(Applications, Team).filter(Applications.id==id).first()
+    manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
 
     if employee.username == session['username']:
         return True
-    elif session['role'] == 'Manager' and session['team'] == team.name:
+    elif manager:
         return True
     elif session['access'] == 'Admin':
         return True
