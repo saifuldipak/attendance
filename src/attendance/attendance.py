@@ -264,27 +264,32 @@ def query_self():
         
     return render_template('forms.html', type='attnquery', user='all', form=form)
 
-#Attendance approval application
+##Attendance approval application##
 @attendance.route('/attendance/application', methods=['GET', 'POST'])
 @login_required
 def application():
     form = Attnapplication()
-    duration = (form.start_date.data - form.end_date.data).days + 1
-    
     employee = Employee.query.filter_by(username=session['username']).first()
     
     if form.validate_on_submit():
-        
-        #checking whether dates exists in any submitted application with date_check() function
+
         msg = date_check(session['empid'], form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
             return redirect(url_for('forms.attn_application'))
         
         #submit application
+        if form.end_date.data: 
+            duration = (form.end_date.data - form.start_date.data).days + 1
+        else:
+            duration = 1
+        
+        if not form.end_date.data:
+            form.end_date.data = form.start_date.data
+        
         application = Applications(empid=employee.id, start_date=form.start_date.data, 
                                     end_date=form.end_date.data, duration=duration, 
-                                    type='Present', remark=form.remark.data, 
+                                    type=form.type.data, remark=form.remark.data, 
                                     submission_date=datetime.now(), status='Approval Pending')
         db.session.add(application)
         db.session.commit()
@@ -292,7 +297,7 @@ def application():
 
         #getting attendance application data from database for the above submitted leave
         application = Applications.query.filter_by(start_date=form.start_date.data, 
-                                            end_date=form.end_date.data, type='Present', 
+                                            end_date=form.end_date.data, type=form.type.data, 
                                             empid=session['empid']).first()
        
         #Getting manager email address of the above employee
@@ -315,9 +320,9 @@ def application():
             msg = 'Mail sending failed (' + str(rv) + ')' 
             flash(msg, category='error')
     else:
-        return render_template('forms.html', type='attn_application')
-        
-    return redirect(url_for('forms.attn_application'))
+        return render_template('forms.html', type='attn_application', form=form)
+    
+    return redirect(request.url)
 
 ## Attendance application cancel function ##
 @attendance.route('/attendance/cancel/<id>')

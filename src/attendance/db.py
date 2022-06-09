@@ -33,7 +33,7 @@ class Applications(db.Model):
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     type = db.Column(db.String(16), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
     duration = db.Column(db.Integer, nullable=False)
     remark = db.Column(db.String(100))
     submission_date = db.Column(db.DateTime, nullable=False)

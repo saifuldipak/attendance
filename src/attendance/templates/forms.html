@@ -230,7 +230,7 @@
                     {% if team == 'fiber' %}
                         <form method="post" action="{{ url_for('attendance.application_fiber', type=leave) }}" enctype="multipart/form-data">
                     {% else %}
-                        <form method="post" action="{{ url_for('leave.application', type=leave) }}" enctype="multipart/form-data"> 
+                        <form method="post" action="{{ url_for('attendance.application', type=leave) }}" enctype="multipart/form-data"> 
                     {% endif %}    
                 
                 {{ form.csrf_token }}
@@ -242,17 +242,19 @@
                         </label>
                     {% endif %}
                     
-                    
-                    
-                    
-                    
                     <label for="start_date">
                         <span>{{ form.start_date.label }}</span>
                             {{ form.start_date }}
                     </label>
                     <label for="end_date">
                         <span>{{ form.end_date.label }} </span>
-                        {{ form.end_date }}
+                        {{ form.end_date }}(optional)
+                    </label>
+                    <label for="end_date">
+                        <span>{{ form.type.label }}</span>
+                            {% for subfield in form.type %}
+                            <span>{{ subfield }}{{ subfield.label }} </span> 
+                            {% endfor %}
                     </label>
                     <label for="remark">
                         <span>{{ form.remark.label }} </span>
@@ -260,7 +262,7 @@
                     </label>
                     <label>
                         <span> </span>
-                        <input type="submit" value="Query" /></label>
+                        <input type="submit" value="Submit" /></label>
                     </label>
     {% endif %}
 

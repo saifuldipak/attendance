@@ -3,8 +3,8 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators
 from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, 
-                        EmailField, TelField, SelectField) 
-from wtforms.validators import InputRequired, ValidationError, EqualTo, InputRequired, Email
+                        EmailField, TelField, SelectField, RadioField) 
+from wtforms.validators import InputRequired, ValidationError, EqualTo, InputRequired, Email, Optional
 from .auth import admin_required, login_required, manager_required
 from .db import Employee, Team
 from werkzeug.security import check_password_hash
@@ -18,7 +18,7 @@ teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motij
 roles = ['Team', 'Manager', 'Head', 'Admin']
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 
             'October', 'November', 'December']
-attendance = ['No In', 'No Out', 'Late', 'Early Out']
+attendance = ['In', 'Out', 'Both']
 years = ['2022', '2023', '2024', '2025']
 actions = ['Add', 'Delete']
 designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 'Jr. Asst. Engineer', 'Driver', 'Peon']
@@ -148,28 +148,33 @@ class Attnqueryself(FlaskForm):
 
 #Attendance approval application
 class Attnapplication(FlaskForm):
-    start_date = DateField('Start Date',
-                            format='%Y-%m-%d', 
-                            render_kw={'class': 'input-field'},
+    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
                             validators=[InputRequired()])
-    end_date = DateField('End Date',
-                            format='%Y-%m-%d', 
-                            render_kw={'class': 'input-field'},
-                            validators=[InputRequired()])
+    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, 
+                        validators=[Optional()])
+    type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, 
+                        validators=[InputRequired()])
     remark = TextAreaField('Remark',
                             render_kw={'class': 'input-field'},
                             validators=[InputRequired()])
     
     # extra validator added to check End date value with Start date value
-    def validate(self):
+    def validate_start_date(self, field):
+        if self.end_date.data:
+            if field.data > self.end_date.data:
+                raise ValidationError('End date must be same or later than Start date')
+
+    '''def validate(self):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
 
-        if self.start_date.data > self.end_date.data:
-            self.end_date.errors.append('End date must be same or later than Start date')
-            return False
-        return True
+        if self.end_date.data:
+            if self.start_date.data > self.end_date.data:
+                self.end_date.errors.append('End date must be same or later than Start date')
+                return False
+        
+        return True'''
 
 #Attendance application for Fiber
 class Attnapplfiber(Attnapplication):
