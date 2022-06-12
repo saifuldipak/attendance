@@ -220,13 +220,13 @@ a:visited.navbar2 {
     text-decoration: none;
 }
 
-/* employee details */
-.employee-details {
+/* details data presentation*/
+.data {
     border: none;
     
 }
 
-.employee-details-header {
+.data-left {
     background-color: #039660;
     font-weight: bold;
     padding: 8px;
@@ -234,7 +234,7 @@ a:visited.navbar2 {
     
 }
 
-.employee-details-data {
+.data-right {
     background-color: white;
     padding: 8px;
 
@@ -245,6 +245,7 @@ a:visited.navbar2 {
 }
 
 /*employee search data */
+
 .employee-data {
     font-family: Arial, Helvetica, sans-serif;
     border-collapse: collapse;

@@ -105,76 +105,108 @@
     {#-- Leave Details --#}
     {% if data_type == 'leave_details' %}
         <div class="form-style-2-heading">Leave Details</div>
-        {% if details %}
-            <div class="data">
-                Name : {{ details['employee']['fullname'] }} <br>
-                Type : {{ details['type'] }} <br>
-                Start date : {{ details['start_date'] }} <br>
-                End date : {{ details['end_date'] }} <br>
-                Duration : {{ details['duration'] }} <br>
-                Remark : {{ details['remark'] }} <br>
-                File : 
-                {% if details['file_url'] %}
-                    {% set files = details['file_url'].split(';') %}
-                        {% for file in files %}
-                            <a href={{ url_for('leave.files', name=file) }}>File {{ loop.index }}</a>
-                        {% endfor %}
+        <div class="data">
+            <table class="data">
+                {% if details %}
+                    <tr>
+                        <td class="data-left">Name</td>
+                        <td class="data-right">{{ details['employee']['fullname'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Type</td>
+                        <td class="data-right">{{ details['type'] }}</td>
+                    </tr> 
+                    <tr>
+                        <td class="data-left">Start date</td>
+                        <td class="data-right">{{ details['start_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">End date</td>
+                        <td class="data-right">{{ details['end_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left"> Duration</td>
+                        <td class="data-right">{{ details['duration'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left"> Remark</td>
+                        <td class="data-right">{{ details['remark'] }}</td>
+                    </tr>
+                    
+                        {% if details['file_url'] %}
+                            <tr>                            
+                                <td class="data-left"> File</td>
+                                {% set files = details['file_url'].split(';') %}
+                                    {% for file in files %}
+                                        <td class="data-right"><a href={{ url_for('leave.files', name=file) }}>File {{ loop.index }}</td>
+                                    {% endfor %}
+                            </tr>    
+                        {% endif %}
+                    
+                    <tr>
+                        <td class="data-left">Submission date</td>
+                        <td class="data-right">{{ details['submission_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Approval date</td>
+                        <td class="data-right">{{ details['approval_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Status</td>
+                        <td class="data-right">{{ details['status'] }}</td>
+                    </tr>
                 {% endif %}
-                 <br>
-                Submission date : {{ details['submission_date'] }} <br>
-                Approval date : {{ details['approval_date'] }} <br>
-                Status : {{ details['status'] }}
-            </div>
-        {% endif %}
+            </table>
+        </div>
     {% endif %}
 
     {#-- Employee Details --#}
     {% if type == 'employee_details' %}
         <div class="form-style-2-heading">Employee Details</div>
         <div class="data">
-            <table class="employee-details">
+            <table class="data">
             {% if employee %} 
                     <tr>
-                        <td class="employee-details-header"> ID</td>
-                        <td class="employee-details-data">{{ employee['id'] }}</td>
+                        <td class="data-left"> ID</td>
+                        <td class="data-right">{{ employee['id'] }}</td>
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Username</td>
-                        <td class="employee-details-data">{{ employee['username'] }}</td>
+                        <td class="data-left">Username</td>
+                        <td class="data-right">{{ employee['username'] }}</td>
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Full Name</td>
-                        <td class="employee-details-data">{{ employee['fullname'] }}</td> 
+                        <td class="data-left">Full Name</td>
+                        <td class="data-right">{{ employee['fullname'] }}</td> 
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Phone</td>
-                        <td class="employee-details-data">{{ employee['phone'] }}</td> 
+                        <td class="data-left">Phone</td>
+                        <td class="data-right">{{ employee['phone'] }}</td> 
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Email</td>
-                        <td class="employee-details-data">{{ employee['email'] }}</td>
+                        <td class="data-left">Email</td>
+                        <td class="data-right">{{ employee['email'] }}</td>
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Department</td>
-                        <td class="employee-details-data">{{ employee['department']}}</td> 
+                        <td class="data-left">Department</td>
+                        <td class="data-right">{{ employee['department']}}</td> 
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Designation</td>
-                        <td class="employee-details-data">{{ employee['designation']}}</td> 
+                        <td class="data-left">Designation</td>
+                        <td class="data-right">{{ employee['designation']}}</td> 
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Role</td>
-                        <td class="employee-details-data">{{ employee['role'] }}</td> 
+                        <td class="data-left">Role</td>
+                        <td class="data-right">{{ employee['role'] }}</td> 
                     </tr>
                     <tr>
-                        <td class="employee-details-header">Access</td>
-                        <td class="employee-details-data">{{ employee['access']}}</td> 
+                        <td class="data-left">Access</td>
+                        <td class="data-right">{{ employee['access']}}</td> 
                     </tr>
                     
                     {% for team in employee.teams %}
                         <tr>
-                            <td class="employee-details-header">Team {{ loop.index }}</td>
-                            <td class="employee-details-data">{{ team['name'] }}</td> 
+                            <td class="data-left">Team {{ loop.index }}</td>
+                            <td class="data-right">{{ team['name'] }}</td> 
                         </tr>
                     {% endfor %}
                 </table>
