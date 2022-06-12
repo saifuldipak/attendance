@@ -1,3 +1,4 @@
+from threading import local
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
@@ -9,7 +10,7 @@ from .auth import admin_required, login_required, manager_required
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, timedelta
-from .forms import LeaveCasual, LeaveMedical, Leavededuction, Leavefibercasual, Leavefibermedical
+from .forms import (LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
 from .employee import fiscalyear
 
 
@@ -71,37 +72,41 @@ def leave_available(empid, applied):
 
 leave = Blueprint('leave', __name__)
 
-#Casual and Medical leave application submission
+##Casual and Medical leave application submission##
 @leave.route('/leave/application/<type>', methods=['GET', 'POST'])
 @login_required
 def application(type):
-    status = 'Approval Pending'
-    submission_date = datetime.now()
 
     if type == 'Casual':
-        form = LeaveCasual()
+        form = Leavecasual()
     elif type == 'Medical':
         form = LeaveMedical()
 
     if form.validate_on_submit():
-        applied = (form.end_date.data - form.start_date.data).days + 1
         
-        #checking dates with date_check() function
-        msg = date_check(session['empid'], form.start_date.data, form.end_date.data)
-        if msg:
-            flash(msg, category='error')
+        if form.end_date.data:
+            applied = (form.end_date.data - form.start_date.data).days + 1
+        else:
+            applied = 1
+        
+        date_exists = date_check(session['empid'], form.start_date.data, form.end_date.data)
+        if date_exists:
+            flash(date_exists, category='error')
             return redirect(url_for('forms.leave', type=type))
         
-        #checking leave availablity with leave_available() function
-        msg = leave_available(session['empid'], applied)
-        if msg:
-            flash(msg, category='error')
+        not_available = leave_available(session['empid'], applied)
+        if not_available:
+            flash(not_available, category='error')
             return render_template('forms.html', form_type='leave', leave_type='Casual', form=form)
         
+        if not form.end_date.data:
+            form.end_date.data == form.start_date.data
+
         if type == 'Casual':
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=applied,
-                            remark=form.remark.data, submission_date=submission_date, status=status)
+                            remark=form.remark.data, submission_date=datetime.now(), 
+                            status='Approval Pending')
         
         if type == 'Medical':
             #creating a list of file names
@@ -115,30 +120,36 @@ def application(type):
 
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=applied,
-                            remark=form.remark.data, submission_date=submission_date, 
-                            file_url=filenames, status=status)
+                            remark=form.remark.data, submission_date=datetime.now(), 
+                            file_url=filenames, status='Approval Pending')
         
         db.session.add(leave)
         db.session.commit()
         flash('Leave submitted', category='message')
         
-        #getting leave application data from database for the above submitted leave
+        #Send mail to all concerned
         application = Applications.query.filter_by(start_date=form.start_date.data, 
                             end_date=form.end_date.data, empid=session['empid']).first()
         
-        #Getting team manager or department head email address of the employee
         if session['role'] == 'Team':
             manager = Employee.query.join(Team).filter(Team.name==session['team'], 
                                                     Employee.role=='Manager').first()
+            if not manager:
+                current_app.logger.warning('Team Manager email not found')
+                rv = 'failed'
+
         if session['role'] == 'Manager':
-            manager = Employee.query.join(Team).filter(Employee.department==session['department'], 
+            head = Employee.query.join(Team).filter(Employee.department==session['department'], 
                                                     Employee.role=='Head').first()
-        #Getting employee email
-        employee = Employee.query.filter_by(id=session['empid']).first()
+            if not head:
+                current_app.logger.warning('Dept. Head email not found')
+                rv = 'failed'
         
-        if not manager:
-            flash('Manager record not found for your team', category='error')
+        if 'rv' in locals():
+            flash('Failed to send mail', category='warning')
             return redirect(request.url)
+
+        employee = Employee.query.filter_by(id=session['empid']).first()
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
@@ -146,11 +157,11 @@ def application(type):
                         type='leave', application=application, action='submitted')
         
         if rv:
-            msg = 'Mail sending failed (' + str(rv) + ')' 
-            flash(msg, category='error')
+            current_app.logger.warning(rv)
+            flash('Failed to send mail', category='warning')
+            return redirect(request.url)
     else:
         return render_template('forms.html', type='leave', leave=type, form=form)
-
     
     return redirect(url_for('forms.leave', type=type))
 
@@ -250,7 +261,7 @@ def application_fiber(type):
 @login_required
 def status_personal():
     applications = Applications.query.join(Employee).filter(Employee.id==session['empid'], 
-                    or_(type=='Casual', type=='Medical')).\
+                    or_(Applications.type=='Casual', Applications.type=='Medical')).\
                     order_by(Applications.submission_date.desc()).all()
 
     return render_template('data.html', type='leave_status', data='personal', applications=applications)
