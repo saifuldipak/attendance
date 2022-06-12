@@ -304,14 +304,13 @@ def details(id):
     return render_template('data.html', data_type='leave_details', details=details)    
 
 
-## Leave application cancel function ##
-@leave.route('/leave/cancel/<leave_id>')
+##Leave application cancel function##
+@leave.route('/leave/cancel/<application_id>')
 @login_required
-def cancel(leave_id):
-    username = session['username']
-
+def cancel(application_id):
+    
     leave = Applications.query.join(Employee).\
-            filter(and_(Employee.username == username, Applications.id == leave_id)).first()
+            filter(and_(Employee.id==session['empid'], Applications.id==application_id)).first()
 
     if not leave:
         flash('Leave not found', category='error')
@@ -339,7 +338,7 @@ def cancel(leave_id):
             db.session.commit()
             flash('Leave cancelled', category='message')
     
-    return redirect(url_for('leave.status', type='personal'))
+    return redirect(url_for('leave.status_personal'))
 
 ## Showing leave summary ##
 @leave.route('/leave/summary/<type>')
