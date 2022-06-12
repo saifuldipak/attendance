@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from threading import local
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 from sqlalchemy import and_, or_, extract, func
 import pandas as pd
