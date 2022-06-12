@@ -34,43 +34,45 @@ def file_length_check(form, field):
             raise ValidationError('File size can be max 1MB')
         field.data.seek(0)
 
-#Casual leave
-class LeaveCasual(FlaskForm):
-    start_date = DateField('Start Date',
-                            format='%Y-%m-%d', 
-                            render_kw={'class': 'input-field'},
+#Casual leave application 
+class Leavecasual(FlaskForm):
+    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
                             validators=[InputRequired()])
-    end_date = DateField('End Date',
-                            format='%Y-%m-%d', 
-                            render_kw={'class': 'input-field'},
-                            validators=[InputRequired()])
+    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, 
+                        validators=[Optional()])
     remark = TextAreaField('Remark',
-                            render_kw={'class': 'input-field'})
+                            render_kw={'class': 'input-field'},
+                            validators=[InputRequired()])
     
     # extra validator added to check End date value with Start date value
-    def validate(self):
-        rv = FlaskForm.validate(self)
-        if not rv:
-            return False
+    def validate_start_date(self, field):
+        if self.end_date.data:
+            if field.data > self.end_date.data:
+                raise ValidationError('End date must be same or later than Start date')
 
-        if self.start_date.data > self.end_date.data:
-            self.end_date.errors.append('End date must be same or later than Start date')
-            return False
-        return True
-
-#Casual leave for fiber team
-class Leavefibercasual(LeaveCasual):
+#Casual leave application for fiber
+class Leavefibercasual(Leavecasual):
     empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
 
-#Medical leave
-class LeaveMedical(LeaveCasual):
+#Attendance application 
+class Attnapplication(Leavecasual):
+    type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, 
+                        validators=[InputRequired()])
+
+#Attendance application for Fiber
+class Attnapplfiber(Attnapplication):
+    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+
+#Medical leave application
+class LeaveMedical(Leavecasual):
     file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
                                 FileRequired(), file_length_check])
     file2 = FileField('Upload File 2', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
                                                 file_length_check])
     file3 = FileField('Upload File 3', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
-                                                file_length_check])
-#Medical leave for fiber team
+                                                file_length_check])  
+
+#Medical leave application for fiber
 class Leavefibermedical(LeaveMedical, Leavefibercasual):
     pass
 
@@ -146,40 +148,6 @@ class Attnqueryallusername(FlaskForm):
 class Attnqueryself(FlaskForm):
     month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
 
-#Attendance approval application
-class Attnapplication(FlaskForm):
-    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
-                            validators=[InputRequired()])
-    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, 
-                        validators=[Optional()])
-    type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, 
-                        validators=[InputRequired()])
-    remark = TextAreaField('Remark',
-                            render_kw={'class': 'input-field'},
-                            validators=[InputRequired()])
-    
-    # extra validator added to check End date value with Start date value
-    def validate_start_date(self, field):
-        if self.end_date.data:
-            if field.data > self.end_date.data:
-                raise ValidationError('End date must be same or later than Start date')
-
-    '''def validate(self):
-        rv = FlaskForm.validate(self)
-        if not rv:
-            return False
-
-        if self.end_date.data:
-            if self.start_date.data > self.end_date.data:
-                self.end_date.errors.append('End date must be same or later than Start date')
-                return False
-        
-        return True'''
-
-#Attendance application for Fiber
-class Attnapplfiber(Attnapplication):
-    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-
 #Attendance summary
 class Attnsummary(FlaskForm):
     year = SelectField('Year', render_kw={'class': 'input-field'}, choices=years)
@@ -250,7 +218,6 @@ class Updatedept(FlaskForm):
                             validators=[InputRequired()])
     dept = SelectField('Team', render_kw={'class': 'input-field'}, choices=departments)
     
-
 #Reset password
 class Resetpass(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
@@ -275,11 +242,94 @@ class Employeesearch(FlaskForm):
 def leave(type):
 
     if type == 'Casual':
-        form = LeaveCasual()
+        form = Leavecasual()
     elif type == 'Medical':
         form = LeaveMedical()
     
     return render_template('forms.html', type='leave', leave=type, form=form)
+
+#Leave application - Fiber
+@forms.route('/forms/leave/fiber/<type>', methods=['GET', 'POST'])
+@login_required
+def leave_fiber(type):
+
+    if type == 'Casual':
+        form = Leavefibercasual()
+    elif type == 'Medical':
+        form = Leavefibermedical()
+    
+    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
+    form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+    return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
+
+#Attendance application
+@forms.route('/forms/attendance/application')
+@login_required
+def attn_application():
+    form = Attnapplication()
+    return render_template('forms.html', type='attn_application', form=form)
+
+#Attendance application - Fiber
+@forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
+@login_required
+def attn_fiber():
+    form = Attnapplfiber()
+    
+    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
+    form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+    return render_template('forms.html', type='attn_application', team='fiber', form=form)
+
+#Attendance file upload 
+@forms.route('/forms/attendance/upload', methods=['GET', 'POST'])
+@login_required
+def upload():
+    form = Attndataupload()
+    return render_template('forms.html', form_type='attendance_upload', form=form)
+
+#Attendance query - All
+@forms.route('/forms/attendance/query/all/<type>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def attnquery_all(type):
+    if type == 'date':
+        form = Attnqueryalldate()
+    elif type == 'username':
+        form = Attnqueryallusername()
+    
+    return render_template('attn_query.html', type=type, form=form)
+
+#Attendance query - Team
+@forms.route('/forms/attendance/query/team', methods=['GET', 'POST'])
+@login_required
+@manager_required
+def attnquery_team():
+    form = Attnqueryall()
+    return render_template('forms.html', type='attnquery', user='team', form=form)
+
+#Attendance query - Self
+@forms.route('/forms/attendance/query/self', methods=['GET', 'POST'])
+@login_required
+def attnquery_self():
+    form = Attnqueryself()
+    return render_template('forms.html', type='attnquery', user='self', form=form)
+
+#Attendance summary 
+@forms.route('/forms/attendance/summary')
+@login_required
+@admin_required
+def attn_summary():
+    form = Attnsummary()
+    return render_template('forms.html', type='attn_summary', form=form)
+
+#Leave deduction
+@forms.route('/forms/leave/deduction')
+@login_required
+@admin_required
+def leave_deduction():
+    form = Leavededuction()
+    return render_template('forms.html', type='leave_deduction', form=form)
 
 #Employee create
 @forms.route('/forms/employee/<action>', methods=['GET', 'POST'])
@@ -299,71 +349,7 @@ def employee(action):
     
     return render_template('forms.html', form_type=form_type, form=form)
 
-#Attendance file upload 
-@forms.route('/forms/attendance/upload', methods=['GET', 'POST'])
-@login_required
-def upload():
-    form = Attndataupload()
-    return render_template('forms.html', form_type='attendance_upload', form=form)
-
-#Attendance query for all by admin user
-@forms.route('/forms/attendance/query/all/<type>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def attnquery_all(type):
-    if type == 'date':
-        form = Attnqueryalldate()
-    elif type == 'username':
-        form = Attnqueryallusername()
-    
-    return render_template('attn_query.html', type=type, form=form)
-
-#Attendance query for team by manager
-@forms.route('/forms/attendance/query/team', methods=['GET', 'POST'])
-@login_required
-@manager_required
-def attnquery_team():
-    form = Attnqueryall()
-    return render_template('forms.html', type='attnquery', user='team', form=form)
-
-#Attendance query for self
-@forms.route('/forms/attendance/query/self', methods=['GET', 'POST'])
-@login_required
-def attnquery_self():
-    form = Attnqueryself()
-    return render_template('forms.html', type='attnquery', user='self', form=form)
-
-#Attendance application
-@forms.route('/forms/attendance/application')
-@login_required
-def attn_application():
-    form = Attnapplication()
-    return render_template('forms.html', type='attn_application', form=form)
-
-#Attendance summary 
-@forms.route('/forms/attendance/summary')
-@login_required
-@admin_required
-def attn_summary():
-    form = Attnsummary()
-    return render_template('forms.html', type='attn_summary', form=form)
-
-#Leave deduction
-@forms.route('/forms/leave/deduction')
-@login_required
-@admin_required
-def leave_deduction():
-    form = Leavededuction()
-    return render_template('forms.html', type='leave_deduction', form=form)
-
-#password change
-@forms.route('/forms/employee/password/self')
-@login_required
-def password_self():
-    form = Changeselfpass()
-    return render_template('forms.html', type='change_pass', user='self', form=form)
-
-#update email
+#Employee modify - email
 @forms.route('/forms/employee/update_email')
 @login_required
 @admin_required
@@ -371,7 +357,7 @@ def update_email():
     form = Updateemail()
     return render_template('emp_update.html', type='email', form=form)
 
-#update phone
+#Employee modify - phone
 @forms.route('/forms/employee/update_phone')
 @login_required
 @admin_required
@@ -379,7 +365,7 @@ def update_phone():
     form = Updatephone()
     return render_template('emp_update.html', type='phone', form=form)
 
-#delete or add team
+#Employee modify - team
 @forms.route('/forms/employee/update_team')
 @login_required
 @admin_required
@@ -387,7 +373,7 @@ def update_team():
     form = Updateteam()
     return render_template('emp_update.html', type='team', form=form)
 
-#modify department
+#Employee modify - department
 @forms.route('/forms/employee/update_dept')
 @login_required
 @admin_required
@@ -395,7 +381,7 @@ def update_dept():
     form = Updatedept()
     return render_template('emp_update.html', type='dept', form=form)
 
-#reset password
+#Employee modify - password
 @forms.route('/forms/employee/reset_pass')
 @login_required
 @admin_required
@@ -403,7 +389,7 @@ def reset_pass():
     form = Resetpass()
     return render_template('emp_update.html', type='pass', form=form)
 
-#update role
+#Employee modify - role
 @forms.route('/forms/employee/update_role')
 @login_required
 @admin_required
@@ -411,22 +397,7 @@ def update_role():
     form = Updaterole()
     return render_template('emp_update.html', type='role', form=form)
 
-#Leave application Fiber
-@forms.route('/forms/leave/fiber/<type>', methods=['GET', 'POST'])
-@login_required
-def leave_fiber(type):
-
-    if type == 'Casual':
-        form = Leavefibercasual()
-    elif type == 'Medical':
-        form = Leavefibermedical()
-    
-    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
-    form.empid.choices = [(i.id, i.fullname) for i in names]
-    
-    return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
-
-#Search employee 
+#Employee search 
 @forms.route('/forms/employee/search')
 @login_required
 @admin_required
@@ -434,13 +405,9 @@ def employee_search():
     form = Employeesearch()
     return render_template('data.html', action='employee_search', form=form)
 
-#Attendance application Fiber
-@forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
+#Own password reset
+@forms.route('/forms/employee/password/self')
 @login_required
-def attn_fiber():
-    form = Attnapplfiber()
-    
-    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
-    form.empid.choices = [(i.id, i.fullname) for i in names]
-    
-    return render_template('forms.html', type='attn_application', team='fiber', form=form)
+def password_self():
+    form = Changeselfpass()
+    return render_template('forms.html', type='change_pass', user='self', form=form)
