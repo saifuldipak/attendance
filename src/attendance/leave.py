@@ -1,6 +1,6 @@
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from .check import date_check, user_check
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
@@ -249,8 +249,9 @@ def application_fiber(type):
 @leave.route('/leave/status/personal')
 @login_required
 def status_personal():
-    applications = Applications.query.join(Employee).filter_by(id=session['empid']).\
-                        order_by(Applications.submission_date.desc()).all()
+    applications = Applications.query.join(Employee).filter(Employee.id==session['empid'], 
+                    or_(type=='Casual', type=='Medical')).\
+                    order_by(Applications.submission_date.desc()).all()
 
     return render_template('data.html', type='leave_status', data='personal', applications=applications)
 
