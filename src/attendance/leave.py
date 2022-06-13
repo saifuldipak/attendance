@@ -48,9 +48,8 @@ def delete_files(files):
     return file_list
             
 #checking leave availability in leave_available table
-def leave_available(empid, applied):
-    leave = LeaveAvailable.query.join(Employee).filter(Employee.id == empid).\
-                    first()
+def leave_available(empid, applied, type):
+    leave = LeaveAvailable.query.join(Employee).filter(Employee.id == empid).first()
     available = True
         
     if type == 'Casual':
@@ -64,10 +63,7 @@ def leave_available(empid, applied):
         if days < applied:
             available = False
 
-    if not available:
-        msg = 'You have applied ' + str(applied) + ' days ' + type + ' but' + ' leave available '\
-                 + str(days) + ' days'
-        return msg
+    return available
 
 
 leave = Blueprint('leave', __name__)
@@ -83,24 +79,20 @@ def application(type):
         form = LeaveMedical()
 
     if form.validate_on_submit():
+        if not form.end_date.data:
+            form.end_date.data = form.start_date.data
         
-        if form.end_date.data:
-            applied = (form.end_date.data - form.start_date.data).days + 1
-        else:
-            applied = 1
+        applied = (form.end_date.data - form.start_date.data).days + 1
         
         date_exists = date_check(session['empid'], form.start_date.data, form.end_date.data)
         if date_exists:
             flash(date_exists, category='error')
             return redirect(url_for('forms.leave', type=type))
         
-        not_available = leave_available(session['empid'], applied)
-        if not_available:
-            flash(not_available, category='error')
-            return render_template('forms.html', form_type='leave', leave_type='Casual', form=form)
-        
-        if not form.end_date.data:
-            form.end_date.data == form.start_date.data
+        available = leave_available(session['empid'], applied, type)
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(request.url)
 
         if type == 'Casual':
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
