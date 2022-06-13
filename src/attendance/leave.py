@@ -336,19 +336,27 @@ def cancel(application_id):
 @leave.route('/leave/summary/<type>')
 @login_required     
 def summary(type):
-    year = fiscalyear()
-    
+
     if type == 'personal':
-        leaves = LeaveAvailable.query.join(Employee).filter(and_(Employee.username == \
-                        session['username'], year == year)).all()
+        leaves = LeaveAvailable.query.join(Employee).\
+                    filter(Employee.id==session['empid'], 
+                    LeaveAvailable.year_start < datetime.now().date(), 
+                    LeaveAvailable.year_end > datetime.now().date()).all()
     elif type == 'team' and session['role'] == 'Manager':
-        leaves = LeaveAvailable.query.join(Employee).filter(and_(Employee.role == 'Team', 
-                        Employee.team == session['team'], year == year)).all()
-    elif type == 'all' and session['role'] == 'Admin':
+        teams = Team.query.filter_by(empid=session['empid']).all()
+        team_leaves = []
+        for team in teams:
+            leaves = LeaveAvailable.query.join(Employee, Team).\
+                    filter(Team.name==team.name, 
+                    LeaveAvailable.year_start < datetime.now().date(), 
+                    LeaveAvailable.year_end > datetime.now().date()).all()
+            team_leaves += leaves
+        leaves = team_leaves
+    elif type == 'all' and session['access'] == 'Admin':
         leaves = LeaveAvailable.query.join(Employee).all()
     else:
         flash('Your are not authorized', category='error')
-        return render_template('base.html')  
+        return render_template('base.html')
 
     return render_template('data.html', data_type='leave_summary', leaves=leaves)
 
