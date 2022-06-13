@@ -41,15 +41,15 @@ class Applications(db.Model):
     file_url = db.Column(db.String)
     status = db.Column(db.String(16))
 
-#Leave summary of each employee
+#Leave summary of each employee for a particular year
 class LeaveAvailable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    from_year = db.Column(db.Integer, nullable=False)
-    to_year = db.Column(db.Integer, nullable=False)
+    year_start = db.Column(db.Date, nullable=False)
+    year_end = db.Column(db.Date, nullable=False)
     casual = db.Column(db.Integer, nullable=False)
     medical = db.Column(db.Integer, nullable=False)
-    earned =db.Column(db.Integer, nullable=False)
+    earned = db.Column(db.Integer, nullable=False)
 
 #Date wise in and out time data from attendance machines
 class Attendance(db.Model):
