@@ -365,89 +365,85 @@ def summary(type):
 def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
-## Leave approval function ##
+##Leave approval function##
 @leave.route('/leave/approval')
 @login_required
 @manager_required
 def approval():
-    # leave_id from url
-    leave_id = request.args.get('leave_id')
+    application_id = request.args.get('application_id')
 
-    # Getting different application data and team name of a single leave application 
-    leave = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).\
-                with_entities(Applications.empid, Applications.type, Applications.duration, 
-                                Team.name.label('team')).\
-                filter(Applications.id==leave_id).first()
+    #leave = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).\
+    #            with_entities(Applications.empid, Applications.type, Applications.duration, 
+    #            Team.name.label('team')).filter(Applications.id==leave_id).first()
 
-    # Getting manager username from employee table of team name(which retrived from above query)
-    manager = Employee.query.join(Team).filter(and_(Team.name==leave.team, 
-                                                    Employee.role=='Manager')).first_or_404()
+    leave = db.session.query(Applications, Team).join(Team, Applications.empid==Team.empid).\
+                filter(Applications.id==application_id).first()
+    
+    manager = Employee.query.join(Team).filter(and_(Team.name==leave[1].name, 
+                Employee.role=='Manager')).first_or_404()
 
     if manager.username != session['username']:
         flash('You are not authorized', category='error')
         return redirect(url_for('leave.status', type='team'))
 
-    #Getting leave summary record
-    summary = LeaveAvailable.query.filter_by(empid=leave.empid).first()
-    if not summary:
-        flash('Leave summary not found', category='error')
-        current_app.logger.warning('Leave summary not found, leave id: %s', leave_id)
+    leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==leave[0].empid, 
+                and_(LeaveAvailable.year_start < leave[0].start_date, 
+                LeaveAvailable.year_end > leave[0].start_date)).first()
+    
+    if not leave_available:
+        flash('No leave available record found', category='error')
+        current_app.logger.warning('leave_approval(): No data in leave_available table for employee id: %s', leave[0].empid)
+        return redirect(url_for('leave.status_team'))
 
-    # if casual leave not available, add earned with casual, 
-    # if still not available print error
-    if leave.type == 'Casual':
-        if summary.casual > leave.duration:
-            casual = summary.casual - leave.duration
-            summary.casual = casual
+    #Calculating available casual leave
+    if leave[0].type == 'Casual':
+        if leave_available.casual > leave[0].duration:
+            casual = leave_available.casual - leave[0].duration
+            leave_available.casual = casual
         else:
-            total = summary.casual + summary.earned
-            if total > leave.duration:
-                earned = total - leave.duration
-                summary.casual = 0
-                summary.earned = earned
+            total = leave_available.casual + leave_available.earned
+            if total > leave[0].duration:
+                earned = total - leave[0].duration
+                leave_available.casual = 0
+                leave_available.earned = earned
             else:
                 flash('Leave not available, check leave summary', category='error')
-                return redirect(url_for('leave.status', type='team'))
+                return redirect(url_for('leave.status_team'))
 
-    # if medical leave not available, add casual with medical, 
-    # if still not available, add earned with medical & casual
-    # if still not available print error 
-    if leave.type == 'Medical':
-
-        if summary.medical > leave.duration:
-            medical = summary.medical - leave.duration
-            summary.medical = medical
+    #Calculating available medical leave
+    if leave[0].type == 'Medical':
+        if leave_available.medical > leave[0].duration:
+            medical = leave_available.medical - leave[0].duration
+            leave_available.medical = medical
         else:
-            total = summary.medical + summary.casual
+            total = leave_available.medical + leave_available.casual
             if total > leave.duration:
-                casual = total - leave.duration
-                summary.medical = 0
-                summary.casual = casual
+                casual = total - leave[0].duration
+                leave_available.medical = 0
+                leave_available.casual = casual
             else:
-                total = total + summary.earned
-                if total > leave.duration:
+                total = total + leave_available.earned
+                if total > leave[0].duration:
                     earned = total - leave.duration
-                    summary.medical = 0
-                    summary.casual = 0
-                    summary.earned = earned
+                    leave_available.medical = 0
+                    leave_available.casual = 0
+                    leave_available.earned = earned
                 else:
                     flash('Leave not available, check leave summary', category='error')
-                    return redirect(url_for('leave.status', type='team'))
+                    return redirect(url_for('leave.status_team'))
 
-    # Application table queried again to update status column,
-    # this is done because previous Application table query result was a tuple not an object 
-    leave = Applications.query.filter_by(id=leave_id).one()
-    leave.status = 'Approved'
+    #update 'applications' table
+    application = Applications.query.filter_by(id=application_id).one()
+    application.status = 'Approved'
     
-    # For each date between leave start_date and end_date from 'application' table, 
-    # update 'appr_leave_attn' table 'approved' column.
-    start_date = leave.start_date
-    end_date = leave.end_date
+    #update 'appr_leave_attn' table
+    start_date = leave[0].start_date
+    end_date = leave[0].end_date
 
     while start_date <= end_date:
         datestr = datetime.strftime(start_date, '%Y-%m-%d')
         attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==datestr).\
-                                    filter(ApprLeaveAttn.empid==leave.empid).first()
+                                    filter(ApprLeaveAttn.empid==leave[0].empid).first()
 
         if attendance:
             attendance.approved = leave.type
@@ -456,26 +452,35 @@ def approval():
 
     db.session.commit()
 
-    #Getting HR email 
-    admin = Employee.query.filter(Employee.role=='Admin', Employee.username!='admin').first()
+    #Send mail to all concerned
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if not admin:
+        current_app.logger.warning('approval(): Admin email not found for employee id: %s', application.employee.id)
+        rv = 'failed'
 
-    #Getting application details
-    application = Applications.query.filter_by(id=leave_id).first()
-
-    #Getting department head's email
     head = Employee.query.filter(Employee.department==application.employee.department, 
-                                Employee.role=='Head').first()
+                Employee.role=='Head').first()
+    if not head:
+        current_app.logger.warning('approval(): Dept. Head email not found for employee id: %s', application.employee.id)
+        rv = 'failed'
+    
+    if 'rv' in locals():
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('leave.status_team'))
 
-    #send mail to concern parties
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, 
-                    cc2=head.email, application=application, type='leave', action='approved')
+    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
+            cc1=application.employee.email, cc2=head.email, application=application, type='leave', 
+            action='approved')
+    
     if rv:
-        msg = 'Mail sending failed (' + str(rv) + ')' 
-        flash(msg, category='error')
-
-    return redirect(url_for('leave.status', type='team'))
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('leave.status_team'))
+    
+    flash('Leave approved.', category='message')
+    return redirect(url_for('leave.status_team'))
 
 
 ## Leave deduction function ##
