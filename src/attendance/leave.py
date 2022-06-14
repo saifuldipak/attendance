@@ -46,24 +46,52 @@ def delete_files(files):
             file_list += file_path
     
     return file_list
-            
-#checking leave availability in leave_available table
-def leave_available(empid, applied, type):
-    leave = LeaveAvailable.query.join(Employee).filter(Employee.id == empid).first()
-    available = True
-        
-    if type == 'Casual':
-        if leave.casual < applied:
-            days = leave.casual + leave.earned
-            if days < applied:
-                available = False
-    elif type == 'Medical':
-        if leave.medical < applied:
-            days = leave.medical + leave.casual + leave.earned
-        if days < applied:
-            available = False
 
-    return available
+#Checking and updating leave
+def check_leave(empid, start_date, duration, type, update=None):
+    
+    leave = LeaveAvailable.query.filter(LeaveAvailable.empid==empid, 
+                and_(LeaveAvailable.year_start < start_date, 
+                LeaveAvailable.year_end > start_date)).first()
+    
+    if type == 'Casual':
+        if leave.casual > duration:
+            casual = leave.casual - duration
+            leave.casual = casual
+        else:
+            total = leave.casual + leave.earned
+            if total > duration:
+                earned = total - duration
+                leave.casual = 0
+                leave.earned = earned
+            else:
+                return False
+
+    if type == 'Medical':
+        if leave.medical > duration:
+            medical = leave.medical - duration
+            leave.medical = medical
+        else:
+            total = leave.medical + leave.casual
+            
+            if total > leave.duration:
+                casual = total - duration
+                leave.medical = 0
+                leave.casual = casual
+            else:
+                total = total + leave.earned
+                if total > duration:
+                    earned = total - duration
+                    leave.medical = 0
+                    leave.casual = 0
+                    leave.earned = earned
+                else:
+                    return False
+                
+    if update:
+        db.session.commit()
+    
+    return True
 
 
 leave = Blueprint('leave', __name__)
@@ -162,8 +190,6 @@ def application(type):
 @login_required
 @manager_required
 def application_fiber(type):
-    status = 'Approved'
-    submission_date = datetime.now()
     
     if type == 'Casual':
         form = Leavefibercasual()
@@ -176,23 +202,26 @@ def application_fiber(type):
             flash('Employee does not exists', category='error')
             return redirect(url_for('forms.leave', type=type))
 
-        #checking dates with date_check() function
         msg = date_check(employee.id, form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
             return redirect(url_for('forms.leave', type=type))
         
-        #checking leave availablity with leave_available() function
-        applied = (form.end_date.data - form.start_date.data).days + 1
-        msg = leave_available(employee.id, applied)
-        if msg:
-            flash(msg, category='error')
-            return render_template('forms.html', form_type='leave', leave_type='Casual', form=form)
+        if not form.end_date.data:
+            form.end_date.data = form.start_date.data
+        
+        duration = (form.end_date.data - form.start_date.data).days + 1
+        
+        available = check_leave(employee.id, form.start_date.data, duration, type, 'update')
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(request.url)
         
         if type == 'Casual':
             leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=applied,
-                            remark=form.remark.data, submission_date=submission_date, status=status)
+                            end_date=form.end_date.data, duration=duration,
+                            remark=form.remark.data, submission_date=datetime.now(), 
+                            status='Approved')
         
         if type == 'Medical':
             #creating a list of file names
@@ -205,44 +234,50 @@ def application_fiber(type):
             filenames = save_files(files, employee.username)
 
             leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=applied,
-                            remark=form.remark.data, submission_date=submission_date, 
-                            file_url=filenames, status=status)
+                            end_date=form.end_date.data, duration=duration,
+                            remark=form.remark.data, submission_date=datetime.now(), 
+                            file_url=filenames, status='Approved')
         
         db.session.add(leave)
         db.session.commit()
-        flash('Leave submitted', category='message')
+        flash('Leave approved', category='message')
         
-        #getting leave application data from database for the above submitted leave
+        #Send mail to all concerned
         application = Applications.query.filter_by(start_date=form.start_date.data, 
-                                                    end_date=form.end_date.data).first()
-       
-        #Getting manager email address of the above employee
-        manager = Employee.query.join(Team).filter(Team.name==session['team'], 
-                                                    Employee.role=='Manager').first()
+                            end_date=form.end_date.data, empid=form.empid.data).first()
+        
+        
+        manager = Employee.query.filter_by(id=session['empid']).first()
+        if not manager:
+            current_app.logger.warning('application_fiber(): Team Manager email not found')
+            rv = 'failed'
 
-        #Getting admin email
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-
         if not admin:
-            flash('Failed to send mail (HR email not found)', category='error')
+            current_app.logger.warning('application_fiber(): Admin email not found')
+            rv = 'failed'
+
+        head = Employee.query.join(Team).filter(Employee.department==session['department'], 
+                    Employee.role=='Head').first()
+        if not head:
+            current_app.logger.warning('application_fiber(): Dept. Head email not found')
+            rv = 'failed'
+        
+        if 'rv' in locals():
+            flash('Failed to send mail', category='warning')
             return redirect(request.url)
 
-        #Getting department head email
-        head = Employee.query.filter(Employee.department==manager.department, 
-                                        Employee.role=='Head').first()
-        if not head:
-            flash('Failed to send mail (Department head email not found)', category='error')
-            return redirect(request.url)
+        employee = Employee.query.filter_by(id=session['empid']).first()
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=head.email, 
-                        application=application, type=leave, action='approved')
+        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
+                        cc1=head.email, type='leave', application=application, action='approved')
         
         if rv:
-            msg = 'Mail sending failed (' + str(rv) + ')' 
-            flash(msg, category='error')
+            current_app.logger.warning(rv)
+            flash('Failed to send mail', category='warning')
+            return redirect(request.url)
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
