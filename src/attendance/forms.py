@@ -15,15 +15,18 @@ teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motij
                 'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Dhanmondi', 
                 'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
                 'Accounts']
-roles = ['Team', 'Manager', 'Head', 'Admin']
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 
             'October', 'November', 'December']
 attendance = ['In', 'Out', 'Both']
-years = ['2022', '2023', '2024', '2025']
+#years = ['2022', '2023', '2024', '2025']
 actions = ['Add', 'Delete']
-designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 'Jr. Asst. Engineer', 'Driver', 'Peon']
+designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 
+                'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 
+                'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 
+                'Jr. Asst. Engineer', 'Jr. Splice Tech', 'Jr. Cable Tech', 'Splice Tech', 'Cable Tech', 
+                'Driver', 'Peon']
 roles = ['Team', 'Manager', 'Head']
-access = ['User', 'Admin']
+access = ['User', 'Admin', 'None']
 types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
 
 #validator function to check file size
@@ -97,7 +100,7 @@ class Employeecreate(FlaskForm):
     role = SelectField('Role',
                             render_kw={'class': 'input-field'},
                             choices=roles)
-    access = SelectField('Acess',
+    access = SelectField('Access',
                         render_kw={'class': 'input-field'},
                         choices=access)
 
