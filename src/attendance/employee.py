@@ -127,12 +127,18 @@ def create():
         db.session.add(team)
 
         #adding yearly leave 
-        from_year = date.today().year
-        to_year = from_year + 1
-        available = LeaveAvailable(empid=employee.id, from_year=from_year, to_year=to_year, 
+        current_year = date.today().year
+        current_month = date.today().month
+        if current_month <= 6:
+            year_start = date((current_year - 1), 7, 1)
+            year_end = date(current_year, 6, 30)
+        else:
+            year_start = date(current_year, 7, 1)
+            year_end = date((current_year + 1), 6, 30)
+
+        available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
                                     casual=14, medical=14, earned=14)
         db.session.add(available)
-        
         db.session.commit()
 
     flash("Employee record created.", category='message')
