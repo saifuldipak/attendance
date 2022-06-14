@@ -92,6 +92,23 @@ def check_leave(empid, start_date, duration, type, update=None):
         db.session.commit()
     
     return True
+ 
+#update 'appr_leave_attn' table
+def update_attn(empid, start_date, end_date, type):
+    
+    #start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+    #end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+    
+    while start_date <= end_date:
+        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==start_date,
+                        ApprLeaveAttn.empid==empid).first()
+
+        if attendance:
+            attendance.approved = type
+        
+        start_date += timedelta(days=1)
+
+    db.session.commit()
 
 
 leave = Blueprint('leave', __name__)
@@ -110,21 +127,21 @@ def application(type):
         if not form.end_date.data:
             form.end_date.data = form.start_date.data
         
-        applied = (form.end_date.data - form.start_date.data).days + 1
+        duration = (form.end_date.data - form.start_date.data).days + 1
         
         date_exists = date_check(session['empid'], form.start_date.data, form.end_date.data)
         if date_exists:
             flash(date_exists, category='error')
             return redirect(url_for('forms.leave', type=type))
         
-        available = leave_available(session['empid'], applied, type)
+        available = check_leave(session['empid'], form.start_date.data, duration, type)
         if not available:
             flash('Leave not available, please check leave summary', category='error')
             return redirect(request.url)
 
         if type == 'Casual':
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=applied,
+                            end_date=form.end_date.data, duration=duration,
                             remark=form.remark.data, submission_date=datetime.now(), 
                             status='Approval Pending')
         
@@ -139,7 +156,7 @@ def application(type):
             filenames = save_files(files, session['username'])
 
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=applied,
+                            end_date=form.end_date.data, duration=duration,
                             remark=form.remark.data, submission_date=datetime.now(), 
                             file_url=filenames, status='Approval Pending')
         
@@ -407,10 +424,6 @@ def files(name):
 def approval():
     application_id = request.args.get('application_id')
 
-    #leave = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).\
-    #            with_entities(Applications.empid, Applications.type, Applications.duration, 
-    #            Team.name.label('team')).filter(Applications.id==leave_id).first()
-
     leave = db.session.query(Applications, Team).join(Team, Applications.empid==Team.empid).\
                 filter(Applications.id==application_id).first()
     
@@ -421,71 +434,19 @@ def approval():
         flash('You are not authorized', category='error')
         return redirect(url_for('leave.status', type='team'))
 
-    leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==leave[0].empid, 
-                and_(LeaveAvailable.year_start < leave[0].start_date, 
-                LeaveAvailable.year_end > leave[0].start_date)).first()
+    available = check_leave(leave[0].empid, leave[0].start_date, leave[0].duration, leave[0].type, 
+                'update')
+    if not available:
+        flash('Leave not available, please check leave summary', category='error')
+        return redirect(request.url)
     
-    if not leave_available:
-        flash('No leave available record found', category='error')
-        current_app.logger.warning('leave_approval(): No data in leave_available table for employee id: %s', leave[0].empid)
-        return redirect(url_for('leave.status_team'))
-
-    #Calculating available casual leave
-    if leave[0].type == 'Casual':
-        if leave_available.casual > leave[0].duration:
-            casual = leave_available.casual - leave[0].duration
-            leave_available.casual = casual
-        else:
-            total = leave_available.casual + leave_available.earned
-            if total > leave[0].duration:
-                earned = total - leave[0].duration
-                leave_available.casual = 0
-                leave_available.earned = earned
-            else:
-                flash('Leave not available, check leave summary', category='error')
-                return redirect(url_for('leave.status_team'))
-
-    #Calculating available medical leave
-    if leave[0].type == 'Medical':
-        if leave_available.medical > leave[0].duration:
-            medical = leave_available.medical - leave[0].duration
-            leave_available.medical = medical
-        else:
-            total = leave_available.medical + leave_available.casual
-            if total > leave.duration:
-                casual = total - leave[0].duration
-                leave_available.medical = 0
-                leave_available.casual = casual
-            else:
-                total = total + leave_available.earned
-                if total > leave[0].duration:
-                    earned = total - leave.duration
-                    leave_available.medical = 0
-                    leave_available.casual = 0
-                    leave_available.earned = earned
-                else:
-                    flash('Leave not available, check leave summary', category='error')
-                    return redirect(url_for('leave.status_team'))
+    
 
     #update 'applications' table
     application = Applications.query.filter_by(id=application_id).one()
     application.status = 'Approved'
-    
-    #update 'appr_leave_attn' table
-    start_date = leave[0].start_date
-    end_date = leave[0].end_date
 
-    while start_date <= end_date:
-        datestr = datetime.strftime(start_date, '%Y-%m-%d')
-        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==datestr).\
-                                    filter(ApprLeaveAttn.empid==leave[0].empid).first()
-
-        if attendance:
-            attendance.approved = leave.type
-        
-        start_date += timedelta(days=1)
-
-    db.session.commit()
+    update_attn(leave[0].empid, leave[0].start_date, leave[0].end_date, leave[0].type)
 
     #Send mail to all concerned
     admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
