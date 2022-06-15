@@ -378,10 +378,9 @@ def appl_status_team():
         
     for team in teams:
         applist = Applications.query.select_from(Applications).\
-                    join(Team, Applications.empid==Team.empid).\
-                    filter(Team.name == team.name).\
-                    filter(and_(Applications.type!='Casual', Applications.type!='Medical')).\
-                    order_by(Applications.status).all()
+                    join(Team, Applications.empid==Team.empid).filter(Team.name == team.name).\
+                    filter(Applications.empid!=session['empid'], and_(Applications.type!='Casual', 
+                    Applications.type!='Medical')).order_by(Applications.status).all()
         applications += applist
 
     return render_template('data.html', type='attn_appl_status', user='team', applications=applications)
