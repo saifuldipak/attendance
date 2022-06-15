@@ -51,7 +51,7 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
     if type == 'leave':
         subject = f"[{application.employee.fullname}] {application.type} leave application id -'{application.id}' {action}"
     elif type == 'attendance':
-        subject = f"[{application.employee.fullname}] attendance application id '{application.id}' {action}"
+        subject = f"[{application.employee.fullname}] attendance application id - '{application.id}' {action}"
     elif type == 'reset':
         subject = 'Password reset'
     else:
