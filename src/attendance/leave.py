@@ -53,7 +53,10 @@ def check_leave(empid, start_date, duration, type, update=None):
     leave = LeaveAvailable.query.filter(LeaveAvailable.empid==empid, 
                 and_(LeaveAvailable.year_start < start_date, 
                 LeaveAvailable.year_end > start_date)).first()
-    
+    if not leave:
+        current_app.logger.warning('check_leave(): no data found in leave_available table for employee %s', empid)
+        return False
+
     if type == 'Casual':
         if leave.casual > duration:
             casual = leave.casual - duration
@@ -181,7 +184,9 @@ def application(type):
             if not head:
                 current_app.logger.warning('Dept. Head email not found')
                 rv = 'failed'
-        
+            
+            manager.email = head.email
+
         if 'rv' in locals():
             flash('Failed to send mail', category='warning')
             return redirect(request.url)
