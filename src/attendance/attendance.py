@@ -569,7 +569,7 @@ def application_fiber():
                                     submission_date=datetime.now(), status='Approved')
         db.session.add(application)
         db.session.commit()
-        flash('Attendance application submitted')
+        flash('Attendance application approved', category='message')
         
         #Updating appr_leave_attn table
         start_date = form.start_date.data
@@ -595,13 +595,17 @@ def application_fiber():
 
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
         if not admin:
-            flash('Failed to send mail (HR email not found)', category='warning')
-            return redirect(request.url)
+            current_app.logger.warning('application_fiber(): Admin email not found')
+            rv = 'failed'
 
         head = Employee.query.filter(Employee.department==manager.department, 
                                         Employee.role=='Head').first()
         if not head:
-            flash('Failed to send mail (Department head email not found)', category='warning')
+            current_app.logger.warning('application_fiber(): Dept. head email not found')
+            rv = 'failed'
+        
+        if 'rv' in locals():
+            flash('Failed to send mail', category='warning')
             return redirect(request.url)
         
         host = current_app.config['SMTP_HOST']
@@ -610,8 +614,10 @@ def application_fiber():
                         cc1=head.email, application=application, type='attendance', action='approved')
         
         if rv:
-            msg = 'Mail sending failed (' + str(rv) + ')' 
-            flash(msg, category='warning')
+            current_app.logger.warning(rv)
+            flash('Failed to send mail', category='warning')
+            return redirect(request.url)
+
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
