@@ -6,7 +6,7 @@ from .check import date_check, user_check
 from .mail import send_mail
 from .forms import Attnapplfiber, Attnqueryall, Attnqueryalldate, Attnqueryallusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary
 from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
-from .auth import login_required, admin_required, manager_required
+from .auth import head_required, login_required, admin_required, manager_required
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -386,6 +386,16 @@ def appl_status_team():
 
     return render_template('data.html', type='attn_appl_status', user='team', applications=applications)
 
+#Attendance application status for department
+@attendance.route('/attendance/application/status/department')
+@login_required
+@head_required
+def appl_status_department():
+    applications = Applications.query.join(Employee).filter(Employee.department==session['department'], 
+                    and_(Applications.type!='Casual', Applications.type!='Medical')).\
+                    order_by(Applications.status, Applications.submission_date.desc()).all()
+
+    return render_template('data.html', type='attn_appl_status', user='team', applications=applications)
 
 #Attendance application status for all 
 @attendance.route('/attendance/application/status/all')
