@@ -352,7 +352,9 @@ def status_department():
 @login_required
 @admin_required
 def status():
-    applications  = Applications.query.join(Employee).order_by(Applications.status).all()
+    applications  = Applications.query.join(Employee).filter(or_(Applications.type=='Casual', 
+                    Applications.type=='Medical')).order_by(Applications.status).all()
+    
     return render_template('data.html', type='leave_status', applications=applications)
 
 ## Query & show details of each leave application using application id ##
