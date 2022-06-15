@@ -362,7 +362,7 @@ def appl_details(id):
 def appl_status_self():
     applications = Applications.query.join(Employee).\
                     filter(Employee.username == session['username']).\
-                    filter(or_(Applications.type!='Casual', Applications.type!='Medical')).\
+                    filter(and_(Applications.type!='Casual', Applications.type!='Medical')).\
                     order_by(Applications.submission_date.desc()).all()
     
     return render_template('data.html', type='attn_appl_status', user='self', applications=applications)
