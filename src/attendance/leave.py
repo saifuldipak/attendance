@@ -327,7 +327,8 @@ def status_team():
     for team in teams:
         team_applications = Applications.query.select_from(Applications).\
                             join(Team, Applications.empid==Team.empid).filter(Team.name==team.name, 
-                            Applications.empid!=session['empid']).order_by(Applications.status, 
+                            Applications.empid!=session['empid'], or_(Applications.type=='Casual', 
+                            Applications.type=='Medical')).order_by(Applications.status, 
                             Applications.submission_date.desc()).all()
 
         applications += team_applications
