@@ -221,15 +221,45 @@
         <div class="form-style-2-heading">Attendance Application Details</div>
         {% if details %}
             <div class="data">
-                Name : {{ details['employee']['fullname'] }} <br>
-                Type : {{ details['type'] }} <br>
-                Start date : {{ details['start_date'] }} <br>
-                End date : {{ details['end_date'] }} <br>
-                Duration : {{ details['duration'] }} <br>
-                Remark : {{ details['remark'] }} <br>
-                Submission date : {{ details['submission_date'] }} <br>
-                Approval date : {{ details['approval_date'] }} <br>
-                Status : {{ details['status'] }}
+                <table class="data">
+                    <tr>
+                        <td class="data-left">Name</td>
+                        <td class="data-right">{{ details['employee']['fullname'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Type</td>
+                        <td class="data-right">{{ details['type'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Start date</td>
+                        <td class="data-right">{{ details['start_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">End date</td>
+                        <td class="data-right">{{ details['end_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Duration</td>
+                        <td class="data-right">{{ details['duration'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Remark</td>
+                        <td class="data-right">{{ details['remark'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Submission date</td>
+                        <td class="data-right">{{ details['submission_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Approval date</td>
+                        <td class="data-right">{{ details['approval_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left">Status</td>
+                        <td class="data-right">{{ details['status'] }}</td>
+                    </tr>
+
+                </table>
             </div>
         {% endif %}
     {% endif %}
