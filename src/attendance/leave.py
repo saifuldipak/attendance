@@ -345,7 +345,7 @@ def status_department():
                     Applications.type=='Medical'), Applications.empid!=session['empid']).\
                     order_by(Applications.status, Applications.submission_date.desc()).all()
 
-    return render_template('data.html', type='leave_status', data='team', applications=applications)
+    return render_template('data.html', type='leave_status', data='department', applications=applications)
 
 #Leave application status for all
 @leave.route('/leave/status/all')
@@ -438,7 +438,7 @@ def summary(type):
 def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
-##Leave approval function##
+##Leave approval for Teams by Managers##
 @leave.route('/leave/approval')
 @login_required
 @manager_required
@@ -460,25 +460,42 @@ def approval():
     if not available:
         flash('Leave not available, please check leave summary', category='error')
         return redirect(request.url)
-    
-    
 
-    #update 'applications' table
+##Leave approval for Department by Head##
+@leave.route('/leave/approval/department')
+@login_required
+@head_required
+def approval_department():
+    application_id = request.args.get('application_id')
+
+    leave = Applications.query.join(Employee).filter(Applications.id==application_id).first()
+
+    #leave = db.session.query(Applications, Employee).join(Team, Applications.empid==Team.empid).\
+    #            filter(Applications.id==application_id).first()
+   
+    department_head = Employee.query.filter(Employee.department==leave.employee.department, 
+                        Employee.role=='Head').one()
+    
+    if department_head.id != int(session['empid']):
+        flash('You are not authorized', category='error')
+        return redirect(url_for('leave.status', type='team'))
+
+    available = check_leave(leave.empid, leave.start_date, leave.duration, leave.type, 'update')
+    if not available:
+        flash('Leave not available, please check leave summary', category='error')
+        return redirect(request.url)
+    
+    #update application status and appr_leave_attn table
     application = Applications.query.filter_by(id=application_id).one()
     application.status = 'Approved'
 
-    update_attn(leave[0].empid, leave[0].start_date, leave[0].end_date, leave[0].type)
-
+    update_attn(leave.empid, leave.start_date, leave.end_date, leave.type)
+    flash('Application approved', category='message')
+    
     #Send mail to all concerned
     admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
     if not admin:
         current_app.logger.warning('approval(): Admin email not found for employee id: %s', application.employee.id)
-        rv = 'failed'
-
-    head = Employee.query.filter(Employee.department==application.employee.department, 
-                Employee.role=='Head').first()
-    if not head:
-        current_app.logger.warning('approval(): Dept. Head email not found for employee id: %s', application.employee.id)
         rv = 'failed'
     
     if 'rv' in locals():
@@ -487,17 +504,15 @@ def approval():
 
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-            cc1=application.employee.email, cc2=head.email, application=application, type='leave', 
-            action='approved')
+    rv = send_mail(host=host, port=port, sender=department_head.email, receiver=admin.email, 
+            cc1=application.employee.email, application=application, type='leave', action='approved')
     
     if rv:
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
         return redirect(url_for('leave.status_team'))
     
-    flash('Leave approved.', category='message')
-    return redirect(url_for('leave.status_team'))
+    return redirect(url_for('leave.status_department'))
 
 
 ## Leave deduction function ##
