@@ -333,7 +333,7 @@
                 <tr>
                     {% if application %}
                         <td>{{ application['employee']['fullname'] }}</td>
-                        <td><a href="{{ url_for('attendance.appl_details', id=application['id']) }}">{{ application['type'] }}</a></td>
+                        <td><a href="{{ url_for('attendance.application_details', id=application['id']) }}">{{ application['type'] }}</a></td>
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
                         <td>{{ application['status'] }}</td>

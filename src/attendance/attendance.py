@@ -342,10 +342,10 @@ def cancel(id):
     
     return redirect(url_for('attendance.appl_status_self'))
 
-## Show details of each leave application using application id ##
-@attendance.route('/attendance/details/<id>')
+##Attendance application details##
+@attendance.route('/attendance/application/details/<id>')
 @login_required
-def appl_details(id):
+def application_details(id):
     rv = user_check(id)
     
     if not rv:
