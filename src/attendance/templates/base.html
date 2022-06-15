@@ -65,7 +65,7 @@
     
 
     {#-- Team menu for managers --#}
-    {% if session['role'] == 'Manager' %}
+    {% if session['role'] == 'Manager' or session['role'] == 'Head' %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
@@ -77,13 +77,22 @@
                         <a href="{{ url_for('forms.leave_fiber', type='Medical') }}" class="navbar-item">
                             -- Appl Medical
                         </a>
+                    {% elif session['role'] == 'Head' %}
+                        <a href="{{ url_for('leave.status_department') }}" class="navbar-item">
+                            -- Appl Status
+                        </a>
+                        <a href="{{ url_for('leave.summary', type='department') }}" class="navbar-item">
+                            -- Summary
+                        </a>
+                    {% elif session['role'] == 'Manager' %}
+                        <a href="{{ url_for('leave.status_team') }}" class="navbar-item">
+                            -- Appl Status
+                        </a>
+                        <a href="{{ url_for('leave.summary', type='team') }}" class="navbar-item">
+                            -- Summary
+                        </a>
                     {% endif %}
-                    <a href="{{ url_for('leave.status_team') }}" class="navbar-item">
-                        -- Appl Status
-                    </a>
-                    <a href="{{ url_for('leave.summary', type='team') }}" class="navbar-item">
-                        -- Summary
-                    </a>
+                    
                     </p>
                     Attendance
                     {% if session['team']|truncate(length=5, end='') == 'Fiber' %}

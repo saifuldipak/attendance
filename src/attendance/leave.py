@@ -6,12 +6,11 @@ from .check import date_check, user_check
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
-from .auth import admin_required, login_required, manager_required
+from .auth import admin_required, login_required, manager_required, head_required
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, timedelta
 from .forms import (LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
-from .employee import fiscalyear
 
 
 # renaming original uploaded files and saving to disk, also creating a string 
@@ -177,6 +176,8 @@ def application(type):
             if not manager:
                 current_app.logger.warning('Team Manager email not found')
                 rv = 'failed'
+            
+            receiver_email = manager.email
 
         if session['role'] == 'Manager':
             head = Employee.query.join(Team).filter(Employee.department==session['department'], 
@@ -185,7 +186,7 @@ def application(type):
                 current_app.logger.warning('Dept. Head email not found')
                 rv = 'failed'
             
-            manager.email = head.email
+            receiver_email = head.email
 
         if 'rv' in locals():
             flash('Failed to send mail', category='warning')
@@ -195,7 +196,7 @@ def application(type):
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=employee.email, receiver=manager.email, 
+        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, 
                         type='leave', application=application, action='submitted')
         
         if rv:
@@ -324,10 +325,23 @@ def status_team():
     applications = []
     
     for team in teams:
-        applist = Applications.query.select_from(Applications).\
-                    join(Team, Applications.empid==Team.empid).\
-                        filter(Team.name == team.name).order_by(Applications.status).all()
-        applications += applist
+        team_applications = Applications.query.select_from(Applications).\
+                            join(Team, Applications.empid==Team.empid).filter(Team.name==team.name, 
+                            Applications.empid!=session['empid']).order_by(Applications.status, 
+                            Applications.submission_date.desc()).all()
+
+        applications += team_applications
+
+    return render_template('data.html', type='leave_status', data='team', applications=applications)
+
+#Leave application status for department
+@leave.route('/leave/status/department')
+@login_required
+@head_required
+def status_department():
+    applications = Applications.query.join(Employee).\
+                    filter(Employee.department==session['department']).\
+                    order_by(Applications.status, Applications.submission_date).all()
 
     return render_template('data.html', type='leave_status', data='team', applications=applications)
 
