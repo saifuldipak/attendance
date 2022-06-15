@@ -341,8 +341,9 @@ def status_team():
 @head_required
 def status_department():
     applications = Applications.query.join(Employee).\
-                    filter(Employee.department==session['department']).\
-                    order_by(Applications.status, Applications.submission_date).all()
+                    filter(Employee.department==session['department'], or_(Applications.type=='Casual', 
+                    Applications.type=='Medical'), Applications.empid!=session['empid']).\
+                    order_by(Applications.status, Applications.submission_date.desc()).all()
 
     return render_template('data.html', type='leave_status', data='team', applications=applications)
 
