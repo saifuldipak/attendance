@@ -19,7 +19,7 @@
                 <tr>
                     {% if application %}
                         <td>{{ application['employee']['fullname'] }}</td>
-                        <td><a href="{{ url_for('leave.details', id=application['id']) }}"> {{ application['type'] }}</a></td>
+                        <td><a href="{{ url_for('leave.details', application_id=application['id']) }}"> {{ application['type'] }}</a></td>
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
                         <td>{{ application['status'] }}</td>
@@ -363,14 +363,14 @@
                 <tr>
                     {% if application %}
                         <td>{{ application['employee']['fullname'] }}</td>
-                        <td><a href="{{ url_for('attendance.application_details', id=application['id']) }}">{{ application['type'] }}</a></td>
+                        <td><a href="{{ url_for('attendance.application_details', application_id=application['id']) }}">{{ application['type'] }}</a></td>
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
                         <td>{{ application['status'] }}</td>
                         {% if application['status'] == "Approval Pending" %}
-                            {% if user == 'team' %}
-                                <td><a href="{{ url_for('attendance.approval', id=application['id'], type=application['type']) }}">Approve</a></td>
-                            {% elif user == 'self' %}
+                            {% if data == 'team' %}
+                                <td><a href="{{ url_for('attendance.approval_team', id=application['id'], type=application['type']) }}">Approve</a></td>
+                            {% elif data == 'self' %}
                                 <td><a href="{{ url_for('attendance.cancel', id=application['id']) }}">Cancel</a></td> 
                             {% endif %}
                         {% endif %}

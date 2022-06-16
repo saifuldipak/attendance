@@ -352,7 +352,7 @@ def application_details(application_id):
         flash('You are not authorized to see this record', category='error')
         return redirect(url_for('attendance.appl_status_self', type=type))
 
-    details = Applications.query.join(Employee).filter(Applications.id==id).first()
+    details = Applications.query.join(Employee).filter(Applications.id==application_id).first()
     return render_template('data.html', type='attn_appl_details', details=details)
 
 
@@ -365,9 +365,8 @@ def appl_status_self():
                     filter(and_(Applications.type!='Casual', Applications.type!='Medical')).\
                     order_by(Applications.submission_date.desc()).all()
     
-    return render_template('data.html', type='attn_appl_status', user='self', applications=applications)
+    return render_template('data.html', type='attn_appl_status', data='self', applications=applications)
     
-
 #Attendance application status for team 
 @attendance.route('/attendance/application/status/team')
 @login_required
@@ -383,7 +382,7 @@ def appl_status_team():
                     Applications.type!='Medical')).order_by(Applications.status).all()
         applications += applist
 
-    return render_template('data.html', type='attn_appl_status', user='team', applications=applications)
+    return render_template('data.html', type='attn_appl_status', data='team', applications=applications)
 
 #Attendance application status for department
 @attendance.route('/attendance/application/status/department')
@@ -409,10 +408,10 @@ def appl_status_all():
                         applications=applications)
 
 ##Attendance application approval for Team##
-@attendance.route('/attendance/application/approval')
+@attendance.route('/attendance/application/approval/team')
 @login_required
 @manager_required
-def approval():
+def approval_team():
     application_id = request.args.get('id')
     
     if not check_access(application_id):
@@ -420,7 +419,7 @@ def approval():
         return redirect(url_for('attendance.appl_status_team'))
 
     #Approve application and update appr_leave_attn table
-    application = Applications.query.filter_by(id=id).first()
+    application = Applications.query.filter_by(id=application_id).first()
     start_date = application.start_date
     end_date = application.end_date
     type = request.args.get('type')

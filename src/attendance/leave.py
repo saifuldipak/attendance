@@ -367,7 +367,7 @@ def details(application_id):
         flash('You are not authorized to see this record', category='error')
         return redirect(url_for('leave.status', type=type))
 
-    details = Applications.query.join(Employee).filter(Applications.id==id).first()
+    details = Applications.query.join(Employee).filter(Applications.id==application_id).first()
     return render_template('data.html', data_type='leave_details', details=details)    
 
 
