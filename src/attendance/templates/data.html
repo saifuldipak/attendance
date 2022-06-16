@@ -369,7 +369,9 @@
                         <td>{{ application['status'] }}</td>
                         {% if application['status'] == "Approval Pending" %}
                             {% if data == 'team' %}
-                                <td><a href="{{ url_for('attendance.approval_team', id=application['id'], type=application['type']) }}">Approve</a></td>
+                                <td><a href="{{ url_for('attendance.approval_team', application_id=application['id'], type=application['type']) }}">Approve</a></td>
+                            {% elif data == 'department' %}
+                                <td><a href="{{ url_for('attendance.approval_department', application_id=application['id'], type=application['type']) }}">Approve</a></td>
                             {% elif data == 'self' %}
                                 <td><a href="{{ url_for('attendance.cancel', id=application['id']) }}">Cancel</a></td> 
                             {% endif %}

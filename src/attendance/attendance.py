@@ -393,7 +393,7 @@ def appl_status_department():
                     and_(Applications.type!='Casual', Applications.type!='Medical')).\
                     order_by(Applications.status, Applications.submission_date.desc()).all()
 
-    return render_template('data.html', type='attn_appl_status', user='team', applications=applications)
+    return render_template('data.html', type='attn_appl_status', data='department', applications=applications)
 
 #Attendance application status for all 
 @attendance.route('/attendance/application/status/all')
@@ -412,7 +412,7 @@ def appl_status_all():
 @login_required
 @manager_required
 def approval_team():
-    application_id = request.args.get('id')
+    application_id = request.args.get('application_id')
     
     if not check_access(application_id):
         flash('You are not authorizes to perform this action', category='error')
@@ -469,6 +469,64 @@ def approval_team():
         flash(msg, category='warning')
     
     return redirect(url_for('attendance.appl_status_team'))
+
+##Attendance application approval for Department##
+@attendance.route('/attendance/application/approval/department')
+@login_required
+@head_required
+def approval_department():
+    application_id = request.args.get('application_id')
+    
+    if not check_access(application_id):
+        flash('You are not authorizes to perform this action', category='error')
+        return redirect(url_for('attendance.appl_status_team'))
+
+    #Approve application and update appr_leave_attn table
+    application = Applications.query.filter_by(id=application_id).first()
+    start_date = application.start_date
+    end_date = application.end_date
+    type = request.args.get('type')
+    
+    while  start_date <= end_date:
+        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==application.empid).\
+                                        filter(ApprLeaveAttn.date==start_date).first()
+        if attendance:
+            attendance.approved = type
+        
+        start_date += timedelta(days=1)
+    
+    application.status = 'Approved'
+    application.approval_date = datetime.now()
+    db.session.commit()
+    flash('Application approved')
+    
+    #Send mail to all concerned
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if not admin:
+        current_app.logger.warning('HR email not found')
+        msg = 'warning'
+
+    head = Employee.query.filter(Employee.department==application.employee.department, 
+                                    Employee.role=='Head').first()
+    if not head:
+        current_app.logger.warning('Dept. Head email not found')
+        msg = 'warning'
+    
+    if 'msg' in locals():
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
+
+    host = current_app.config['SMTP_HOST']
+    port = current_app.config['SMTP_PORT'] 
+    
+    rv = send_mail(host=host, port=port, sender=head.email, receiver=admin.email, 
+                    cc1=application.employee.email, type='attendance', 
+                    action='approved', application=application)
+    if rv:
+        msg = 'Mail sending failed (' + str(rv) + ')' 
+        flash(msg, category='warning')
+    
+    return redirect(url_for('attendance.appl_status_department'))
 
 #Update attn_summary table with attendance summary data for each employee
 @attendance.route('/attendance/summary', methods=['GET', 'POST'])
