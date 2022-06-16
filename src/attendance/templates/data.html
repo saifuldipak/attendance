@@ -25,7 +25,7 @@
                         <td>{{ application['status'] }}</td>
                         {% if application['status'] == "Approval Pending" %}
                             {% if data == 'team' %}
-                                <td><a href="{{ url_for('leave.approval', application_id=application['id']) }}">Approve</a></td>
+                                <td><a href="{{ url_for('leave.approval_team', application_id=application['id']) }}">Approve</a></td>
                             {% elif data == 'department' %}
                                 <td><a href="{{ url_for('leave.approval_department', application_id=application['id']) }}">Approve</a></td>
                             {% elif data == 'personal' %}

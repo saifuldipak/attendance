@@ -443,27 +443,62 @@ def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
 ##Leave approval for Teams by Managers##
-@leave.route('/leave/approval')
+@leave.route('/leave/approval/team')
 @login_required
 @manager_required
-def approval():
+def approval_team():
     application_id = request.args.get('application_id')
 
     leave = db.session.query(Applications, Team).join(Team, Applications.empid==Team.empid).\
-                filter(Applications.id==application_id).first()
+                filter(Applications.id==application_id).one()
     
     manager = Employee.query.join(Team).filter(and_(Team.name==leave[1].name, 
                 Employee.role=='Manager')).first_or_404()
 
     if manager.username != session['username']:
         flash('You are not authorized', category='error')
-        return redirect(url_for('leave.status', type='team'))
+        return redirect(url_for('leave.status_team'))
 
-    available = check_leave(leave[0].empid, leave[0].start_date, leave[0].duration, leave[0].type, 
-                'update')
+    available = check_leave(leave[0].empid, leave[0].start_date, leave[0].duration, leave[0].type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
-        return redirect(request.url)
+        return redirect(url_for('leave.status_team'))
+    
+    #update application status and appr_leave_attn table
+    application = Applications.query.filter_by(id=application_id).one()
+    application.status = 'Approved'
+
+    update_attn(leave[0].empid, leave[0].start_date, leave[0].end_date, leave[0].type)
+    flash('Leave approved', category='message')
+    
+    #Send mail to all concerned
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if not admin:
+        current_app.logger.warning('approval(): Admin email not found for employee id: %s', application.employee.id)
+        rv = 'failed'
+    
+    head = Employee.query.filter(Employee.department==manager.department, 
+            Employee.role=='Head').first()
+    if not head:
+        current_app.logger.warning('approval(): Dept. head email not found for employee id: %s', application.employee.id)
+        rv = 'failed'
+    
+    if 'rv' in locals():
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('leave.status_team'))
+
+    host = current_app.config['SMTP_HOST']
+    port = current_app.config['SMTP_PORT'] 
+    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
+            cc1=application.employee.email, cc2=head.email, application=application, 
+            type='leave', action='approved')
+    
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('leave.status_team'))
+    
+    return redirect(url_for('leave.status_team'))
 
 ##Leave approval for Department by Head##
 @leave.route('/leave/approval/department')
