@@ -58,41 +58,43 @@ def check_leave(empid, start_date, duration, type, update=None):
 
     if type == 'Casual':
         if leave.casual > duration:
-            casual = leave.casual - duration
-            leave.casual = casual
+            if update:
+                casual = leave.casual - duration
+                leave.casual = casual
         else:
             total = leave.casual + leave.earned
             if total > duration:
-                earned = total - duration
-                leave.casual = 0
-                leave.earned = earned
+                if update:
+                    earned = total - duration
+                    leave.casual = 0
+                    leave.earned = earned
             else:
                 return False
 
     if type == 'Medical':
         if leave.medical > duration:
-            medical = leave.medical - duration
-            leave.medical = medical
+            if update:
+                medical = leave.medical - duration
+                leave.medical = medical
         else:
             total = leave.medical + leave.casual
             
             if total > leave.duration:
-                casual = total - duration
-                leave.medical = 0
-                leave.casual = casual
+                if update:
+                    casual = total - duration
+                    leave.medical = 0
+                    leave.casual = casual
             else:
                 total = total + leave.earned
                 if total > duration:
-                    earned = total - duration
-                    leave.medical = 0
-                    leave.casual = 0
-                    leave.earned = earned
+                    if update:
+                        earned = total - duration
+                        leave.medical = 0
+                        leave.casual = 0
+                        leave.earned = earned
                 else:
                     return False
                 
-    if update:
-        db.session.commit()
-    
     return True
  
 #update 'appr_leave_attn' table
