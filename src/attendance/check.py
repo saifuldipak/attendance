@@ -1,6 +1,6 @@
 from tracemalloc import start
 from .db import Applications, Employee, Team
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from flask import current_app, session
 
 #checking if dates in submitted application already exists in previously submitted 
@@ -39,17 +39,15 @@ def date_check(empid, start_date, end_date):
     if any_date_exists:
         return 'Start and/or end dates overlaps with other application'
 
-#This function checks whether the user can see the details of an application by its id
-#user can only see the application details if session user is the applicant or
-#user is the manager of the applicant's team or
-#user role is admin and user is a member of HR team
-def user_check(id):
-    employee = Employee.query.join(Applications, Team).filter(Applications.id==id).first()
-    manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+#Check access to specific application id
+def check_access(application_id):
+    employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
+    manager_or_head = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, 
+                or_(Employee.role=='Manager', Employee.role=='Head')).first()
 
     if employee.username == session['username']:
         return True
-    elif manager:
+    elif manager_or_head:
         return True
     elif session['access'] == 'Admin':
         return True

@@ -2,7 +2,7 @@ from threading import local
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
-from .check import date_check, user_check
+from .check import check_access, date_check
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
@@ -358,10 +358,10 @@ def status():
     return render_template('data.html', type='leave_status', applications=applications)
 
 ## Query & show details of each leave application using application id ##
-@leave.route('/leave/details/<id>')
+@leave.route('/leave/details/<application_id>')
 @login_required
-def details(id):
-    rv = user_check(id)
+def details(application_id):
+    rv = check_access(application_id)
     
     if not rv:
         flash('You are not authorized to see this record', category='error')

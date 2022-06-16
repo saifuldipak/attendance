@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 from sqlalchemy import and_, or_, extract, func
 import pandas as pd
-from .check import date_check, user_check
+from .check import check_access, date_check
 from .mail import send_mail
 from .forms import Attnapplfiber, Attnqueryall, Attnqueryalldate, Attnqueryallusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary
 from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
@@ -343,10 +343,10 @@ def cancel(id):
     return redirect(url_for('attendance.appl_status_self'))
 
 ##Attendance application details##
-@attendance.route('/attendance/application/details/<id>')
+@attendance.route('/attendance/application/details/<application_id>')
 @login_required
-def application_details(id):
-    rv = user_check(id)
+def application_details(application_id):
+    rv = check_access(application_id)
     
     if not rv:
         flash('You are not authorized to see this record', category='error')
@@ -408,14 +408,14 @@ def appl_status_all():
     return render_template('data.html', type='attn_appl_status', user='all', 
                         applications=applications)
 
-##Attendance application approval##
+##Attendance application approval for Team##
 @attendance.route('/attendance/application/approval')
 @login_required
 @manager_required
 def approval():
-    id = request.args.get('id')
+    application_id = request.args.get('id')
     
-    if not user_check(id):
+    if not check_access(application_id):
         flash('You are not authorizes to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
