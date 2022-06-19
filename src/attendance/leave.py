@@ -451,6 +451,29 @@ def summary_self():
 
     return render_template('data.html', data_type='leave_summary', leaves=leaves)
 
+##Leave summary team##
+@leave.route('/leave/summary/team')
+@login_required
+@manager_required     
+def summary_team():
+    teams = Team.query.filter_by(empid=session['empid']).all()
+    team_leaves = []
+   
+    for team in teams:
+        leaves = LeaveAvailable.query.join(Employee, Team).\
+                filter(Team.name==team.name, 
+                or_(LeaveAvailable.year_start < datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.now().date())).all()
+        team_leaves += leaves\
+    
+    leaves = team_leaves
+    
+    if not leaves:
+        current_app.logger.warning('summary_team(): No data found in leave_available table')
+        flash('No leave summary record found', category='warning')
+
+    return render_template('data.html', data_type='leave_summary', leaves=leaves)
+
 @leave.route('/leave/files/<name>')
 @login_required
 def files(name):
