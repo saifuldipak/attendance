@@ -1,3 +1,19 @@
+1.0.0a4 (19-jun-2022)
+---------------------
+Feature:
+leave.summary function replaced with leave.summary_department, leave.summary_team and leave.summary_self function
+attendance.approval_department, attendance.appl_status_department, leave.approval_department, leave.status_department function added
+auth module function head_required() added
+leave.check_date function modified to update leave_available table along with checking available leave
+
+Fix:
+leave.approval, attendance.approval, attendance.appl_details, check.user_check function renamed 
+mail subject line format modified
+employee.create, leave.status_team, leave.status_all, leave.status_department, attendance.appl_status_team query fixed
+
+To: commit f811eaa
+From: commit f24d0fb
+
 1.0.0a3 (14-Jun-2022)
 --------------------
 Bug fixed:
@@ -9,9 +25,8 @@ Leave end date made option in both attendance and leave application
 Attendance application for fiber added
 Attendance type added in attendance application
 
-From: commit 3e57472
 To: commit 6f7af07
-
+From: commit 3e57472
 
 1.0.0a2 (6-Jun-2022)
 --------------------
@@ -26,8 +41,8 @@ Employee search function added
 Style:
 All types of query result presentation changed
 
-From: commit 780925e
 To: commit 42b10c0 
+From: commit 780925e
 
 1.0.0a1 (5-Jun-2022)
 --------------------
