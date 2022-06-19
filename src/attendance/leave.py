@@ -409,34 +409,6 @@ def cancel(application_id):
     
     return redirect(url_for('leave.status_personal'))
 
-## Showing leave summary ##
-@leave.route('/leave/summary/<type>')
-@login_required     
-def summary(type):
-
-    if type == 'personal':
-        leaves = LeaveAvailable.query.join(Employee).\
-                    filter(Employee.id==session['empid'], 
-                    LeaveAvailable.year_start < datetime.now().date(), 
-                    LeaveAvailable.year_end > datetime.now().date()).all()
-    elif type == 'team' and session['role'] == 'Manager':
-        teams = Team.query.filter_by(empid=session['empid']).all()
-        team_leaves = []
-        for team in teams:
-            leaves = LeaveAvailable.query.join(Employee, Team).\
-                    filter(Team.name==team.name, 
-                    LeaveAvailable.year_start < datetime.now().date(), 
-                    LeaveAvailable.year_end > datetime.now().date()).all()
-            team_leaves += leaves
-        leaves = team_leaves
-    elif type == 'all' and session['access'] == 'Admin':
-        leaves = LeaveAvailable.query.join(Employee).all()
-    else:
-        flash('Your are not authorized', category='error')
-        return render_template('base.html')
-
-    return render_template('data.html', data_type='leave_summary', leaves=leaves)
-
 ##Leave summary personal##
 @leave.route('/leave/summary/self')
 @login_required     
