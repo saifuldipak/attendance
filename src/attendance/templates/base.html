@@ -82,7 +82,7 @@
                         <a href="{{ url_for('leave.status_department') }}" class="navbar-item">
                             -- Appl Status
                         </a>
-                        <a href="{{ url_for('leave.summary', type='department') }}" class="navbar-item">
+                        <a href="{{ url_for('leave.summary_department', type='department') }}" class="navbar-item">
                             -- Summary
                         </a>
                     {% elif session['role'] == 'Manager' %}
@@ -131,7 +131,7 @@
                     <a href="{{ url_for('leave.status', type='all') }}" class="navbar-item">
                         -- Application Status
                     </a>
-                    <a href="{{ url_for('leave.summary', type='all') }}" class="navbar-item">
+                    <a href="{{ url_for('leave.summary_all', type='all') }}" class="navbar-item">
                         -- Summary
                     </a>
                     <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">

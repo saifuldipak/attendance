@@ -474,6 +474,35 @@ def summary_team():
 
     return render_template('data.html', data_type='leave_summary', leaves=leaves)
 
+##Leave summary department##
+@leave.route('/leave/summary/department')
+@login_required
+@head_required     
+def summary_department():
+    leaves = LeaveAvailable.query.join(Employee).\
+                filter(Employee.department==session['department'], Employee.id!=session['empid'],  
+                or_(LeaveAvailable.year_start < datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.now().date())).all()
+    
+    if not leaves:
+        current_app.logger.warning('summary_department(): No data found in leave_available table')
+        flash('No leave summary record found', category='warning')
+
+    return render_template('data.html', data_type='leave_summary', leaves=leaves)
+
+##Leave summary all##
+@leave.route('/leave/summary/all')
+@login_required     
+def summary_all():
+    leaves = LeaveAvailable.query.join(Employee).filter(or_(LeaveAvailable.year_start < datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.now().date())).all()
+                
+    if not leaves:
+        current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
+        flash('No leave summary record found', category='warning')
+
+    return render_template('data.html', data_type='leave_summary', leaves=leaves)
+
 @leave.route('/leave/files/<name>')
 @login_required
 def files(name):
