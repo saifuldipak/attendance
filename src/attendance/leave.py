@@ -437,6 +437,20 @@ def summary(type):
 
     return render_template('data.html', data_type='leave_summary', leaves=leaves)
 
+##Leave summary personal##
+@leave.route('/leave/summary/self')
+@login_required     
+def summary_self():
+    leaves = LeaveAvailable.query.join(Employee).\
+                filter(Employee.id==session['empid'], 
+                or_(LeaveAvailable.year_start < datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.now().date())).all()
+    if not leaves:
+        current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
+        flash('No leave summary record found', category='warning')
+
+    return render_template('data.html', data_type='leave_summary', leaves=leaves)
+
 @leave.route('/leave/files/<name>')
 @login_required
 def files(name):
