@@ -332,13 +332,13 @@ def attnquery_self():
     form = Attnqueryself()
     return render_template('forms.html', type='attnquery', user='self', form=form)
 
-#Attendance summary 
-@forms.route('/forms/attendance/summary')
+#Attendance summary prepare
+@forms.route('/forms/attendance/summary_prepare')
 @login_required
 @admin_required
-def attn_summary():
+def attn_summary_prepare():
     form = Attnsummary()
-    return render_template('forms.html', type='attn_summary', form=form)
+    return render_template('forms.html', type='attn_summary_prepare', form=form)
 
 #Leave deduction
 @forms.route('/forms/leave/deduction')

@@ -529,10 +529,10 @@ def approval_department():
     return redirect(url_for('attendance.appl_status_department'))
 
 #Update attn_summary table with attendance summary data for each employee
-@attendance.route('/attendance/summary', methods=['GET', 'POST'])
+@attendance.route('/attendance/summary_prepare', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def summary():
+def summary_prepare():
     form = Attnsummary()
 
     if form.validate_on_submit():
@@ -551,7 +551,7 @@ def summary():
 
         if summary:
             flash('Summary data already exists for the year and month you submitted', category='error')
-            return redirect(url_for('forms.attn_summary'))
+            return redirect(url_for('forms.attn_summary_prepare'))
     
         employees = Employee.query.all()
 
@@ -589,7 +589,7 @@ def summary():
             db.session.commit()
             flash('Attendance summary created', category='message')
     
-    return redirect(url_for('forms.attn_summary'))
+    return redirect(url_for('forms.attn_summary_prepare'))
 
 ##Casual and Medical attendance application submission for Fiber##
 @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])

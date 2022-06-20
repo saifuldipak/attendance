@@ -264,10 +264,10 @@
                 </label>
     {% endif %}
 
-    {# --attendance summary form-- #}
-    {% if type == 'attn_summary' %}
+    {# -- attendance summary prepare -- #}
+    {% if type == 'attn_summary_prepare' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.summary') }}">
+                <form method="post" action="{{ url_for('attendance.summary_prepare') }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Prepare Attendance Summary</div>
                     <label for="month">
