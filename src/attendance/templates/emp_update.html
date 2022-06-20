@@ -12,6 +12,10 @@
                 Department
             </a>
             &ensp;
+            <a href="{{ url_for('forms.update_fullname') }}" class="navbar2">
+                Fullname
+            </a>
+            &ensp;
             <a href="{{ url_for('forms.update_email') }}" class="navbar2">
                 Email
             </a>
@@ -26,6 +30,10 @@
             &ensp;
             <a href="{{ url_for('forms.update_role') }}" class="navbar2">
                     Role
+            </a>
+            &ensp;
+            <a href="{{ url_for('forms.update_access') }}" class="navbar2">
+                    Access
             </a>
     </div>
     
@@ -93,6 +101,26 @@
                         </label>
     {% endif %}
 
+    {# --employee fullname update form-- #}
+    {% if type == 'fullname' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='fullname') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Fullname</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="fullname">
+                            <span>{{ form.fullname.label }}</span>
+                                {{ form.fullname }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Update" /></label>
+                        </label>
+    {% endif %}
+
     {# --employee phone update form-- #}
     {% if type == 'phone' %}
             <div class="form-style-2">
@@ -142,6 +170,26 @@
                         <label for="password">
                             <span>{{ form.role.label }}</span>
                                 {{ form.role }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Update" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee access update form-- #}
+    {% if type == 'access' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='access') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Access</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="password">
+                            <span>{{ form.access.label }}</span>
+                                {{ form.access }}
                         </label>
                         <label>
                             <span> </span>

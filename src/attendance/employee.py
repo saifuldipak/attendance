@@ -1,8 +1,8 @@
 import secrets
 from flask import Blueprint, request, flash, redirect, render_template, session, url_for
 from .db import db, Employee, Team, LeaveAvailable
-from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updatedept, 
-                    Updateemail, Updatephone, Updaterole, Updateteam)
+from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, 
+                    Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
 from .mail import send_mail
 from .auth import admin_required, login_required
@@ -195,10 +195,14 @@ def update(action):
         form = Updatedept()
     elif action == 'email':
         form = Updateemail()
+    elif action == 'fullname':
+        form = Updatefullname()
     elif action == 'phone':
         form = Updatephone()
     elif action == 'role':
         form = Updaterole()
+    elif action == 'access':
+        form = Updateaccess()
     elif action == 'pass':
         form = Resetpass()
     else:
@@ -242,10 +246,15 @@ def update(action):
             employee.email = form.email.data
             flash('Email updated', category='message')
         
+        #update fullname
+        if action == 'fullname':
+            employee.fullname = form.fullname.data
+            flash('Fullname updated', category='message')
+
         #update phone
         if action == 'phone':
             employee.phone = form.phone.data
-            flash('Phone updated', category='message')
+            flash('Fullname updated', category='message')
 
         #update role
         if action == 'role':
@@ -255,6 +264,14 @@ def update(action):
             else:
                 flash('Current role and new role is same', category='warning')
         
+        #update access
+        if action == 'access':
+            if employee.access != form.access.data:
+                employee.access = form.access.data
+                flash('Access updated', category='message')
+            else:
+                flash('Current access and new access is same', category='warning')
+
         #reset password
         if action == 'pass':
             password = ''

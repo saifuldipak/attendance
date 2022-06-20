@@ -201,6 +201,13 @@ class Updateemail(FlaskForm):
     email = EmailField('Email', render_kw={'class': 'input-field'}, 
                         validators=[InputRequired(), Email(message='Email not correct')])
 
+#Update employee fullname
+class Updatefullname(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, 
+                            validators=[InputRequired()])
+    fullname = StringField('Fullname', render_kw={'class': 'input-field'}, 
+                        validators=[InputRequired()])
+
 #Update employee phone
 class Updatephone(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
@@ -231,6 +238,13 @@ class Updaterole(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
                             validators=[InputRequired()])
     role = SelectField('Role', render_kw={'class': 'input-field'}, choices=roles)
+
+#Update access
+class Updateaccess(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, 
+                            validators=[InputRequired()])
+    access = SelectField('Role', render_kw={'class': 'input-field'}, choices=access)
+
 
 forms = Blueprint('forms', __name__)
 
@@ -360,6 +374,14 @@ def update_email():
     form = Updateemail()
     return render_template('emp_update.html', type='email', form=form)
 
+#Employee modify - fullname
+@forms.route('/forms/employee/update_fullname')
+@login_required
+@admin_required
+def update_fullname():
+    form = Updatefullname()
+    return render_template('emp_update.html', type='fullname', form=form)
+
 #Employee modify - phone
 @forms.route('/forms/employee/update_phone')
 @login_required
@@ -399,6 +421,14 @@ def reset_pass():
 def update_role():
     form = Updaterole()
     return render_template('emp_update.html', type='role', form=form)
+
+#Employee modify - access
+@forms.route('/forms/employee/update_access')
+@login_required
+@admin_required
+def update_access():
+    form = Updateaccess()
+    return render_template('emp_update.html', type='access', form=form)
 
 #Employee search 
 @forms.route('/forms/employee/search')
