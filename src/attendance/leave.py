@@ -433,7 +433,7 @@ def summary_team():
    
     for team in teams:
         leaves = LeaveAvailable.query.join(Employee, Team).\
-                filter(Team.name==team.name, 
+                filter(Team.name==team.name, Employee.id!=session['empid'], 
                 or_(LeaveAvailable.year_start < datetime.now().date(), 
                 LeaveAvailable.year_end > datetime.now().date())).all()
         team_leaves += leaves\
