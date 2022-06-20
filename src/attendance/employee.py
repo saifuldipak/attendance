@@ -238,23 +238,35 @@ def update(action):
         
         #update department
         if action == 'dept':
-            employee.department = form.dept.data
-            flash('Department updated', category='message')
+            if employee.department == form.dept.data:
+                flash('Current and new department is same', category='warning')
+            else:
+                employee.department = form.dept.data
+                flash('Department updated', category='message')
         
         #update email
         if action == 'email':
-            employee.email = form.email.data
-            flash('Email updated', category='message')
+            if employee.email == form.email.data:
+                flash('Current and new email is same', category='warning')
+            else:
+                employee.email = form.email.data
+                flash('Email updated', category='message')
         
         #update fullname
         if action == 'fullname':
-            employee.fullname = form.fullname.data
-            flash('Fullname updated', category='message')
+            if employee.fullname == form.fullname.data:
+                flash('Current and new fullname is same', category='warning')
+            else:
+                employee.fullname = form.fullname.data
+                flash('Fullname updated', category='message')
 
         #update phone
         if action == 'phone':
-            employee.phone = form.phone.data
-            flash('Fullname updated', category='message')
+            if employee.phone == form.phone.data:
+                flash('Current and new phone is same', category='warning')
+            else:
+                employee.phone = form.phone.data
+                flash('Phone updated', category='message')
 
         #update role
         if action == 'role':
@@ -262,7 +274,7 @@ def update(action):
                 employee.role = form.role.data
                 flash('Role updated', category='message')
             else:
-                flash('Current role and new role is same', category='warning')
+                flash('Current and new role is same', category='warning')
         
         #update access
         if action == 'access':
@@ -270,7 +282,7 @@ def update(action):
                 employee.access = form.access.data
                 flash('Access updated', category='message')
             else:
-                flash('Current access and new access is same', category='warning')
+                flash('Current and new access is same', category='warning')
 
         #reset password
         if action == 'pass':
