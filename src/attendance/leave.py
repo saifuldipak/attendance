@@ -178,8 +178,8 @@ def application(type):
             if not manager:
                 current_app.logger.warning('Team Manager email not found')
                 rv = 'failed'
-            
-            receiver_email = manager.email
+            else:            
+                receiver_email = manager.email
 
         if session['role'] == 'Manager':
             head = Employee.query.join(Team).filter(Employee.department==session['department'], 
@@ -187,8 +187,8 @@ def application(type):
             if not head:
                 current_app.logger.warning('Dept. Head email not found')
                 rv = 'failed'
-            
-            receiver_email = head.email
+            else:
+                receiver_email = head.email
 
         if 'rv' in locals():
             flash('Failed to send mail', category='warning')
