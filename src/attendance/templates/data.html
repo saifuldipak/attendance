@@ -277,22 +277,18 @@
         <div class="form-style-2-heading">Attendance Summary</div>
         <span><b>Month:</b> {{ form.month.data }}<br>
         <table class="query-result">
-            <th>Full Name</th>
-            <th>&nbsp</th>
-            <th>Absent</th>
-            <th>&nbsp</th>
-            <th>Late</th>
-            <th>&nbsp</th>
+            <th class="query-result">Full Name</th>
+            <th class="query-result">Absent</th>
+            <th class="query-result">Late</th>
+            <th class="query-result">Early</th>
 
             {% if query == 'team' %}
                 {% for list in summary %}
                     {% for user in list %}
                     <tr>
-                        <td>{{ user[0] }}</td>
-                        <th>&nbsp</th>
-                        <td>{{ user[1] }}</td>
-                        <th>&nbsp</th>
-                        <td>{{ user[2] }}</td>
+                        <td class="query-result">{{ user[0] }}</td>
+                        <td class="query-result">{{ user[1] }}</td>
+                        <td class="query-result">{{ user[2] }}</td>
                     </tr>
                     {% endfor %}
                 {% endfor %}
@@ -301,11 +297,10 @@
             {% if query == 'all' %}
                 {% for row in summary %}
                     <tr>
-                        <td>{{ row.employee.fullname }}</td>
-                        <th>&nbsp</th>
-                        <td>{{ row.absent }}</td>
-                        <th>&nbsp</th>
-                        <td>{{ row.late }}</td>
+                        <td class="query-result">{{ row.employee.fullname }}</td>
+                        <td class="query-result">{{ row.absent }}</td>
+                        <td class="query-result">{{ row.late }}</td>
+                        <td class="query-result">{{ row.early }}</td>
                     </tr>
                 {% endfor %}
             {% endif %}
@@ -328,27 +323,19 @@
             {% if query_type == 'date' %}
              <th>Name</th>
             {% endif %}
-            <th>Date</th>
-            <th>&nbsp</th>
-            <th>In Time</th>
-            <th>&nbsp</th>
-            <th>Out Time</th>
-            <th>&nbsp</th>
-            <th>Approved</th>
-            <th>&nbsp</th>
+            <th class="query-result">Date</th>
+            <th class="query-result">In Time</th>
+            <th class="query-result">Out Time</th>
+            <th class="query-result">Approved</th>
             {% for row in attendance %}
                 <tr>
                     {% if query_type == 'date' %}
-                        <td>{{ row['fullname'] }}</td>
+                        <td class="query-result">{{ row['fullname'] }}</td>
                     {% endif %}
-                    <td>{{ row['date'] }}</td>
-                    <td>&nbsp</td>
-                    <td>{{ row['in_time'] }}</td>
-                    <td>&nbsp</td>
-                    <td>{{ row['out_time'] }}</td>
-                    <td>&nbsp</td>
-                    <td>{{ row['approved'] }}</td>
-                    <td>&nbsp</td>
+                    <td class="query-result">{{ row['date'] }}</td>
+                    <td class="query-result">{{ row['in_time'] }}</td>
+                    <td class="query-result">{{ row['out_time'] }}</td>
+                    <td class="query-result">{{ row['approved'] }}</td>
                 </tr>
             {% endfor %}
         </table>

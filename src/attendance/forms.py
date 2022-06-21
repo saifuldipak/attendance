@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session
+from flask import Blueprint, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators
@@ -314,6 +314,11 @@ def attnquery_all(type):
         form = Attnqueryalldate()
     elif type == 'username':
         form = Attnqueryallusername()
+    elif type == 'month':
+        form = Attnsummary()
+    else:
+        current_app.logger.error('attnquery_all(): unknown form type')
+        flash('Could not create form', category='error')
     
     return render_template('attn_query.html', type=type, form=form)
 
@@ -333,12 +338,12 @@ def attnquery_self():
     return render_template('forms.html', type='attnquery', user='self', form=form)
 
 #Attendance summary prepare
-@forms.route('/forms/attendance/summary_prepare')
+@forms.route('/forms/attendance/prepare_summary')
 @login_required
 @admin_required
-def attn_summary_prepare():
+def attn_prepare_summary():
     form = Attnsummary()
-    return render_template('forms.html', type='attn_summary_prepare', form=form)
+    return render_template('forms.html', type='attn_prepare_summary', form=form)
 
 #Leave deduction
 @forms.route('/forms/leave/deduction')

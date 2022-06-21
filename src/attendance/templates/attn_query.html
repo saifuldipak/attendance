@@ -11,6 +11,10 @@
             <a href="{{ url_for('forms.attnquery_all', type='username') }}" class="navbar2">
                 By Username
             </a>
+            &ensp;
+            <a href="{{ url_for('forms.attnquery_all', type='month') }}" class="navbar2">
+                By Month
+            </a>
     </div>
     
     {# --query by date form-- #}
@@ -49,5 +53,24 @@
                         </label>
     {% endif %}
     
+    {# --query by month-- #}
+    {% if type == 'month' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.query_all', query_type='month') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">By Month</div>
+                        <label for="month">
+                            <span>{{ form.month.label }}</span>
+                                {{ form.month }}
+                        </label>
+                        <label for="year">
+                            <span>{{ form.year.label }}</span>
+                                {{ form.year }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Query" /></label>
+                        </label>
+    {% endif %}
     
 {% endblock %}

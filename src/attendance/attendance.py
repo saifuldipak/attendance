@@ -115,21 +115,25 @@ def query_all(query_type):
         form = Attnqueryalldate()
     elif query_type == 'username':
         form = Attnqueryallusername()
+    elif query_type == 'month':
+        form = Attnsummary()
 
     if form.validate_on_submit():
-        #query by date
+        
         if query_type == 'date':
-            attendance = db.session.query(Employee.fullname, Attendance.date, Attendance.in_time, 
-                                                Attendance.out_time, ApprLeaveAttn.approved).\
-                            join(Employee, Attendance.empid==Employee.id).\
-                            join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                            filter(Attendance.date==form.date.data).\
-                            order_by(Attendance.date).all()
+            attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, 
+                            and_(Attendance.date==ApprLeaveAttn.date, 
+                            Attendance.empid==ApprLeaveAttn.empid)).\
+                            with_entities(Employee.fullname, Attendance.date, Attendance.in_time, 
+                            Attendance.out_time, ApprLeaveAttn.approved).\
+                            filter(Attendance.date==form.date.data).all()
             
-            return render_template('data.html', type='attn_details', query='all', query_type=query_type, 
-                                        form=form, attendance=attendance)          
-        #query by username
+            if not attendance:
+                flash('No record found', category='warning')
+                      
+            return render_template('data.html', type='attn_details', query='all', 
+                                    query_type=query_type, attendance=attendance)          
+        
         if query_type == 'username':
             employee = Employee.query.filter_by(username=form.username.data).first()
             
@@ -143,6 +147,9 @@ def query_all(query_type):
                             filter(Attendance.empid==employee.id).\
                             filter(extract('month', Attendance.date)==month).\
                             order_by(Attendance.date).all()
+                
+                if not attendance:
+                    flash('No record found', category='warning')
 
                 return render_template('data.html', type='attn_details', query='all', 
                                             fullname=employee.fullname, query_type=query_type, 
@@ -151,12 +158,15 @@ def query_all(query_type):
                 flash('Username not found', category='error')
                 return redirect(url_for('attendance.query_menu'))
         
-        #query summary by month
-        if type == 'summary':
-            summary = AttnSummary.query.join(Employee).\
-                                        filter(extract('month', Attendance.date)==month).all()
-                               
-            return render_template('data.html', type='attn_summary', query='all', form=form, summary=summary)
+        if query_type == 'month':
+            summary = AttnSummary.query.join(Employee).filter(AttnSummary.year==form.year.data, 
+                        AttnSummary.month==form.month.data).all()
+            
+            if not summary:
+                flash('No record found', category='warning')                  
+            
+            return render_template('data.html', type='attn_summary', query='all', form=form, 
+                                    summary=summary)
    
     return render_template('attn_query.html')
 
@@ -529,10 +539,10 @@ def approval_department():
     return redirect(url_for('attendance.appl_status_department'))
 
 #Update attn_summary table with attendance summary data for each employee
-@attendance.route('/attendance/summary_prepare', methods=['GET', 'POST'])
+@attendance.route('/attendance/prepare_summary', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def summary_prepare():
+def prepare_summary():
     form = Attnsummary()
 
     if form.validate_on_submit():
@@ -540,18 +550,15 @@ def summary_prepare():
         cur_month_num = datetime.now().month
         cur_year = datetime.now().year
 
-        #checking given month number is equal or greater than current month number
-        #leave deduction is only permitted for previous month or months before that
         if month_num >= cur_month_num and cur_year >= int(form.year.data):
             flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
-            return redirect(url_for('forms.attn_summary'))
+            return redirect(url_for('forms.attn_prepare_summary'))
             
-        summary = AttnSummary.query.filter_by(year=form.year.data).\
-                                    filter_by(month=form.month.data).first()
+        summary = AttnSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
 
         if summary:
             flash('Summary data already exists for the year and month you submitted', category='error')
-            return redirect(url_for('forms.attn_summary_prepare'))
+            return redirect(url_for('forms.attn_prepare_summary'))
     
         employees = Employee.query.all()
 
@@ -560,26 +567,27 @@ def summary_prepare():
         for employee in employees:
             absent = db.session.query(func.count(Attendance.empid).label('count')).\
                         join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                        filter(Attendance.empid==employee.id).\
-                        filter(extract('month', Attendance.date)==month_num).\
-                        filter(Attendance.in_time == None).\
-                        filter(ApprLeaveAttn.approved=='').first()
+                        Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
+                        extract('month', Attendance.date)==month_num, Attendance.in_time=='00:00:00.000000', 
+                        ApprLeaveAttn.approved=='').first()
                             
             late = db.session.query(func.count(Attendance.empid).label('count')).\
-                            join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                        Attendance.empid==ApprLeaveAttn.empid)).\
-                            filter(Attendance.empid==employee.id).\
-                            filter(extract('month', Attendance.date)==month_num).\
-                            filter(Attendance.in_time != None).\
-                            filter(or_(func.Time(Attendance.in_time) > '09:15:00', 
-                                        Attendance.out_time==None, 
-                                        func.Time(Attendance.out_time) < '17:45:00')).\
-                            filter(ApprLeaveAttn.approved=='').first()
+                    join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
+                    Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
+                    extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
+                    Attendance.in_time > '09:15:00', ApprLeaveAttn.approved=='').first()
+                    
+            early = db.session.query(func.count(Attendance.empid).label('count')).\
+                    join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
+                    Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
+                    extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
+                    or_(Attendance.out_time=='00:00:00.000000', Attendance.out_time < '17:45:00'), 
+                    ApprLeaveAttn.approved=='').first()
 
-            if absent.count > 0 or late.count > 0:
+            if absent.count > 0 or late.count > 0 or early.count > 0:
                 attnsummary = AttnSummary(empid=employee.id, year=form.year.data, 
-                                        month=form.month.data, absent=absent.count, late=late.count)
+                                month=form.month.data, absent=absent.count, late=late.count, 
+                                early=early.count)
                 db.session.add(attnsummary)
                 count += 1
             
@@ -588,8 +596,10 @@ def summary_prepare():
         else:
             db.session.commit()
             flash('Attendance summary created', category='message')
+    else:
+        flash('Form data not correct', category='error')
     
-    return redirect(url_for('forms.attn_summary_prepare'))
+    return redirect(url_for('forms.attn_prepare_summary')) 
 
 ##Casual and Medical attendance application submission for Fiber##
 @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
