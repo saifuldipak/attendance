@@ -4,7 +4,8 @@ from sqlalchemy import and_, or_, extract, func
 import pandas as pd
 from .check import check_access, date_check
 from .mail import send_mail
-from .forms import Attnapplfiber, Attnqueryall, Attnqueryalldate, Attnqueryallusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary
+from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
+                    Attnapplication, Attnsummary)
 from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
 from .auth import head_required, login_required, admin_required, manager_required
 
@@ -96,15 +97,13 @@ def upload():
             
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
-#Query menu for all attendance data by Admin
-@attendance.route('/attendance/query/all/menu')
+##Attendance query menu for all#
+@attendance.route('/attendance/query/menu/<query_for>')
 @login_required
-@admin_required
-def query_menu():
-    return render_template('attn_query.html')
+def query_menu(query_for):
+    return render_template('attn_query.html', query_for=query_for)
 
-#Query attendance data by individual employee username and prepare summary report of 
-#absence and late attendance, this view is for admin users only 
+##Attendance data for all by Admin##
 @attendance.route('/attendance/query/all/<query_type>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -112,9 +111,9 @@ def query_all(query_type):
 
     #creating form object using appropriate class based on type
     if query_type == 'date':
-        form = Attnqueryalldate()
+        form = Attnquerydate()
     elif query_type == 'username':
-        form = Attnqueryallusername()
+        form = Attnqueryusername()
     elif query_type == 'month':
         form = Attnsummary()
 
@@ -171,14 +170,12 @@ def query_all(query_type):
     return render_template('attn_query.html')
 
 
-#Query attendance data by individual employee username and prepare summary report of 
-#absence and late attendance, this view is for managers to see only their team members
-#attendance records
+##Query attendance data for team by managers##
 @attendance.route('/attendance/query/team', methods=['GET', 'POST'])
 @login_required
 @manager_required
 def query_team():
-    form = Attnqueryall()
+    form = Attnquery()
 
     if form.validate_on_submit():
         month = month_name_num(form.month.data)
@@ -227,8 +224,7 @@ def query_team():
     return render_template('forms.html', type='attnquery', user='all', form=form)
 
 
-#Query attendance data for logged in user and prepare summary report of 
-#absence and late attendance
+##Query attendance data for self##
 @attendance.route('/attendance/query/self', methods=['GET', 'POST'])
 @login_required
 def query_self():

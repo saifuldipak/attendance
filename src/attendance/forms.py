@@ -139,11 +139,11 @@ class Attnqueryall(FlaskForm):
         return True
 
 #Attendance query by admin datewise
-class Attnqueryalldate(FlaskForm):
+class Attnquerydate(FlaskForm):
     date = DateField('Date', render_kw={'class': 'input-field'}, validators=[InputRequired()])
     
 #Attendance query by admin userwise 
-class Attnqueryallusername(FlaskForm):
+class Attnqueryusername(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
     month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
 
@@ -305,22 +305,21 @@ def upload():
     form = Attndataupload()
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
-#Attendance query - All
-@forms.route('/forms/attendance/query/all/<type>', methods=['GET', 'POST'])
+#Attendance query
+@forms.route('/forms/attendance/query/<query_for>,<query_type>', methods=['GET', 'POST'])
 @login_required
-@admin_required
-def attnquery_all(type):
-    if type == 'date':
-        form = Attnqueryalldate()
-    elif type == 'username':
-        form = Attnqueryallusername()
-    elif type == 'month':
+def attendance_query(query_for, query_type):
+    if query_type == 'date':
+        form = Attnquerydate()
+    elif query_type == 'username':
+        form = Attnqueryusername()
+    elif query_type == 'month':
         form = Attnsummary()
     else:
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
     
-    return render_template('attn_query.html', type=type, form=form)
+    return render_template('attn_query.html', query_for=query_for, query_type=query_type, form=form)
 
 #Attendance query - Team
 @forms.route('/forms/attendance/query/team', methods=['GET', 'POST'])

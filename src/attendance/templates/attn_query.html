@@ -4,73 +4,86 @@
     <h1>Query Attendnace Record</h1>
     
     <div class="navbar2">
-            <a href="{{ url_for('forms.attnquery_all', type='date') }}" class="navbar2">
+            {% if query_for == 'self' %}
+                <a href="{{ url_for('forms.attendance_query', query_for='self', query_type='date') }}" class="navbar2">
+            {% elif query_for == 'team' %}
+                <a href="{{ url_for('forms.attendance_query', query_for='team', query_type='date') }}" class="navbar2">
+            {% endif %}
                 By Date
-            </a>
+                </a>
             &ensp;
-            <a href="{{ url_for('forms.attnquery_all', type='username') }}" class="navbar2">
-                By Username
-            </a>
+            {% if query_for != 'self' %}
+                <a href="{{ url_for('forms.attendance_query', query_for='team', query_type='username') }}" class="navbar2">
+                    By Username
+                </a>
+            {% endif %}
             &ensp;
-            <a href="{{ url_for('forms.attnquery_all', type='month') }}" class="navbar2">
+            {% if query_for == 'self' %}
+                <a href="{{ url_for('forms.attendance_query', query_for='self', query_type='month') }}" class="navbar2">
+            {% elif query_for == 'team' %}
+                <a href="{{ url_for('forms.attendance_query', query_for='team', query_type='month') }}" class="navbar2">
+            {% endif %}
                 By Month
             </a>
     </div>
     
-    {# --query by date form-- #}
-    {% if type == 'date' %}
-            <div class="form-style-2">
+    
+    {% if query_type %}
+        <div class="form-style-2">
+            {% if menu_type == 'all' %}
                 <form method="post" action="{{ url_for('attendance.query_all', query_type='date') }}">
-                    {{ form.csrf_token }}
-                    <div class="form-style-2-heading">By Date</div>
-                        <label for="date">
-                            <span>{{ form.date.label }}</span>
+            {% elif menu_type == 'team' %}
+                <form method="post" action="{{ url_for('attendance.query_team', query_type='date') }}">
+            {% else %}
+                <form method="post" action="{{ url_for('attendance.query_self', query_type='date') }}">
+            {% endif %}
+            
+            {{ form.csrf_token }}
+            
+            {% if query_type == 'date' %}
+                <div class="form-style-2-heading">By Date</div>
+                    <label for="date">
+                        <span>{{ form.date.label }}</span>
                                 {{ form.date }}
-                        </label>
-                        <label>
-                            <span> </span>
-                            <input type="submit" value="Query" /></label>
-                        </label>
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Query" /></label>
+                    </label>
+            {% endif %}
+
+            {% if query_type == 'username' %}
+                <div class="form-style-2-heading">By Username</div>
+                <label for="username">
+                    <span>{{ form.username.label }}</span>
+                        {{ form.username }}
+                </label>
+                <label for="month">
+                    <span>{{ form.month.label }}</span>
+                        {{ form.month }}
+                </label>
+                <label>
+                    <span> </span>
+                    <input type="submit" value="Query" /></label>
+                </label> 
+            {% endif %}
+    
+    
+            {% if query_type == 'month' %}
+                <div class="form-style-2-heading">By Month</div>
+                <label for="month">
+                    <span>{{ form.month.label }}</span>
+                        {{ form.month }}
+                </label>
+                <label for="year">
+                    <span>{{ form.year.label }}</span>
+                        {{ form.year }}
+                </label>
+                <label>
+                    <span> </span>
+                    <input type="submit" value="Query" /></label>
+                </label> 
+            {% endif %}
     {% endif %}
 
-    {# --query by username form-- #}
-    {% if type == 'username' %}
-            <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.query_all', query_type='username') }}">
-                    {{ form.csrf_token }}
-                    <div class="form-style-2-heading">By Username</div>
-                        <label for="username">
-                            <span>{{ form.username.label }}</span>
-                                {{ form.username }}
-                        </label>
-                        <label for="month">
-                            <span>{{ form.month.label }}</span>
-                                {{ form.month }}
-                        </label>
-                        <label>
-                            <span> </span>
-                            <input type="submit" value="Query" /></label>
-                        </label>
-    {% endif %}
-    
-    {# --query by month-- #}
-    {% if type == 'month' %}
-            <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.query_all', query_type='month') }}">
-                    {{ form.csrf_token }}
-                    <div class="form-style-2-heading">By Month</div>
-                        <label for="month">
-                            <span>{{ form.month.label }}</span>
-                                {{ form.month }}
-                        </label>
-                        <label for="year">
-                            <span>{{ form.year.label }}</span>
-                                {{ form.year }}
-                        </label>
-                        <label>
-                            <span> </span>
-                            <input type="submit" value="Query" /></label>
-                        </label>
-    {% endif %}
-    
-{% endblock %}
+    {% endblock %}

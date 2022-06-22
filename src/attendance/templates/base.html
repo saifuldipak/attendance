@@ -11,7 +11,7 @@
 
 <body>
     
-    {#-- User menu for each employee --#}
+    {#-- Menu for all --#}
     <div class="dropdown">
         <button class="dropbtn">@{{ session["username"] }}</button>
             <div class="dropdown-content">
@@ -27,7 +27,6 @@
                 
             </div>
     </div>
-    {#-- Attendance menu for each employee --#}
     <div class="dropdown">
         <button class="dropbtn">Attendance</button>
             <div class="dropdown-content">
@@ -37,13 +36,12 @@
                 <a href="{{ url_for('attendance.appl_status_self') }}" class="navbar-item">
                     Application Status
                 </a>
-                <a href="{{ url_for('forms.attnquery_self') }}" class="navbar-item">
-                    Details
+                <a href="{{ url_for('attendance.query_menu', query_for='self') }}" class="navbar-item">
+                    Query
                 </a>
             </div>
     </div>
 
-    {#-- Leave menu for each employee --#}
     <div class="dropdown">
         <button class="dropbtn">Leave</button>
             <div class="dropdown-content">
@@ -64,7 +62,7 @@
 
     
 
-    {#-- Team menu for managers --#}
+    {#-- Menu for managers and Head --#}
     {% if session['role'] == 'Manager' or session['role'] == 'Head' %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
@@ -110,19 +108,14 @@
                             -- Appl Status
                         </a>
                     {% endif %}
-                    <a href="{{ url_for('forms.attnquery_team', type='team') }}" class="navbar-item">
+                    <a href="{{ url_for('attendance.query_menu', query_for='team') }}" class="navbar-item">
                         -- Query
                     </a>
-                    {% if session['role'] == 'Admin' %}
-                        <a href="{{ url_for('forms.upload') }}" class="navbar-item">
-                        -- Upload
-                        </a>
-                    {% endif %}
                 </div>
             </div>
     {% endif %}
 
-    {#-- Team menu for admins --#}
+    {#-- Menu for admins --#}
     {% if session['access'] == 'Admin' %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
