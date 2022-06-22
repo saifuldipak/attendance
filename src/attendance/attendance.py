@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 from sqlalchemy import and_, or_, extract, func
 import pandas as pd
@@ -224,51 +224,43 @@ def query_team():
     return render_template('forms.html', type='attnquery', user='all', form=form)
 
 
-##Query attendance data for self##
+##Attendance query for self##
 @attendance.route('/attendance/query/self', methods=['GET', 'POST'])
 @login_required
 def query_self():
     form = Attnqueryself()
-
+    
     if form.validate_on_submit():
-        month = month_name_num(form.month.data)
-
-        employee = Employee.query.filter_by(username=session['username']).first()
-            
-        if employee:
-            attendance = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
-                            join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                            filter(Attendance.empid==employee.id).\
-                            filter(extract('month', Attendance.date)==month).\
+        
+        if form.query.data == 'Details':
+            attendance = Attendance.query.join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
+                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, 
+                            Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
+                            filter(Attendance.empid==session['empid'], 
+                            extract('month', Attendance.date)==int(form.month.data)).\
                             order_by(Attendance.date).all()
             
-            absent = db.session.query(func.count(Attendance.empid).label('count')).\
-                        join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                        filter(Attendance.empid==employee.id).\
-                        filter(extract('month', Attendance.date)==month).\
-                        filter(Attendance.in_time == None).\
-                        filter(ApprLeaveAttn.approved=='').group_by(Attendance.empid).first()
-
-            late = db.session.query(func.count(Attendance.empid).label('count')).\
-                        join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                        filter(Attendance.empid==employee.id).\
-                        filter(extract('month', Attendance.date)==month).\
-                        filter(Attendance.in_time != None).\
-                        filter(or_(func.Time(Attendance.in_time) > '09:15:00', 
-                                    Attendance.out_time==None, 
-                                    func.Time(Attendance.out_time) < '17:45:00')).\
-                        filter(ApprLeaveAttn.approved=='').group_by(Attendance.empid).first()
+            if not attendance:
+                flash('No record found', category='warning')
+                return redirect(url_for('forms.attnquery_self'))
             
-            return render_template('data.html', type='attn_details', form=form, attendance=attendance,
-                                    absent=absent, late=late, user='self')
-        else:
-            flash('Username not found', category='error')
-            return redirect(url_for('forms.query'))
-        
-    return render_template('forms.html', type='attnquery', user='all', form=form)
+            return render_template('data.html', type='attn_details_self', attendance=attendance)
+
+        if form.query.data == 'Summary':
+            month_obj = datetime.strptime(str(form.month.data), '%m')
+            month_name = month_obj.strftime('%B')
+            
+            summary = AttnSummary.query.filter(AttnSummary.year==form.year.data, 
+                        AttnSummary.month==month_name).first()
+
+            if not summary:
+                flash('No record found', category='warning')
+                return redirect(url_for('forms.attnquery_self'))
+            
+            return render_template('data.html', type='attn_summary_self', summary=summary)
+
+    else:    
+        return render_template('forms.html', type='attnquery_self', form=form)
 
 ##Attendance approval application##
 @attendance.route('/attendance/application', methods=['GET', 'POST'])

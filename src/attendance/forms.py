@@ -1,10 +1,12 @@
+from datetime import datetime
 from flask import Blueprint, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators
 from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, 
                         EmailField, TelField, SelectField, RadioField) 
-from wtforms.validators import InputRequired, ValidationError, EqualTo, InputRequired, Email, Optional
+from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
+                                Optional, NumberRange)
 from .auth import admin_required, login_required, manager_required
 from .db import Employee, Team
 from werkzeug.security import check_password_hash
@@ -28,6 +30,7 @@ designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'As
 roles = ['Team', 'Manager', 'Head']
 access = ['User', 'Admin', 'None']
 types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
+queries = ['Details', 'Summary']
 
 #validator function to check file size
 def file_length_check(form, field):
@@ -149,7 +152,12 @@ class Attnqueryusername(FlaskForm):
 
 #Attendance query for self
 class Attnqueryself(FlaskForm):
-    month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
+    month = IntegerField('Month', render_kw={'class': 'input-field'}, 
+            default=datetime.now().month, validators=[InputRequired(), 
+            NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
+    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, 
+            validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
+    query = SelectField('Query', render_kw={'class': 'input-field'}, choices=queries)
 
 #Attendance summary
 class Attnsummary(FlaskForm):
@@ -334,7 +342,7 @@ def attnquery_team():
 @login_required
 def attnquery_self():
     form = Attnqueryself()
-    return render_template('forms.html', type='attnquery', user='self', form=form)
+    return render_template('forms.html', type='attnquery_self', form=form)
 
 #Attendance summary prepare
 @forms.route('/forms/attendance/prepare_summary')

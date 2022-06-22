@@ -308,7 +308,48 @@
         </table>
     {% endif %}
 
-    {#-- Attendance data details--#}
+    {% if type == 'attn_details_self' %}
+        <div class="form-style-2-heading">Attendance Details</div>
+        <table class="query-result">
+            <th class="query-result">Date</th>
+            <th class="query-result">In Time</th>
+            <th class="query-result">Out Time</th>
+            <th class="query-result">Approved</th>
+            {% for row in attendance %}
+                <tr>
+                    <td class="query-result">{{ row['date'] }}</td>
+                    <td class="query-result">{{ row['in_time'] }}</td>
+                    <td class="query-result">{{ row['out_time'] }}</td>
+                    <td class="query-result">{{ row['approved'] }}</td> 
+                </tr>
+             {% endfor %}
+        </table>
+    {% endif %}
+
+    {% if type == 'attn_summary_self' %}
+        <div class="form-style-2-heading">Attendance Summary</div>
+            <table class="data">
+            {% if summary %} 
+                <tr>
+                    <td class="data-left">Absent</td>
+                    <td class="data-right">{{ summary['absent'] }}</td>
+                </tr>
+                <tr>
+                    <td class="data-left"> Late</td>
+                    <td class="data-right">{{ summary['late'] }}</td>
+                </tr>
+                <tr>
+                    <td class="data-left">Early out</td>
+                    <td class="data-right">{{ summary['early'] }}</td> 
+                </tr>
+                <tr>
+                    <td class="data-left">Leave deducted</td>
+                    <td class="data-right">{{ summary['deducted'] }}</td> 
+                </tr>
+            {% endif %}
+            </table>
+    {% endif %}
+
     {% if type == 'attn_details' %}
         <div class="form-style-2-heading">Attendance Status</div>
         {% if query_type == 'username' %}
