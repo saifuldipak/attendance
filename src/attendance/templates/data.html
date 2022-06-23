@@ -311,16 +311,16 @@
     {% if type == 'attn_details_self' %}
         <div class="form-style-2-heading">Attendance Details</div>
         <table class="query-result">
-            <th class="query-result">Date</th>
-            <th class="query-result">In Time</th>
-            <th class="query-result">Out Time</th>
-            <th class="query-result">Approved</th>
+            <th>Date</th>
+            <th>In Time</th>
+            <th>Out Time</th>
+            <th>Approved</th>
             {% for row in attendance %}
                 <tr>
-                    <td class="query-result">{{ row['date'] }}</td>
-                    <td class="query-result">{{ row['in_time'] }}</td>
-                    <td class="query-result">{{ row['out_time'] }}</td>
-                    <td class="query-result">{{ row['approved'] }}</td> 
+                    <td>{{ row['date'] }}</td>
+                    <td>{{ row['in_time'] }}</td>
+                    <td>{{ row['out_time'] }}</td>
+                    <td>{{ row['approved'] }}</td> 
                 </tr>
              {% endfor %}
         </table>
@@ -353,30 +353,28 @@
     {% if type == 'attn_details' %}
         <div class="form-style-2-heading">Attendance Status</div>
         {% if query_type == 'username' %}
-            <p><b>Employee:</b> {{ fullname }}<br>
-            <b>Month:</b> {{ form.month.data }} </p>
-        {% endif %}
-        {% if user == 'self' %}
-            <b><i>Absent:</i></b> {{ absent[0] }}
-            <b><i>Late:</i></b> {{ late[0] }}
+           <p>Username: {{ form.username.data }}<br>
+            Month: {{ form.month.data }}</p>
         {% endif %}
         <table class="query-result">
             {% if query_type == 'date' %}
-             <th>Name</th>
+                <th>Name</th>
+                <th>Team</th>
             {% endif %}
-            <th class="query-result">Date</th>
-            <th class="query-result">In Time</th>
-            <th class="query-result">Out Time</th>
-            <th class="query-result">Approved</th>
+            <th>Date</th>
+            <th>In Time</th>
+            <th>Out Time</th>
+            <th>Approved</th>
             {% for row in attendance %}
                 <tr>
                     {% if query_type == 'date' %}
-                        <td class="query-result">{{ row['fullname'] }}</td>
+                        <td>{{ row['fullname'] }}</td>
+                        <td>{{ row['name'] }}</td>
                     {% endif %}
-                    <td class="query-result">{{ row['date'] }}</td>
-                    <td class="query-result">{{ row['in_time'] }}</td>
-                    <td class="query-result">{{ row['out_time'] }}</td>
-                    <td class="query-result">{{ row['approved'] }}</td>
+                    <td>{{ row['date'] }}</td>
+                    <td>{{ row['in_time'] }}</td>
+                    <td>{{ row['out_time'] }}</td>
+                    <td>{{ row['approved'] }}</td>
                 </tr>
             {% endfor %}
         </table>

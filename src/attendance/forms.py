@@ -314,9 +314,14 @@ def upload():
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
 #Attendance query
-@forms.route('/forms/attendance/query/<query_for>,<query_type>', methods=['GET', 'POST'])
+@forms.route('/forms/attendance/query/<query_type>', methods=['GET', 'POST'])
 @login_required
-def attendance_query(query_for, query_type):
+def attendance_query(query_type):
+    
+    if session['role'] != 'Manager' and session['access'] != 'Admin':
+        flash('You are not authorized to access this page', category='error')
+        return render_template('base.html')
+
     if query_type == 'date':
         form = Attnquerydate()
     elif query_type == 'username':
@@ -327,6 +332,15 @@ def attendance_query(query_for, query_type):
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
     
+    if session['role'] == 'Manager':
+        query_for = 'Team'
+    elif session['access'] == 'Admin':
+        query_for = 'All'
+    else:
+        current_app.logger.error('attendance_query(): Unknow user type %s, %s', session['role'], session['access'])
+        flash('Failed to create form', category='error')
+        return render_template('base.html')
+
     return render_template('attn_query.html', query_for=query_for, query_type=query_type, form=form)
 
 #Attendance query - Team
