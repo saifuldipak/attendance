@@ -197,12 +197,18 @@ def query_team(query_type):
             return render_template('base.html')
 
         if query_type == 'date':
+            allteams_attendance = []
+            
             for team in teams:
-                attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
+                team_attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
                             Attendance.empid==ApprLeaveAttn.empid)).join(Team, Attendance.empid==Team.empid).\
                             with_entities(Employee.fullname, Team.name, Attendance.date, Attendance.in_time, Attendance.out_time, 
                             ApprLeaveAttn.approved).filter(Attendance.date==form.date.data, Team.name==team.name, 
                             Attendance.empid!=session['empid']).all()
+                
+                allteams_attendance.append(team_attendance)
+            
+            attendance = allteams_attendance
             
             if not attendance:
                 flash('No record found', category='warning')
@@ -228,13 +234,6 @@ def query_team(query_type):
                             Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, Attendance.in_time, 
                             Attendance.out_time, ApprLeaveAttn.approved).filter(Attendance.empid==employee.id, 
                             extract('month', Attendance.date)==month).all()
-            
-            '''db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
-                            join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                            filter(Attendance.empid==employee.id).\
-                            filter(extract('month', Attendance.date)==month).\
-                            order_by(Attendance.date).all()'''
                 
             if not attendance:
                     flash('No record found', category='warning')
