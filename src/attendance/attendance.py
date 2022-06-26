@@ -205,15 +205,15 @@ def query_team(query_type):
                             with_entities(Employee.fullname, Team.name, Attendance.date, Attendance.in_time, Attendance.out_time, 
                             ApprLeaveAttn.approved).filter(Attendance.date==form.date.data, Team.name==team.name, 
                             Attendance.empid!=session['empid']).all()
-                
-                allteams_attendance.append(team_attendance)
-            
+
+                allteams_attendance += team_attendance
+
             attendance = allteams_attendance
-            
-            if not attendance:
+        
+            if len(attendance) == 0:
                 flash('No record found', category='warning')
                       
-            return render_template('data.html', type='attn_details', attendance=attendance)
+            return render_template('data.html', type='attn_details', query_type='date', attendance=attendance)
         
 
         if query_type == 'username':
