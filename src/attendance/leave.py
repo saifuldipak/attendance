@@ -378,17 +378,17 @@ def details(application_id):
 @login_required
 def cancel(application_id):
     
-    leave = Applications.query.join(Employee).\
+    application = Applications.query.join(Employee).\
             filter(and_(Employee.id==session['empid'], Applications.id==application_id)).first()
 
-    if not leave:
-        flash('Leave not found', category='error')
-    elif leave.status == 'Approved':
+    if not application:
+        flash('Leave application not found', category='error')
+    elif application.status == 'Approved':
         flash('Cancel request sent to Team Manager', category='message')
     else:
         error = ''
         # delete files attached with Medical leave
-        if leave.type == 'Medical':
+        if application.type == 'Medical':
             files = leave.file_url.split(';')
             
             if not files:
@@ -401,11 +401,45 @@ def cancel(application_id):
             if error != '':
                 flash(error, category='error')
         
-        # delete Leave record from database        
-        if error == '':
-            db.session.delete(leave)
-            db.session.commit()
-            flash('Leave cancelled', category='message')
+    #Send mail to all concerned
+    if session['role'] == 'Team':
+        manager = Employee.query.join(Team).filter(Team.name==session['team'], 
+                                                Employee.role=='Manager').first()
+        if not manager:
+            current_app.logger.warning('Team Manager email not found')
+        else:            
+            receiver_email = manager.email
+
+    if session['role'] == 'Manager' or not manager:
+        head = Employee.query.join(Team).filter(Employee.department==session['department'], 
+                                                Employee.role=='Head').first()
+        if not head:
+            current_app.logger.warning('Dept. Head email not found')
+            rv = 'failed'
+        else:
+            receiver_email = head.email
+
+    if 'rv' in locals():
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
+
+    employee = Employee.query.filter_by(id=session['empid']).first()
+    
+    host = current_app.config['SMTP_HOST']
+    port = current_app.config['SMTP_PORT']
+    rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, 
+                    type='leave', application=application, action='cancelled')
+    
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
+    
+    #delete Leave record from database        
+    if error == '':
+        db.session.delete(application)
+        db.session.commit()
+        flash('Leave cancelled', category='message')
     
     return redirect(url_for('leave.status_personal'))
 
