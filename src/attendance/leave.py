@@ -469,7 +469,7 @@ def summary_team():
                 filter(Team.name==team.name, Employee.id!=session['empid'], 
                 or_(LeaveAvailable.year_start < datetime.now().date(), 
                 LeaveAvailable.year_end > datetime.now().date())).all()
-        team_leaves += leaves\
+        team_leaves += leaves
     
     leaves = team_leaves
     
@@ -636,49 +636,36 @@ def deduction():
     cur_month = datetime.now().month
     cur_year = datetime.now().year
 
-    #checking given month number is equal or greater than current month number
-    #leave deduction is only permitted for previous month or months before that
     if month >= cur_month and int(form.year.data) >= cur_year:
         flash('You can only deduct leave for attendance of previous month or before previous month', category='error')    
         return redirect(url_for('forms.leave_deduction'))
     
-    #checking given month name exists in 'leave_deduction' table or not
-    #if exists, it means leave deduction already performed for this month
-    deducted = LeaveDeduction.query.filter_by(month=form.month.data).\
-                                    filter_by(year=form.year.data).first()
-
+    deducted = LeaveDeduction.query.filter_by(month=form.month.data, year=form.year.data).first()
     if deducted:
         flash('You have already deducted leave for this month', category='error')
         return redirect(url_for('forms.leave_deduction'))
 
-    summary = AttnSummary.query.filter(AttnSummary.year==form.year.data).\
-                                filter(AttnSummary.month==form.month.data).all()
+    summary = AttnSummary.query.filter(AttnSummary.year==form.year.data).filter(AttnSummary.month==form.month.data).all()
     if summary:
         for employee in summary:
             if employee.late >= 3:
                 leave = LeaveAvailable.query.filter(LeaveAvailable.empid==employee.empid).first()
 
-                #if late count is more than or equal to 3 in a month, 1 casual leave will be
-                #deducted for 3 late attendance.if sufficient casual leave not available for
-                #deduction, 1 absent will be counted for 3 late. deducted leave days and absent 
-                #due to late is recorded in attn_summary table
                 days = round(employee.late/3)
 
-                if leave.casual > days:
+                if leave.casual >= days:
                     leave.casual = leave.casual - days
                     deducted = days
                     absent = 0
                 else:
-                    leave.casual = 0
                     absent = days - leave.casual
-                    deducted = days - absent
-                
+                    deducted = leave.casual
+                    leave.casual = 0
+
                 employee.late_absent = absent
                 employee.deducted = deducted
-        
-        #add entry in 'leave_deduction' table 
-        deduction = LeaveDeduction(year=form.year.data, month=form.month.data, 
-                                date=datetime.now())
+         
+        deduction = LeaveDeduction(year=form.year.data, month=form.month.data, date=datetime.now())
         
         db.session.add(deduction)
         db.session.commit()
