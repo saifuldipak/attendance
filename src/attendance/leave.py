@@ -1,3 +1,4 @@
+from re import L
 from threading import local
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
@@ -10,7 +11,7 @@ from .auth import admin_required, login_required, manager_required, head_require
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, timedelta
-from .forms import (LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
+from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
 
 
 # renaming original uploaded files and saving to disk, also creating a string 
@@ -674,3 +675,38 @@ def deduction():
         flash('No record found in attendance summary', category='warning')
     
     return redirect(url_for('forms.leave_deduction'))
+
+@leave.route('/leave/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_leave():
+    form = Createleave()
+    
+    if form.validate_on_submit():
+        year_start = datetime.date(form.year_start.data, 7, 1)
+        year_end = datetime.date(form.year_end.data, 6, 30)
+
+        employees = Employee.query.all()
+        count = 0
+        for employee in employees:
+            leave_available = LeaveAvailable.query.filter(LeaveAvailable.year_start <= year_start, 
+                                LeaveAvailable.year_end >= year_end, LeaveAvailable.empid==employee.id).first()
+            if leave_available:
+                message = f'Leave exists for {employee.fullname} year: {leave_available.year_start - leave_available.year_end}'
+                flash(message, category='warning')
+            else:
+                leave_available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
+                                    casual=14, medical=14, earned=14)
+                db.session.add(leave_available)
+                count += 1
+        
+        if count:
+            db.session.commit()
+            message = f'Leave added for {count} employees'
+            flash(message, category='message')
+        else:
+            flash('No leave added', category='error')
+            
+        return render_template('base.html')
+    else:
+        return render_template('forms.html', type='create_leave', form=form)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Blueprint, current_app, flash, render_template, session
+from flask import Blueprint, Flask, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators
@@ -259,13 +259,20 @@ class Updateaccess(FlaskForm):
                             validators=[InputRequired()])
     access = SelectField('Role', render_kw={'class': 'input-field'}, choices=access)
 
-
-forms = Blueprint('forms', __name__)
-
 #Employee search
 class Employeesearch(FlaskForm):
     string = StringField('Search string', render_kw={'class': 'input-field'})
     type = SelectField('Search by', render_kw={'class': 'input-field'}, choices=types)
+
+class Createleave(FlaskForm):
+    year_start = IntegerField('Year Start', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    year_end = IntegerField('Year End', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+
+    def validate_year_end(self, field):
+        if self.year_start.data >= field.data:
+            raise ValidationError('must be greater than year start')
+
+forms = Blueprint('forms', __name__)
 
 #Leave application
 @forms.route('/forms/leave/<type>', methods=['GET', 'POST'])
@@ -484,3 +491,10 @@ def employee_search():
 def password_self():
     form = Changeselfpass()
     return render_template('forms.html', type='change_pass', user='self', form=form)
+
+@forms.route('/forms/leave/create')
+@login_required
+@admin_required
+def create_leave():
+    form = Createleave()
+    return render_template('forms.html', type='create_leave', form=form)
