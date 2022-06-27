@@ -372,17 +372,49 @@ def application():
 @attendance.route('/attendance/cancel/<id>')
 @login_required
 def cancel(id):
-    attendance = Applications.query.filter_by(id=id).first()
+    application = Applications.query.filter_by(id=id).first()
 
-    if not attendance:
-        flash('Leave not found', category='error')
-    elif attendance.status == 'Approved':
+    if not application:
+        flash('Application not found', category='error')
+    elif application.status == 'Approved':
         flash('Cancel request sent to Team Manager', category='message')
-    else:
-        #delete application   
-        db.session.delete(attendance)
+    else:  
+        db.session.delete(application)
         db.session.commit()
         flash('Application cancelled', category='message')
+
+        #Send mail to all concerned
+        if session['role'] == 'Team':
+            manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
+            
+            if not manager:
+                current_app.logger.warning('Team Manager email not found')
+            else:            
+                receiver_email = manager.email
+
+        if session['role'] == 'Manager' or not manager:
+            head = Employee.query.join(Team).filter(Employee.department==session['department'], Employee.role=='Head').first()
+            
+            if not head:
+                current_app.logger.warning('Dept. Head email not found')
+                rv = 'failed'
+            else:
+                receiver_email = head.email
+
+        if 'rv' in locals():
+            flash('Failed to send mail', category='warning')
+            return redirect(request.url)
+
+        employee = Employee.query.filter_by(id=session['empid']).first()
+        
+        host = current_app.config['SMTP_HOST']
+        port = current_app.config['SMTP_PORT']
+        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, type='attendance', 
+                        application=application, action='cancelled')
+        
+        if rv:
+            current_app.logger.warning(rv)
+            flash('Failed to send mail', category='warning')
     
     return redirect(url_for('attendance.appl_status_self'))
 
