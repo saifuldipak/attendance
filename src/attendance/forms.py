@@ -216,6 +216,12 @@ class Updatefullname(FlaskForm):
     fullname = StringField('Fullname', render_kw={'class': 'input-field'}, 
                         validators=[InputRequired()])
 
+#Update employee designation
+class Updatedesignation(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    designation = SelectField('Designation', render_kw={'class': 'input-field'}, 
+                        validators=[InputRequired()], choices=designations)
+
 #Update employee phone
 class Updatephone(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
@@ -407,6 +413,14 @@ def update_email():
 def update_fullname():
     form = Updatefullname()
     return render_template('emp_update.html', type='fullname', form=form)
+
+#Employee modify - designation
+@forms.route('/forms/employee/update_designation')
+@login_required
+@admin_required
+def update_designation():
+    form = Updatedesignation()
+    return render_template('emp_update.html', type='designation', form=form)
 
 #Employee modify - phone
 @forms.route('/forms/employee/update_phone')

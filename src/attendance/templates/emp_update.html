@@ -16,6 +16,10 @@
                 Fullname
             </a>
             &ensp;
+            <a href="{{ url_for('forms.update_designation') }}" class="navbar2">
+                Designation
+            </a>
+            &ensp;
             <a href="{{ url_for('forms.update_email') }}" class="navbar2">
                 Email
             </a>
@@ -74,6 +78,26 @@
                         <label for="team">
                             <span>{{ form.dept.label }}</span>
                                 {{ form.dept }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Submit" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee designation update form-- #}
+    {% if type == 'designation' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='designation') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Designation</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="team">
+                            <span>{{ form.designation.label }}</span>
+                                {{ form.designation }}
                         </label>
                         <label>
                             <span> </span>

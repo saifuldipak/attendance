@@ -1,7 +1,7 @@
 import secrets
 from flask import Blueprint, request, flash, redirect, render_template, session, url_for
 from .db import db, Employee, Team, LeaveAvailable
-from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, 
+from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, 
                     Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
 from .mail import send_mail
@@ -193,6 +193,8 @@ def update(action):
         form = Updateteam()
     elif action == 'dept':
         form = Updatedept()
+    elif action == 'designation':
+        form = Updatedesignation()
     elif action == 'email':
         form = Updateemail()
     elif action == 'fullname':
@@ -244,6 +246,13 @@ def update(action):
                 employee.department = form.dept.data
                 flash('Department updated', category='message')
         
+        if action == 'designation':
+            if employee.designation == form.designation.data:
+                flash('Current and new designation is same', category='warning')
+            else:
+                employee.designation = form.designation.data
+                flash('Designation updated', category='message')
+
         #update email
         if action == 'email':
             if employee.email == form.email.data:
