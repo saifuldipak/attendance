@@ -258,53 +258,6 @@ def query_team(query_type):
             
             return render_template('data.html', type='attn_summary', query='team', form=form, summary=summary)
 
-
-        '''month = month_name_num(form.month.data)
-
-        if form.type.data == 'Details':
-            employee = Employee.query.join(Team).filter(Employee.username==form.username.data).first()
-            
-            if not employee:
-                flash('Username not found', category='error')
-                return redirect(url_for('forms.attnquery_team'))
-
-            manager = Employee.query.join(Team).filter(Employee.role=='Manager').\
-                                            filter(Team.name==employee.teams[0].name).first()
-            
-            if manager.username != session['username']:
-                flash('You are not the manager of this employee', category='error')
-                return redirect(url_for('forms.attnquery_team'))
-
-            attendance = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, 
-                                            ApprLeaveAttn.approved).\
-                            join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                            filter(Attendance.empid==employee.id).\
-                            filter(extract('month', Attendance.date)==month).\
-                            order_by(Attendance.date).all()
-
-            return render_template('data.html', type='attn_details', query='team', form=form, 
-                                    attendance=attendance)
-            
-        else:
-            manager = Employee.query.join(Team).filter(Employee.username==session['username']).first()
-            
-            summary = []
-            
-            for team in manager.teams:
-                result = db.session.query(Employee.fullname, AttnSummary.absent, AttnSummary.late).\
-                                            join(Employee).join(Team, AttnSummary.empid==Team.empid).\
-                                             filter(AttnSummary.month==form.month.data).\
-                                             filter(Team.name==team.name).all()
-
-                summary.append(result)
-
-            return render_template('data.html', type='attn_summary', query='team', form=form, 
-                                    summary=summary)
-   
-    return render_template('forms.html', type='attnquery', user='all', form=form)'''
-
-
 ##Attendance query for self##
 @attendance.route('/attendance/query/self', methods=['GET', 'POST'])
 @login_required
