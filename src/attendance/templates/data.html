@@ -277,20 +277,21 @@
         <div class="form-style-2-heading">Attendance Summary</div>
         <span><b>Month:</b> {{ form.month.data }}<br>
         <table class="query-result">
-            <th class="query-result">Full Name</th>
-            <th class="query-result">Absent</th>
-            <th class="query-result">Late</th>
-            <th class="query-result">Early</th>
+            <th>Full Name</th>
+            <th>Absent</th>
+            <th>Late</th>
+            <th>Early</th>
+            <th>Leave deducted</th>
 
             {% if query == 'team' %}
-                {% for list in summary %}
-                    {% for user in list %}
+                {% for employee in summary %}
                     <tr>
-                        <td class="query-result">{{ user[0] }}</td>
-                        <td class="query-result">{{ user[1] }}</td>
-                        <td class="query-result">{{ user[2] }}</td>
+                        <td>{{ employee['fullname'] }}</td>
+                        <td>{{ employee['absent'] }}</td>
+                        <td>{{ employee['late'] }}</td>
+                        <td>{{ employee['early'] }}</td>
+                        <td>{{ employee['deducted'] }}</td>
                     </tr>
-                    {% endfor %}
                 {% endfor %}
             {% endif %}
 

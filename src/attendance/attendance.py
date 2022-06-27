@@ -239,7 +239,26 @@ def query_team(query_type):
                     flash('No record found', category='warning')
 
             return render_template('data.html', type='attn_details', query_type='username', form=form, attendance=attendance)
-        
+
+        if query_type == 'month':
+            allteams_summary = []
+
+            for team in teams:
+                team_summary = AttnSummary.query.join(Employee).join(Team, AttnSummary.empid==Team.empid).\
+                                with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, AttnSummary.early, 
+                                AttnSummary.deducted).filter(Employee.id!=session['empid'], Team.name==team.name, 
+                                AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
+                
+                allteams_summary += team_summary
+            
+            summary = allteams_summary
+            
+            if not summary:
+                flash('No record found', category='warning')                  
+            
+            return render_template('data.html', type='attn_summary', query='team', form=form, summary=summary)
+
+
         '''month = month_name_num(form.month.data)
 
         if form.type.data == 'Details':
