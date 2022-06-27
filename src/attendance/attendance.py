@@ -327,30 +327,42 @@ def application():
         db.session.commit()
         flash('Attendance application submitted')
 
-        #getting attendance application data from database for the above submitted leave
-        application = Applications.query.filter_by(start_date=form.start_date.data, 
-                                            end_date=form.end_date.data, type=form.type.data, 
-                                            empid=session['empid']).first()
+        #Send mail to all concerned
+        application = Applications.query.filter_by(start_date=form.start_date.data, end_date=form.end_date.data, 
+                        type=form.type.data, empid=session['empid']).first()
        
-        #Getting manager email address of the above employee
-        manager = Employee.query.join(Team).filter(Team.name==session['team'], 
-                                                    Employee.role=='Manager').first()
+        if session['role'] == 'Team':
+            manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
+            
+            if not manager:
+                current_app.logger.warning('Team Manager email not found')
+            else:            
+                receiver_email = manager.email
 
-        #Getting employee email
-        employee = Employee.query.filter_by(id=session['empid']).first()
+        if session['role'] == 'Manager' or not manager:
+            head = Employee.query.join(Team).filter(Employee.department==session['department'], Employee.role=='Head').first()
+            
+            if not head:
+                current_app.logger.warning('Dept. Head email not found')
+                rv = 'failed'
+            else:
+                receiver_email = head.email
 
-        if not manager:
-            flash('Manager record not found for your team', category='warning')
+        if 'rv' in locals():
+            flash('Failed to send mail', category='warning')
             return redirect(request.url)
+
+        employee = Employee.query.filter_by(id=session['empid']).first()
         
-        #send mail to all concern
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=employee.email, receiver=manager.email, 
-                        type='attendance', action='submitted', application=application)
+        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, type='attendance', 
+                        application=application, action='submitted')
+        
         if rv:
-            msg = 'Mail sending failed (' + str(rv) + ')' 
-            flash(msg, category='warning')
+            current_app.logger.warning(rv)
+            flash('Failed to send mail', category='warning')
+            return redirect(request.url)
     else:
         return render_template('forms.html', type='attn_application', form=form)
     
