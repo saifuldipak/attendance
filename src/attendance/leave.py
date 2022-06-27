@@ -177,11 +177,10 @@ def application(type):
                                                     Employee.role=='Manager').first()
             if not manager:
                 current_app.logger.warning('Team Manager email not found')
-                rv = 'failed'
             else:            
                 receiver_email = manager.email
 
-        if session['role'] == 'Manager':
+        if session['role'] == 'Manager' or not manager:
             head = Employee.query.join(Team).filter(Employee.department==session['department'], 
                                                     Employee.role=='Head').first()
             if not head:
