@@ -170,6 +170,69 @@ def query_all(query_type):
    
     return render_template('attn_query.html')
 
+@attendance.route('/attendance/query/department/<query_type>', methods=['GET', 'POST'])
+@login_required
+@head_required
+def query_department(query_type):
+
+    if query_type == 'date':
+        form = Attnquerydate()
+    elif query_type == 'username':
+        form = Attnqueryusername()
+    elif query_type == 'month':
+        form = Attnsummary()
+
+    if form.validate_on_submit():
+        
+        if query_type == 'date':
+            attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
+                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Employee.fullname, Attendance.date, 
+                            Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
+                            filter(Attendance.date==form.date.data, Employee.department==session['department'], 
+                            Employee.id!=session['empid']).all()
+            
+            if not attendance:
+                flash('No record found', category='warning')
+                      
+            return render_template('data.html', type='attn_details', query_type=query_type, attendance=attendance)          
+        
+        if query_type == 'username':
+            
+            employee = Employee.query.filter_by(username=form.username.data).first()
+            if not employee:
+                flash('Username not found', category='error')
+                return redirect(url_for('attendance.query_menu'))
+
+            head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head').first()
+            if not head:
+                current_app.logger.warning('query_department(): Trying to query attendance of another department by %s', 
+                                            session['username'])
+                flash('Username not found', category='error')
+                return redirect(url_for('forms.attendance_query', query_type='username'))
+            
+            month = datetime.strptime(form.month.data, "%B").month
+
+            attendance = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
+                        join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, Attendance.empid==ApprLeaveAttn.empid)).\
+                        filter(Attendance.empid==employee.id, extract('month', Attendance.date)==month).order_by(Attendance.date).all()
+            
+            if not attendance:
+                flash('No record found', category='warning')
+
+            return render_template('data.html', type='attn_details', query_type=query_type, form=form, attendance=attendance)
+        
+        if query_type == 'month':
+            summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, 
+                        AttnSummary.late, AttnSummary.early, AttnSummary.late_absent, AttnSummary.deducted).\
+                        filter(Employee.id!=session['empid'], Employee.department==session['department'], 
+                        AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
+
+            if len(summary) == 0:
+                flash('No record found', category='warning')                  
+            
+            return render_template('data.html', type='attn_summary', form=form, summary=summary)
+   
+    return render_template('attn_query.html')
 
 ##Query attendance data for team by managers##
 @attendance.route('/attendance/query/team/<query_type>', methods=['GET', 'POST'])

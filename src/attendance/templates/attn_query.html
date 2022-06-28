@@ -27,6 +27,8 @@
                     <form method="post" action="{{ url_for('attendance.query_all', query_type='date') }}">
                 {% elif query_for == 'Team' %}
                     <form method="post" action="{{ url_for('attendance.query_team', query_type='date') }}">
+                {% elif query_for == 'Department' %}
+                    <form method="post" action="{{ url_for('attendance.query_department', query_type='date') }}">
                 {% endif %}
                     {{ form.csrf_token }}
                         <label for="date">
@@ -45,6 +47,8 @@
                     <form method="post" action="{{ url_for('attendance.query_all', query_type='username') }}">
                 {% elif query_for == 'Team' %}
                     <form method="post" action="{{ url_for('attendance.query_team', query_type='username') }}">
+                {% elif query_for == 'Department' %}
+                    <form method="post" action="{{ url_for('attendance.query_department', query_type='username') }}">
                 {% endif %}
                     {{ form.csrf_token }}
                         <label for="username">
@@ -68,6 +72,8 @@
                     <form method="post" action="{{ url_for('attendance.query_all', query_type='month') }}">
                 {% elif query_for == 'Team' %}
                     <form method="post" action="{{ url_for('attendance.query_team', query_type='month') }}">
+                {% elif query_for == 'Department' %}
+                    <form method="post" action="{{ url_for('attendance.query_department', query_type='month') }}">
                 {% endif %}
                     {{ form.csrf_token }}
                         <label for="month">

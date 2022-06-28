@@ -281,19 +281,20 @@
             <th>Absent</th>
             <th>Late</th>
             <th>Early</th>
+            <th>Absent(Late)</th>
             <th>Leave deducted</th>
-
-            {% if query == 'team' %}
-                {% for employee in summary %}
-                    <tr>
-                        <td>{{ employee['fullname'] }}</td>
-                        <td>{{ employee['absent'] }}</td>
-                        <td>{{ employee['late'] }}</td>
-                        <td>{{ employee['early'] }}</td>
-                        <td>{{ employee['deducted'] }}</td>
-                    </tr>
-                {% endfor %}
-            {% endif %}
+            {% for employee in summary %}
+                <tr>
+                    <td>{{ employee['fullname'] }}</td>
+                    <td>{{ employee['absent'] }}</td>
+                    <td>{{ employee['late'] }}</td>
+                    <td>{{ employee['early'] }}</td>
+                    <td>{{ employee['late_absent'] }}</td>
+                    <td>{{ employee['deducted'] }}</td>
+                </tr>
+            {% endfor %}
+               
+            
 
             {% if query == 'all' %}
                 {% for row in summary %}

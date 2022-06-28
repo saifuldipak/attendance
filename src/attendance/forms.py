@@ -331,7 +331,7 @@ def upload():
 @login_required
 def attendance_query(query_type):
     
-    if session['role'] != 'Manager' and session['access'] != 'Admin':
+    if session['role'] == 'User' and session['access'] != 'Admin':
         flash('You are not authorized to access this page', category='error')
         return render_template('base.html')
 
@@ -347,6 +347,8 @@ def attendance_query(query_type):
     
     if session['role'] == 'Manager':
         query_for = 'Team'
+    elif session['role'] == 'Head':
+        query_for = 'Department'
     elif session['access'] == 'Admin':
         query_for = 'All'
     else:
