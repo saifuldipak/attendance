@@ -1,7 +1,6 @@
-from tracemalloc import start
 from .db import Applications, Employee, Team
 from sqlalchemy import and_, or_
-from flask import current_app, session
+from flask import current_app, flash, session
 
 #checking if dates in submitted application already exists in previously submitted 
 #applications by this user
@@ -42,12 +41,15 @@ def date_check(empid, start_date, end_date):
 #Check access to specific application id
 def check_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
-    manager_or_head = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, 
-                or_(Employee.role=='Manager', Employee.role=='Head')).first()
+    manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, 
+                Employee.role=='Manager').first()
+    head = Employee.query.filter_by(department=session['department'], role='Head').first()
 
     if employee.username == session['username']:
         return True
-    elif manager_or_head:
+    elif manager:
+        return True
+    elif head:
         return True
     elif session['access'] == 'Admin':
         return True
