@@ -331,11 +331,9 @@ def query_self():
         
         if form.query.data == 'Details':
             attendance = Attendance.query.join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, 
-                            Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
-                            filter(Attendance.empid==session['empid'], 
-                            extract('month', Attendance.date)==int(form.month.data)).\
-                            order_by(Attendance.date).all()
+                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, Attendance.in_time, 
+                            Attendance.out_time, ApprLeaveAttn.approved).filter(Attendance.empid==session['empid'], 
+                            extract('month', Attendance.date)==int(form.month.data)).order_by(Attendance.date).all()
             
             if not attendance:
                 flash('No record found', category='warning')
