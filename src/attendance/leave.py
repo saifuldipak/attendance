@@ -11,6 +11,7 @@ import os
 from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
 import datetime
 
+
 # renaming original uploaded files and saving to disk, also creating a string 
 # with all the file names for storing in database 
 def save_files(files, username):
@@ -144,7 +145,7 @@ def application(type):
         if type == 'Casual':
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.now(), 
+                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
                             status='Approval Pending')
         
         if type == 'Medical':
@@ -159,7 +160,7 @@ def application(type):
 
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.now(), 
+                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
                             file_url=filenames, status='Approval Pending')
         
         db.session.add(leave)
@@ -242,7 +243,7 @@ def application_fiber(type):
         if type == 'Casual':
             leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.now(), 
+                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
                             status='Approved')
         
         if type == 'Medical':
@@ -257,7 +258,7 @@ def application_fiber(type):
 
             leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.now(), 
+                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
                             file_url=filenames, status='Approved')
         
         db.session.add(leave)
@@ -444,10 +445,9 @@ def cancel(application_id):
 @leave.route('/leave/summary/self')
 @login_required     
 def summary_self():
-    leaves = LeaveAvailable.query.join(Employee).\
-                filter(Employee.id==session['empid'], 
-                or_(LeaveAvailable.year_start < datetime.now().date(), 
-                LeaveAvailable.year_end > datetime.now().date())).all()
+    leaves = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], 
+                or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.datetime.now().date())).all()
     if not leaves:
         current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
         flash('No leave summary record found', category='warning')
@@ -465,8 +465,8 @@ def summary_team():
     for team in teams:
         leaves = LeaveAvailable.query.join(Employee, Team).\
                 filter(Team.name==team.name, Employee.id!=session['empid'], 
-                or_(LeaveAvailable.year_start < datetime.now().date(), 
-                LeaveAvailable.year_end > datetime.now().date())).all()
+                or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.datetime.now().date())).all()
         team_leaves += leaves
     
     leaves = team_leaves
@@ -484,8 +484,8 @@ def summary_team():
 def summary_department():
     leaves = LeaveAvailable.query.join(Employee).\
                 filter(Employee.department==session['department'], Employee.id!=session['empid'],  
-                or_(LeaveAvailable.year_start < datetime.now().date(), 
-                LeaveAvailable.year_end > datetime.now().date())).all()
+                or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.datetime.now().date())).all()
     
     if not leaves:
         current_app.logger.warning('summary_department(): No data found in leave_available table')
@@ -497,8 +497,8 @@ def summary_department():
 @leave.route('/leave/summary/all')
 @login_required     
 def summary_all():
-    leaves = LeaveAvailable.query.join(Employee).filter(or_(LeaveAvailable.year_start < datetime.now().date(), 
-                LeaveAvailable.year_end > datetime.now().date())).all()
+    leaves = LeaveAvailable.query.join(Employee).filter(or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+                LeaveAvailable.year_end > datetime.datetime.now().date())).all()
                 
     if not leaves:
         current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
@@ -631,8 +631,8 @@ def deduction():
     form = Leavededuction()
 
     month = datetime.strptime(form.month.data, '%B').month
-    cur_month = datetime.now().month
-    cur_year = datetime.now().year
+    cur_month = datetime.datetime.now().month
+    cur_year = datetime.datetime.now().year
 
     if month >= cur_month and int(form.year.data) >= cur_year:
         flash('You can only deduct leave for attendance of previous month or before previous month', category='error')    
@@ -663,7 +663,7 @@ def deduction():
                 employee.late_absent = absent
                 employee.deducted = deducted
          
-        deduction = LeaveDeduction(year=form.year.data, month=form.month.data, date=datetime.now())
+        deduction = LeaveDeduction(year=form.year.data, month=form.month.data, date=datetime.datetime.now())
         
         db.session.add(deduction)
         db.session.commit()
