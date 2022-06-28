@@ -555,7 +555,7 @@ def approval_department():
     
     if not check_access(application_id):
         flash('You are not authorizes to perform this action', category='error')
-        return redirect(url_for('attendance.appl_status_team'))
+        return redirect(url_for('attendance.appl_status_department'))
 
     #Approve application and update appr_leave_attn table
     application = Applications.query.filter_by(id=application_id).first()
@@ -582,22 +582,20 @@ def approval_department():
         current_app.logger.warning('HR email not found')
         msg = 'warning'
 
-    head = Employee.query.filter(Employee.department==application.employee.department, 
-                                    Employee.role=='Head').first()
+    head = Employee.query.filter_by(department=application.employee.department, role='Head').first()
     if not head:
         current_app.logger.warning('Dept. Head email not found')
         msg = 'warning'
     
     if 'msg' in locals():
         flash('Failed to send mail', category='warning')
-        return redirect(request.url)
+        return redirect(url_for('attendance.appl_status_department'))
 
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
     
-    rv = send_mail(host=host, port=port, sender=head.email, receiver=admin.email, 
-                    cc1=application.employee.email, type='attendance', 
-                    action='approved', application=application)
+    rv = send_mail(host=host, port=port, sender=head.email, receiver=admin.email, cc1=application.employee.email, 
+                    type='attendance', action='approved', application=application)
     if rv:
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
