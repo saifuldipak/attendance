@@ -1,3 +1,22 @@
+1.0.0.a5 (28-Jun-2022)
+----------------------
+Feaure:
+fullname, access & designation update feature added in employee.update function.
+leave.create_leave function added
+
+Fix:
+leave.summary_team query fixed
+In employee.update function, check added for new and existing data
+attendance.summary renamed to attendance.prepare_summary
+leave.application mail send bug fixed
+send mail added in leave.cancel, attendance.cancel function
+In leave and attendance module application and cancel function logic added to send mail to head if manager not found 
+leave.deduction function comments removed and bug fixed in else clause
+attendance.query_self, query_team & query_all functions rewritted to fix bugs
+
+From: commit ef7e6ef
+To: commit 084e640
+ 
 1.0.0a4 (19-jun-2022)
 ---------------------
 Feature:
