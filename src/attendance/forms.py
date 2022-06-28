@@ -265,8 +265,8 @@ class Employeesearch(FlaskForm):
     type = SelectField('Search by', render_kw={'class': 'input-field'}, choices=types)
 
 class Createleave(FlaskForm):
-    year_start = IntegerField('Year Start', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    year_end = IntegerField('Year End', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    year_start = IntegerField('Year Start', default=datetime.now().year, render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    year_end = IntegerField('Year End', default=datetime.now().year+1, render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
     def validate_year_end(self, field):
         if self.year_start.data >= field.data:

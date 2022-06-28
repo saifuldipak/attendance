@@ -1,5 +1,3 @@
-from re import L
-from threading import local
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
@@ -10,9 +8,8 @@ from .mail import send_mail
 from .auth import admin_required, login_required, manager_required, head_required
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime, timedelta
 from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
-
+import datetime
 
 # renaming original uploaded files and saving to disk, also creating a string 
 # with all the file names for storing in database 
@@ -111,7 +108,7 @@ def update_attn(empid, start_date, end_date, type):
         if attendance:
             attendance.approved = type
         
-        start_date += timedelta(days=1)
+        start_date += datetime.timedelta(days=1)
 
     db.session.commit()
 
@@ -692,7 +689,7 @@ def create_leave():
             leave_available = LeaveAvailable.query.filter(LeaveAvailable.year_start <= year_start, 
                                 LeaveAvailable.year_end >= year_end, LeaveAvailable.empid==employee.id).first()
             if leave_available:
-                message = f'Leave exists for {employee.fullname} year: {leave_available.year_start - leave_available.year_end}'
+                message = f'Leave exists for {employee.fullname} year: {leave_available.year_start} - {leave_available.year_end}'
                 flash(message, category='warning')
             else:
                 leave_available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
@@ -706,7 +703,7 @@ def create_leave():
             flash(message, category='message')
         else:
             flash('No leave added', category='error')
-            
+
         return render_template('base.html')
     else:
         return render_template('forms.html', type='create_leave', form=form)
