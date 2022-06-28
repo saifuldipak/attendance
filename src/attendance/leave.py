@@ -16,7 +16,7 @@ import datetime
 # with all the file names for storing in database 
 def save_files(files, username):
     file_names = ''
-    file_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    file_id = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     file_count = 1
                 
     for file in files:
@@ -387,7 +387,7 @@ def cancel(application_id):
         error = ''
         # delete files attached with Medical leave
         if application.type == 'Medical':
-            files = leave.file_url.split(';')
+            files = application.file_url.split(';')
             
             if not files:
                 error = 'File name not found in database'
