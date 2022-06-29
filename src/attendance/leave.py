@@ -1,3 +1,4 @@
+from functools import total_ordering
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
@@ -630,7 +631,7 @@ def approval_department():
 def deduction():
     form = Leavededuction()
 
-    month = datetime.strptime(form.month.data, '%B').month
+    month = datetime.datetime.strptime(form.month.data, '%B').month
     cur_month = datetime.datetime.now().month
     cur_year = datetime.datetime.now().year
 
@@ -646,22 +647,27 @@ def deduction():
     summary = AttnSummary.query.filter(AttnSummary.year==form.year.data).filter(AttnSummary.month==form.month.data).all()
     if summary:
         for employee in summary:
-            if employee.late >= 3:
+            if employee.late >= 3 or employee.early >= 3:
+                summary = AttnSummary.query.filter_by(empid=employee.empid, year=form.year.data, 
+                            month=form.month.data).first()
                 leave = LeaveAvailable.query.filter(LeaveAvailable.empid==employee.empid).first()
-
-                days = round(employee.late/3)
-
-                if leave.casual >= days:
-                    leave.casual = leave.casual - days
-                    deducted = days
-                    absent = 0
-                else:
-                    absent = days - leave.casual
-                    deducted = leave.casual
+                total_leave = leave.casual + leave.earned
+                total_deduct = round(employee.late/3) + round(employee.early/3)
+                
+                if leave.casual >= total_deduct:
+                    leave.casual = leave.casual - total_deduct
+                    summary.extra_absent = 0
+                    summary.leave_deducted = total_deduct
+                elif total_leave >= total_deduct:
+                    leave.earned = leave.earned + leave.casual - total_deduct
                     leave.casual = 0
-
-                employee.late_absent = absent
-                employee.deducted = deducted
+                    summary.extra_absent = 0
+                    summary.leave_deducted = total_deduct
+                else:    
+                    summary.extra_absent = total_deduct - total_leave
+                    leave.casual = 0
+                    leave.earned = 0
+                    summary.leave_deducted = total_leave
          
         deduction = LeaveDeduction(year=form.year.data, month=form.month.data, date=datetime.datetime.now())
         
