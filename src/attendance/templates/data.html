@@ -295,20 +295,6 @@
                     <td>{{ employee['deducted'] }}</td>
                 </tr>
             {% endfor %}
-               
-            
-
-            {% if query == 'all' %}
-                {% for row in summary %}
-                    <tr>
-                        <td class="query-result">{{ row.employee.fullname }}</td>
-                        <td class="query-result">{{ row.absent }}</td>
-                        <td class="query-result">{{ row.late }}</td>
-                        <td class="query-result">{{ row.early }}</td>
-                    </tr>
-                {% endfor %}
-            {% endif %}
-        
         </table>
     {% endif %}
 

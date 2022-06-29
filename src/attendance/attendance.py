@@ -149,14 +149,14 @@ def query_all(query_type):
                 return redirect(url_for('attendance.query_menu'))
         
         if query_type == 'month':
-            summary = AttnSummary.query.join(Employee).filter(AttnSummary.year==form.year.data, 
-                        AttnSummary.month==form.month.data).all()
+            summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, 
+                        AttnSummary.early, AttnSummary.late_absent, AttnSummary.early_absent, AttnSummary.deducted).\
+                        filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
             
             if not summary:
                 flash('No record found', category='warning')                  
             
-            return render_template('data.html', type='attn_summary', query='all', form=form, 
-                                    summary=summary)
+            return render_template('data.html', type='attn_summary', form=form, summary=summary)
    
     return render_template('attn_query.html')
 
