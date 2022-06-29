@@ -75,9 +75,8 @@ class AttnSummary(db.Model):
     absent = db.Column(db.Integer)
     late = db.Column(db.Integer)
     early = db.Column(db.Integer)
-    late_absent = db.Column(db.Integer)
-    early_absent = db.Column(db.Integer)
-    deducted = db.Column(db.Integer)
+    extra_absent = db.Column(db.Integer)
+    leave_deducted = db.Column(db.Integer)
 
 #Leave deduction log
 class LeaveDeduction(db.Model):
