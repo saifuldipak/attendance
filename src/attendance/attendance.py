@@ -36,9 +36,8 @@ def upload():
             df = pd.read_excel(form.file1.data, names=col_names)
            
             for i in range(len(df.index)):
-                #converting data in dataframe to appropriate column data types
                 empid = int(df.iat[i, 0])
-                date = datetime.strptime(df.iat[i, 1], "%m/%d/%Y")
+                date = datetime.strptime(df.iat[i, 1], "%m/%d/%Y").date()
                 
                 if pd.isna(df.iat[i, 2]):
                     df_in_time = '00:00'
@@ -54,21 +53,15 @@ def upload():
 
                 out_time = datetime.strptime(str(df_out_time), "%H:%M").time()
 
-                # check whether employee id exists in 'employee' table
                 employee = Employee.query.filter_by(id=empid).first()
                 if not employee:
                     error = 'Employee ID' + " '" + str(empid) + "' " + 'does not exists'
                     flash(error, category='error')
                     return redirect(request.url)
-
-                # check whether employee and date maches any record in 'Attendance' table
-                # this is done to eliminate the possibility of entering duplicate data in database
-                data = Attendance.query.filter(and_(Attendance.empid==empid, 
-                                                   Attendance.date==date)).first()
-
+                
+                data = Attendance.query.filter(Attendance.empid==empid, Attendance.date==date).first()
                 if data:
-                    error = 'Employee ID' + " '" + str(empid) + "' & date" + " '" + date + "' " \
-                            + 'record already exists'
+                    error = f"Employee ID '{str(empid)}' & date '{date}' record already exists"
                     flash(error, category='error')
                     return redirect(request.url)
 
@@ -91,9 +84,6 @@ def upload():
 
             db.session.commit()
 
-            # write data frame to 'Attendance' table
-            #df.to_sql('Attendance', con=db.engine, if_exists='append', index=None, 
-            #            dtype={'date': db.Date, 'in_time': db.String, 'out_time': db.String})
             flash('Data uploaded successfully', category='message')
             
     return render_template('forms.html', form_type='attendance_upload', form=form)
