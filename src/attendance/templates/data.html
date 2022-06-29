@@ -281,8 +281,7 @@
             <th>Absent</th>
             <th>Late</th>
             <th>Early</th>
-            <th>Absent(Late)</th>
-            <th>Absent(Early)</th>
+            <th>Absent(Late,Early)</th>
             <th>Leave deducted</th>
             {% for employee in summary %}
                 <tr>
@@ -290,9 +289,8 @@
                     <td>{{ employee['absent'] }}</td>
                     <td>{{ employee['late'] }}</td>
                     <td>{{ employee['early'] }}</td>
-                    <td>{{ employee['late_absent'] }}</td>
-                    <td>{{ employee['early_absent'] }}</td>
-                    <td>{{ employee['deducted'] }}</td>
+                    <td>{{ employee['extra_absent'] }}</td>
+                    <td>{{ employee['leave_deducted'] }}</td>
                 </tr>
             {% endfor %}
         </table>
@@ -342,7 +340,7 @@
                 </tr>
                 <tr>
                     <td class="data-left">Leave deducted</td>
-                    <td class="data-right">{{ summary['deducted'] }}</td> 
+                    <td class="data-right">{{ summary['leave_deducted'] }}</td> 
                 </tr>
             {% endif %}
             </table>

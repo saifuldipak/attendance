@@ -65,11 +65,8 @@ def upload():
                     flash(error, category='error')
                     return redirect(request.url)
 
-                # check approved applications for each date and employee id from Applications 
-                # table
-                application = Applications.query.filter(empid==empid).\
-                                                filter(and_(Applications.start_date >= date, 
-                                                            Applications.end_date <= date)).first()
+                application = Applications.query.filter(empid==empid).filter(Applications.start_date >= date, 
+                                Applications.end_date <= date).first()
                 
                 if not application:
                     approved = ''
@@ -150,7 +147,7 @@ def query_all(query_type):
         
         if query_type == 'month':
             summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, 
-                        AttnSummary.early, AttnSummary.late_absent, AttnSummary.early_absent, AttnSummary.deducted).\
+                        AttnSummary.early, AttnSummary.extra_absent, AttnSummary.leave_deducted).\
                         filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
             
             if not summary:
@@ -213,7 +210,7 @@ def query_department(query_type):
         
         if query_type == 'month':
             summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, 
-                        AttnSummary.late, AttnSummary.early, AttnSummary.late_absent, AttnSummary.deducted).\
+                        AttnSummary.late, AttnSummary.early, AttnSummary.extra_absent, AttnSummary.leave_deducted).\
                         filter(Employee.id!=session['empid'], Employee.department==session['department'], 
                         AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
 
@@ -299,7 +296,7 @@ def query_team(query_type):
             for team in teams:
                 team_summary = AttnSummary.query.join(Employee).join(Team, AttnSummary.empid==Team.empid).\
                                 with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, AttnSummary.early, 
-                                AttnSummary.deducted).filter(Employee.id!=session['empid'], Team.name==team.name, 
+                                AttnSummary.leave_deducted).filter(Employee.id!=session['empid'], Team.name==team.name, 
                                 AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
                 
                 allteams_summary += team_summary
@@ -670,7 +667,6 @@ def prepare_summary():
             return redirect(url_for('forms.attn_prepare_summary'))
             
         summary = AttnSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
-
         if summary:
             flash('Summary data already exists for the year and month you submitted', category='error')
             return redirect(url_for('forms.attn_prepare_summary'))
