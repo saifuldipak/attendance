@@ -163,7 +163,8 @@ class Attnqueryself(FlaskForm):
 class Attnsummary(FlaskForm):
     year = SelectField('Year', render_kw={'class': 'input-field'}, choices=years)
     month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
-
+    result = SelectField('Result', render_kw={'class': 'input-field'}, choices=['Show', 'Download'])
+    
 #Attendance summary
 class Leavededuction(FlaskForm):
     year = SelectField('Year', render_kw={'class': 'input-field'}, choices=years)

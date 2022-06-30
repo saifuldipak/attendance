@@ -1,7 +1,7 @@
-from datetime import date, datetime, timedelta
-from unicodedata import category
-from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
-from sqlalchemy import and_, or_, extract, func
+from datetime import datetime, timedelta
+import os
+from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
+from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
 from .check import check_access, date_check
 from .mail import send_mail
@@ -146,16 +146,36 @@ def query_all(query_type):
                 return redirect(url_for('attendance.query_menu'))
         
         if query_type == 'month':
-            summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, 
-                        AttnSummary.early, AttnSummary.extra_absent, AttnSummary.leave_deducted).\
-                        filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
+
+            if form.result.data == 'Show':
+                summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, 
+                            AttnSummary.late, AttnSummary.early, AttnSummary.extra_absent, AttnSummary.leave_deducted).\
+                            filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
+        
+                if not summary:
+                    flash('No record found', category='warning')                  
             
-            if not summary:
-                flash('No record found', category='warning')                  
-            
-            return render_template('data.html', type='attn_summary', form=form, summary=summary)
-   
+                return render_template('data.html', type='attn_summary', form=form, summary=summary)
+
+            if form.result.data == 'Download':
+                file_name = f'Attendance-summary-{form.month.data}-{form.year.data}.csv'
+                
+                stmt = select(Employee.fullname, AttnSummary.absent, AttnSummary.late, AttnSummary.early, 
+                        AttnSummary.extra_absent, AttnSummary.leave_deducted).join(Employee).\
+                        where(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data)
+                df = pd.read_sql(stmt, db.engine)
+                
+                df.to_csv(os.path.join(current_app.config['UPLOAD_FOLDER'], file_name))
+                
+                return render_template('attn_query.html', download='yes', file_name=file_name)
+
     return render_template('attn_query.html')
+
+@attendance.route('/attendance/files/<name>')
+@login_required
+@admin_required
+def files(name):
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
 @attendance.route('/attendance/query/department/<query_type>', methods=['GET', 'POST'])
 @login_required

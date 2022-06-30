@@ -17,6 +17,9 @@
             </a>
     </div>
     
+    {% if download %}
+        <p><a href={{ url_for('attendance.files', name=file_name) }}> Download {{file_name}}</a></p>
+    {% endif %}
     
     {% if query_type %}
         <div class="form-style-2">
@@ -83,6 +86,10 @@
                         <label for="year">
                             <span>{{ form.year.label }}</span>
                                 {{ form.year }}
+                        </label>
+                        <label for="result">
+                            <span>{{ form.result.label }}</span>
+                                {{ form.result }}
                         </label>
                         <label>
                             <span> </span>
