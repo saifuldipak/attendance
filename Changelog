@@ -1,4 +1,21 @@
-1.0.0.a5 (28-Jun-2022)
+ 1.0.0b0 (30-Jun-2022)
+----------------------
+Feature:
+attendance.query_department function added
+attendance.query_all, query_department output now shows total absent days
+attendance.query_all output can be downloaded as csv file
+
+Fix:
+check.check_access query fixed
+attendance.approval_department return redirect url fixed
+datetime function call and obeject name corrected in leave module
+attendance.upload date format fixed, unnecessary comments removed
+In leave.deduction function, early out and late both count is included in calculation
+
+From: commit bd69a9a 
+To: commit 9da2393
+
+1.0.0a5 (28-Jun-2022)
 ----------------------
 Feaure:
 fullname, access & designation update feature added in employee.update function.
