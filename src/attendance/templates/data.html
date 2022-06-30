@@ -283,6 +283,7 @@
             <th>Early</th>
             <th>Absent(Late,Early)</th>
             <th>Leave deducted</th>
+            <th>Absent(Total)</th>
             {% for employee in summary %}
                 <tr>
                     <td>{{ employee['fullname'] }}</td>
@@ -291,6 +292,11 @@
                     <td>{{ employee['early'] }}</td>
                     <td>{{ employee['extra_absent'] }}</td>
                     <td>{{ employee['leave_deducted'] }}</td>
+                    {% if employee['extra_absent'] %}
+                        <td> {{ employee['absent'] + employee['extra_absent']}} </td>
+                    {% else %} 
+                        <td> {{ employee['absent'] }} </td>
+                    {% endif %}   
                 </tr>
             {% endfor %}
         </table>

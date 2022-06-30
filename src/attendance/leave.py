@@ -658,6 +658,10 @@ def deduction():
                     leave.casual = leave.casual - total_deduct
                     summary.extra_absent = 0
                     summary.leave_deducted = total_deduct
+
+
+
+                    
                 elif total_leave >= total_deduct:
                     leave.earned = leave.earned + leave.casual - total_deduct
                     leave.casual = 0
