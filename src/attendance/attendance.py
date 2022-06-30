@@ -296,8 +296,8 @@ def query_team(query_type):
             for team in teams:
                 team_summary = AttnSummary.query.join(Employee).join(Team, AttnSummary.empid==Team.empid).\
                                 with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, AttnSummary.early, 
-                                AttnSummary.leave_deducted).filter(Employee.id!=session['empid'], Team.name==team.name, 
-                                AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
+                                AttnSummary.extra_absent, AttnSummary.leave_deducted).filter(Employee.id!=session['empid'], 
+                                Team.name==team.name, AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
                 
                 allteams_summary += team_summary
             
