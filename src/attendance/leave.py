@@ -703,7 +703,8 @@ def create_leave():
                 flash(message, category='warning')
             else:
                 leave_available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
-                                    casual=14, medical=14, earned=14)
+                                    casual=current_app.config['CASUAL'], medical=current_app.config['MEDICAL'], 
+                                    earned=current_app.config['EARNED'])
                 db.session.add(leave_available)
                 count += 1
         

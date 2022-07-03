@@ -5,3 +5,8 @@ SECRET_KEY='change_me'
 #SMTP server details
 SMTP_HOST='120.50.31.12'
 SMTP_PORT='25'
+
+#Yearly leave
+CASUAL = 10
+MEDICAL = 14
+EARNED = 14

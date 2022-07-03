@@ -1,5 +1,5 @@
 import secrets
-from flask import Blueprint, request, flash, redirect, render_template, session, url_for
+from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 from .db import db, Employee, Team, LeaveAvailable
 from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, 
                     Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
@@ -137,7 +137,8 @@ def create():
             year_end = date((current_year + 1), 6, 30)
 
         available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
-                                    casual=14, medical=14, earned=14)
+                                    casual=current_app.config['CASUAL'], medical=current_app.config['MEDICAL'], 
+                                    earned=current_app.config['EARNED'])
         db.session.add(available)
         db.session.commit()
 
