@@ -705,13 +705,13 @@ def prepare_summary():
                     join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
                     Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
                     extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
-                    Attendance.in_time > '09:15:00', ApprLeaveAttn.approved=='').first()
+                    Attendance.in_time > current_app.config['LATE'], ApprLeaveAttn.approved=='').first()
                     
             early = db.session.query(func.count(Attendance.empid).label('count')).\
                     join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
                     Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
                     extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
-                    or_(Attendance.out_time=='00:00:00.000000', Attendance.out_time < '17:45:00'), 
+                    or_(Attendance.out_time=='00:00:00.000000', Attendance.out_time < current_app.config['EARLY']), 
                     ApprLeaveAttn.approved=='').first()
 
             if absent.count > 0 or late.count > 0 or early.count > 0:
