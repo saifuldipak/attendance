@@ -6,7 +6,7 @@ import pandas as pd
 from .check import check_access, date_check
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary)
+                    Attnapplication, Attnsummary, Attnsummaryshow)
 from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
 from .auth import head_required, login_required, admin_required, manager_required
 
@@ -103,7 +103,7 @@ def query_all(query_type):
     elif query_type == 'username':
         form = Attnqueryusername()
     elif query_type == 'month':
-        form = Attnsummary()
+        form = Attnsummaryshow()
 
     if form.validate_on_submit():
         
@@ -696,11 +696,10 @@ def prepare_summary():
         count = 0
         
         for employee in employees:
-            absent = db.session.query(func.count(Attendance.empid).label('count')).\
-                        join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                        Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
-                        extract('month', Attendance.date)==month_num, Attendance.in_time=='00:00:00.000000', 
-                        ApprLeaveAttn.approved=='').first()
+            absent = db.session.query(func.count(Attendance.empid).label('count')).join(ApprLeaveAttn, 
+                        and_(Attendance.date==ApprLeaveAttn.date, Attendance.empid==ApprLeaveAttn.empid)).\
+                        filter(Attendance.empid==employee.id, extract('month', Attendance.date)==month_num, 
+                        Attendance.in_time=='00:00:00.000000', ApprLeaveAttn.approved=='').first()
                             
             late = db.session.query(func.count(Attendance.empid).label('count')).\
                     join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 

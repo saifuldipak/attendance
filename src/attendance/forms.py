@@ -159,10 +159,13 @@ class Attnqueryself(FlaskForm):
             validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
     query = SelectField('Query', render_kw={'class': 'input-field'}, choices=queries)
 
-#Attendance summary
+#Attendance summary create
 class Attnsummary(FlaskForm):
     year = SelectField('Year', render_kw={'class': 'input-field'}, choices=years)
     month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
+
+#Attendance summary show
+class Attnsummaryshow(Attnsummary):
     result = SelectField('Result', render_kw={'class': 'input-field'}, choices=['Show', 'Download'])
     
 #Attendance summary
@@ -341,7 +344,7 @@ def attendance_query(query_type):
     elif query_type == 'username':
         form = Attnqueryusername()
     elif query_type == 'month':
-        form = Attnsummary()
+        form = Attnsummaryshow()
     else:
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
