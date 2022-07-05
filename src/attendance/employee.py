@@ -89,13 +89,9 @@ def create():
         if form.email.data:
             employee = Employee.query.filter_by(email=form.email.data).first()
             
-            if employee.email:
+            if employee:
                 flash('Email exists', category='error')
-                return render_template('forms.html', form_type='employee_create', form=form)         
-            
-            email = form.email.data
-        else:
-            email = ''    
+                return render_template('forms.html', form_type='employee_create', form=form)  
 
         if form.department.data == 'Accounts' or form.department.data == 'Sales' or \
             form.role.data == 'Head':
@@ -107,7 +103,7 @@ def create():
         employee = Employee(username=form.username.data, 
                             fullname=form.fullname.data, 
                             password=generate_password_hash(form.password.data),
-                            phone=form.phone.data, email=email, department=form.department.data, 
+                            phone=form.phone.data, email=form.email.data, department=form.department.data, 
                             designation=form.designation.data, role=form.role.data, access=form.access.data)
 
         db.session.add(employee)
