@@ -14,8 +14,8 @@ from werkzeug.security import check_password_hash
 
 departments = ['Accounts', 'Sales', 'Technical']
 teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 
-                'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Dhanmondi', 
-                'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
+                'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Implementation', 
+                'Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
                 'Accounts']
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 
             'October', 'November', 'December']
@@ -25,7 +25,7 @@ actions = ['Add', 'Delete']
 designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 
                 'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 
                 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 
-                'Jr. Asst. Engineer', 'Jr. Splice Tech', 'Jr. Cable Tech', 'Splice Tech', 'Cable Tech', 
+                'Jr. Asst. Engineer', 'Team Coordinator', 'Jr. Splice Tech', 'Jr. Cable Tech', 'Splice Tech', 'Cable Tech', 
                 'Driver', 'Peon']
 roles = ['Team', 'Manager', 'Head']
 access = ['User', 'Admin', 'None']
