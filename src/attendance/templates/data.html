@@ -23,12 +23,24 @@
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
                         <td>{{ application['status'] }}</td>
-                        {% if application['status'] == "Approval Pending" %}
-                            {% if data == 'team' %}
-                                <td><a href="{{ url_for('leave.approval_team', application_id=application['id']) }}">Approve</a></td>
-                            {% elif data == 'department' %}
-                                <td><a href="{{ url_for('leave.approval_department', application_id=application['id']) }}">Approve</a></td>
-                            {% elif data == 'personal' %}
+                        {% if data == 'team' %}
+                            <td>
+                                {% if application['status'] == "Approval Pending" %}
+                                    <a href="{{ url_for('leave.approval_team', application_id=application['id']) }}">Approve</a>
+                                {% endif %}
+                                <a href="{{ url_for('leave.cancel_team', application_id=application['id']) }}">Cancel</a>
+                            </td>
+                        {% endif %}
+                        {% if data == 'department' %}
+                            <td>
+                                {% if application['status'] == "Approval Pending" %}
+                                    <a href="{{ url_for('leave.approval_department', application_id=application['id']) }}">Approve</a>
+                                {% endif %}
+                                    <a href="{{ url_for('leave.cancel_department', application_id=application['id']) }}">Cancel</a>
+                            </td>
+                        {% endif %}
+                        {% if data == 'personal' %}
+                            {% if application['status'] == "Approval Pending" %}
                                 <td><a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a></td> 
                             {% endif %}
                         {% endif %}
