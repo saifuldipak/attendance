@@ -301,7 +301,8 @@ def update(action):
             employee.password = generate_password_hash(password)
 
             admin = Employee.query.filter_by(username=session['username']).first()
-            send_mail(admin.email, employee.email, password)
+            send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=admin.email, 
+                        receiver=employee.email, type='reset', extra=password)
             
             flash('Password reset', category='message')
 
