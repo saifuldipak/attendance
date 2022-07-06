@@ -29,9 +29,13 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
     #checking if required arguments are passed or not
     if not (host or port or sender or receiver or type):
         return 'You must provide host, port, sender email, receiver email and type arguments'
-
-    action = kwargs['action']
-    application = kwargs['application']
+    
+    if 'action' in kwargs:
+        action = kwargs['action']
+    
+    if 'application' in kwargs:
+        application = kwargs['application']
+    
     if type == 'leave' or type =='attendance':
         if not (action or application):
             return 'If "type" argument is "leave" or "attendance", you must provide "action" and\
