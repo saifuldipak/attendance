@@ -563,7 +563,7 @@ def cancel_team(application_id):
 @login_required     
 def summary_self():
     leaves = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], 
-                or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+                and_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
                 LeaveAvailable.year_end > datetime.datetime.now().date())).all()
     if not leaves:
         current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
@@ -578,11 +578,10 @@ def summary_self():
 def summary_team():
     teams = Team.query.filter_by(empid=session['empid']).all()
     team_leaves = []
-   
+    
     for team in teams:
-        leaves = LeaveAvailable.query.join(Employee, Team).\
-                filter(Team.name==team.name, Employee.id!=session['empid'], 
-                or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+        leaves = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], 
+                and_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
                 LeaveAvailable.year_end > datetime.datetime.now().date())).all()
         team_leaves += leaves
     
@@ -601,7 +600,7 @@ def summary_team():
 def summary_department():
     leaves = LeaveAvailable.query.join(Employee).\
                 filter(Employee.department==session['department'], Employee.id!=session['empid'],  
-                or_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
+                and_(LeaveAvailable.year_start < datetime.datetime.now().date(), 
                 LeaveAvailable.year_end > datetime.datetime.now().date())).all()
     
     if not leaves:
