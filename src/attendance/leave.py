@@ -806,7 +806,7 @@ def create_leave():
     
     if form.validate_on_submit():
         year_start = datetime.date(form.year_start.data, 7, 1)
-        year_end = datetime.date(form.year_end.data, 6, 30)
+        year_end = datetime.date(form.year_start.data + 1, 6, 30)
 
         employees = Employee.query.all()
         count = 0
@@ -825,7 +825,8 @@ def create_leave():
         
         if count:
             db.session.commit()
-            message = f'Leave added for {count} employees'
+            form.year_end.data = form.year_start.data + 1
+            message = f'Leave added for {count} employees for {form.year_start.data}-{form.year_end.data}'
             flash(message, category='message')
         else:
             flash('No leave added', category='error')
