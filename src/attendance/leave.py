@@ -476,10 +476,10 @@ def cancel_team(application_id):
         current_app.logger.warning(' cancel_team(): not the manager of %s', team.name)
         return redirect(url_for('leave.status_team'))
     
-    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.month, 
+    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
                 empid=application.empid).first()
     if summary:
-        msg = f'Leave summary already prepared.You cannot cancel leave for {application.start_date.year()} and {application.start_date.month()}' 
+        msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
         return redirect(url_for('leave.status_team'))
 
