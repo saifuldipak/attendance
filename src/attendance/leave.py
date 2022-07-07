@@ -476,14 +476,14 @@ def cancel_team(application_id):
         current_app.logger.warning(' cancel_team(): not the manager of %s', team.name)
         return redirect(url_for('leave.status_team'))
     
-    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-    if summary:
-        msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-        flash(msg, category='error')
-        return redirect(url_for('leave.status_team'))
-
     if application.status == 'Approved':
+        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+                empid=application.empid).first()
+        if summary:
+            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+            flash(msg, category='error')
+            return redirect(url_for('leave.status_team'))
+
         leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
         if not leave:
             current_app.logger.warning(' cancel_team(): no data found in leave_available table for %s', employee.username)
