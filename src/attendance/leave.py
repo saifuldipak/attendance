@@ -477,18 +477,19 @@ def cancel_team(application_id):
         flash(msg, category='error')
         return redirect(url_for('leave.status_team'))
 
-    leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
-    if not leave:
-        current_app.logger.warning(' cancel_team(): no data found in leave_available table for %s', employee.username)
-        msg = f'No leave available for {employee.username}'
-        flash(msg, category='error')
-        return redirect(url_for('leave.status_team'))
-    
-    if application.type == 'Casual':
-        leave.casual = leave.casual + application.duration
+    if application.status == 'Approved':
+        leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
+        if not leave:
+            current_app.logger.warning(' cancel_team(): no data found in leave_available table for %s', employee.username)
+            msg = f'No leave available for {employee.username}'
+            flash(msg, category='error')
+            return redirect(url_for('leave.status_team'))
+        
+        if application.type == 'Casual':
+            leave.casual = leave.casual + application.duration
 
-    if application.type == 'Medical':
-        leave.medical = leave.medical + application.duration
+        if application.type == 'Medical':
+            leave.medical = leave.medical + application.duration
         
     #delete files attached with medical leave application
     if application.type == 'Medical':
