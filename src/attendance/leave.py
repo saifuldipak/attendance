@@ -237,6 +237,13 @@ def application_fiber(type):
             flash(msg, category='error')
             return redirect(url_for('forms.leave', type=type))
         
+        summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), 
+                empid=form.empid.data).first()
+        if summary:
+            msg = f'Attendance summary already prepared for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
+            flash(msg, category='error')
+            return redirect(request.url)
+        
         if not form.end_date.data:
             form.end_date.data = form.start_date.data
         
@@ -248,10 +255,8 @@ def application_fiber(type):
             return redirect(request.url)
         
         if type == 'Casual':
-            leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
-                            status='Approved')
+            leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
+                        duration=duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status='Approved')
         
         if type == 'Medical':
             #creating a list of file names
