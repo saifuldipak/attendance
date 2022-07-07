@@ -630,26 +630,30 @@ def files(name):
 def approval_team():
     application_id = request.args.get('application_id')
 
-    leave = db.session.query(Applications, Team).join(Team, Applications.empid==Team.empid).\
-                filter(Applications.id==application_id).one()
+    application = Applications.query.join(Team, Applications.empid==Team.empid).with_entities(Applications.id, Applications.empid, 
+                    Applications.type, Applications.start_date, Applications.end_date, Applications.duration, 
+                    Applications.status, Team.name.label('team_name')).filter(Applications.id==application_id).first()
     
-    manager = Employee.query.join(Team).filter(and_(Team.name==leave[1].name, 
-                Employee.role=='Manager')).first_or_404()
-
+    manager = Employee.query.join(Team).filter(and_(Team.name==application.team_name, Employee.role=='Manager')).first()
     if manager.username != session['username']:
         flash('You are not authorized', category='error')
         return redirect(url_for('leave.status_team'))
 
-    available = check_leave(leave[0].empid, leave[0].start_date, leave[0].duration, leave[0].type, 'update')
+    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+                empid=application.empid).first()
+    if summary:
+        msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+        flash(msg, category='error')
+        return redirect(url_for('leave.status_team'))
+
+    available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
         return redirect(url_for('leave.status_team'))
     
-    #update application status and appr_leave_attn table
-    application = Applications.query.filter_by(id=application_id).one()
     application.status = 'Approved'
 
-    update_attn(leave[0].empid, leave[0].start_date, leave[0].end_date, leave[0].type)
+    update_attn(application.empid, application.start_date, application.end_date, application.type)
     flash('Leave approved', category='message')
     
     #Send mail to all concerned
