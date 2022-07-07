@@ -143,6 +143,12 @@ def application(type):
             flash('Leave not available, please check leave summary', category='error')
             return redirect(request.url)
 
+        summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), empid=session['empid']).first()
+        if summary:
+            msg = f'You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
+            flash(msg, category='error')
+            return redirect(request.url)
+        
         if type == 'Casual':
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
                             end_date=form.end_date.data, duration=duration,
