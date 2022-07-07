@@ -57,7 +57,7 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
     elif type == 'attendance':
         subject = f"[{application.employee.fullname}] Attendance application id - '{application.id}' {action}"
     elif type == 'reset':
-        subject = 'Password reset'
+        subject = 'Your Attendance app password has been reset'
     else:
         return 'Type arguement must be "leave, attendance or reset"'
 
