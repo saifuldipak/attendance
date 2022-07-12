@@ -1,4 +1,3 @@
-from functools import total_ordering
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
@@ -738,12 +737,12 @@ def files(name):
 @manager_required
 def approval_team():
     application_id = request.args.get('application_id')
-
-    application = Applications.query.join(Team, Applications.empid==Team.empid).with_entities(Applications.id, Applications.empid, 
-                    Applications.type, Applications.start_date, Applications.end_date, Applications.duration, 
-                    Applications.status, Team.name.label('team_name')).filter(Applications.id==application_id).first()
     
-    manager = Employee.query.join(Team).filter(and_(Team.name==application.team_name, Employee.role=='Manager')).first()
+    application_record = db.session.query(Applications, Team).join(Team, Applications.empid==Team.empid).filter(Applications.id==application_id).first()   
+    application = application_record[0]
+    team = application_record[1]
+    
+    manager = Employee.query.join(Team).filter(and_(Team.name==team.name, Employee.role=='Manager')).first()
     if manager.username != session['username']:
         flash('You are not authorized', category='error')
         return redirect(url_for('leave.status_team'))
@@ -760,6 +759,7 @@ def approval_team():
         flash('Leave not available, please check leave summary', category='error')
         return redirect(url_for('leave.status_team'))
     
+    application = Applications.query.filter_by(id=application_id).first()
     application.status = 'Approved'
 
     update_attn(application.empid, application.start_date, application.end_date, application.type)
@@ -771,8 +771,7 @@ def approval_team():
         current_app.logger.warning('approval(): Admin email not found for employee id: %s', application.employee.id)
         rv = 'failed'
     
-    head = Employee.query.filter(Employee.department==manager.department, 
-            Employee.role=='Head').first()
+    head = Employee.query.filter(Employee.department==manager.department, Employee.role=='Head').first()
     if not head:
         current_app.logger.warning('approval(): Dept. head email not found for employee id: %s', application.employee.id)
         rv = 'failed'
@@ -783,9 +782,8 @@ def approval_team():
 
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-            cc1=application.employee.email, cc2=head.email, application=application, 
-            type='leave', action='approved')
+    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, 
+            cc2=head.email, application=application, type='leave', action='approved')
     
     if rv:
         current_app.logger.warning(rv)
