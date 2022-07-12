@@ -558,6 +558,110 @@ def cancel_team(application_id):
     
     return redirect(url_for('leave.status_team'))
 
+##Leave application cancel function for department##
+@leave.route('/leave/cancel/department/<application_id>')
+@login_required
+@head_required
+def cancel_department(application_id):
+    application = Applications.query.filter_by(id=application_id).first()
+    if not application:
+        flash('Leave application not found', category='error')
+        return redirect(url_for('leave.status_department'))
+    
+    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
+    if not employee:
+        current_app.logger.warning(' cancel_department(): employee details not found for application:%s', application_id)
+        flash('Employee details not found for this application', category='error')
+        return redirect(url_for('leave.status_department'))
+
+    head = Employee.query.filter_by(department=employee.department, id=session['empid'], role='Head').first()
+    if not head:
+        flash('You are not authorized', category='error')
+        current_app.logger.warning(' cancel_department(): not the head of %s', employee.department)
+        return redirect(url_for('leave.status_department'))
+    
+    if application.status == 'Approved':
+        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+                empid=application.empid).first()
+        if summary:
+            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+            flash(msg, category='error')
+            return redirect(url_for('leave.status_department'))
+
+        leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
+        if not leave:
+            current_app.logger.warning(' cancel_department(): no data found in leave_available table for %s', employee.username)
+            msg = f'No leave available for {employee.username}'
+            flash(msg, category='error')
+            return redirect(url_for('leave.status_department'))
+        
+        if application.type == 'Casual':
+            leave.casual = leave.casual + application.duration
+
+        if application.type == 'Medical':
+            leave.medical = leave.medical + application.duration
+        
+    #delete files attached with medical leave application
+    if application.type == 'Medical':
+        files = application.file_url.split(';')
+        error = ''
+        
+        if not files:
+            error = 'File name not found in database'
+        else:
+            file_list = delete_files(files)
+            if file_list != '':
+                error = 'Files not found in OS: ' + file_list
+        
+        if error != '':
+            flash(error, category='error')
+    
+    db.session.delete(application)
+    db.session.commit()
+    flash('Leave cancelled', category='message')
+
+    #Send mail to all concerned
+    email_found = True
+
+    if employee.role == 'Team':
+        manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+        if not manager.email:
+            current_app.logger.warning(' cancel_department(): Team Manager email not found for %s', employee.username)
+            email_found = False
+
+    if application.status == 'Approved':
+        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+        if not admin:
+            current_app.logger.warning(' cancel_department(): Admin email not found')
+            email_found = False
+
+        head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
+        if not head:
+            current_app.logger.warning('Dept. Head email not found')
+            email_found = False
+    
+    if not email_found:
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('leave.status_department'))
+    
+    if employee.role != 'Team':
+            manager.email = None
+
+    if application.status == 'Approved': 
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
+                    receiver=admin.email, cc1=employee.email, cc2=manager.email, type='leave', application=application, 
+                    action='cancelled')
+    
+    if application.status == 'Approval Pending':
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
+                    receiver=employee.email, cc2=manager.email, type='leave', application=application, action='cancelled')
+
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+    
+    return redirect(url_for('leave.status_department'))
+
 ##Leave summary personal##
 @leave.route('/leave/summary/self')
 @login_required     
