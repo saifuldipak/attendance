@@ -475,7 +475,8 @@ def cancel_team(application_id):
         current_app.logger.warning(' cancel_team(): team not found for %s', application.empid)
         return redirect(url_for('leave.status_team'))
 
-    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==team.name).first()
+    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Employee.role=='Manager', 
+                Team.name==team.name).first()
     if not manager:
         flash('You are not authorized', category='error')
         current_app.logger.warning(' cancel_team(): not the manager of %s', team.name)
@@ -540,7 +541,7 @@ def cancel_team(application_id):
             email_found = False
     
     if not email_found:
-        flash('Failed to send mail 1 !!!', category='warning')
+        flash('Failed to send mail', category='warning')
         return redirect(url_for('leave.status_team'))
     
     if application.status == 'Approved':
