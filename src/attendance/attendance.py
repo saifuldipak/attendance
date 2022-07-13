@@ -9,6 +9,7 @@ from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryse
                     Attnapplication, Attnsummary, Attnsummaryshow)
 from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
 from .auth import head_required, login_required, admin_required, manager_required
+from re import search
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -68,10 +69,21 @@ def upload():
                 application = Applications.query.filter(empid==empid).filter(Applications.start_date >= date, 
                                 Applications.end_date <= date).first()
                 
-                if not application:
-                    approved = ''
-                else:
+                weekday = date.strftime("%A")
+                team = Team.query.filter_by(empid=empid).first()
+                match = search(r'^Fiber', team.name)
+                
+                if application:
                     approved = application.type
+                elif weekday == 'Friday':
+                    approved = 'Holiday'
+                elif weekday == 'Saturday':
+                    if not match:
+                        approved = 'Holiday'
+                    else:
+                        approved = ''
+                else:
+                    approved = ''    
 
                 apprleaveattn = ApprLeaveAttn(empid=empid, date=date, approved=approved)
                 db.session.add(apprleaveattn)
