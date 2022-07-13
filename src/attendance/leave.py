@@ -1,7 +1,7 @@
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
-from .check import check_access, date_check
+from .check import check_access, check_dates
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
@@ -132,7 +132,7 @@ def application(type):
         
         duration = (form.end_date.data - form.start_date.data).days + 1
         
-        date_exists = date_check(session['empid'], form.start_date.data, form.end_date.data)
+        date_exists = check_dates(session['empid'], form.start_date.data, form.end_date.data)
         if date_exists:
             flash(date_exists, category='error')
             return redirect(url_for('forms.leave', type=type))
@@ -231,7 +231,7 @@ def application_fiber(type):
             flash('Employee does not exists', category='error')
             return redirect(url_for('forms.leave', type=type))
 
-        msg = date_check(employee.id, form.start_date.data, form.end_date.data)
+        msg = check_dates(employee.id, form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
             return redirect(url_for('forms.leave', type=type))
