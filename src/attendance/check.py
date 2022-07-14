@@ -1,5 +1,6 @@
-from .db import Applications, Employee, Team
+from .db import Applications, Employee, Team, AttnSummary
 from flask import current_app, session
+from flask import flash
 
 #checking if dates in submitted application already exists in previously submitted 
 #applications by this user
@@ -41,3 +42,28 @@ def check_access(application_id):
         return True
     else:
         return False
+
+#Check attn_summary table
+def check_attnsummary(start_date, end_date=None):
+    start_date_in_summary = AttnSummary.query.filter(AttnSummary.year==start_date.year, 
+                                AttnSummary.month==start_date.strftime("%B")).first()
+    
+    found = False
+    if start_date_in_summary:
+        month = start_date.strftime("%B")
+        year = start_date.year
+        found = True
+        
+    if end_date:
+        end_date_in_summary = AttnSummary.query.filter(AttnSummary.year==end_date.year, 
+                                AttnSummary.month==end_date.strftime("%B")).first()
+        if end_date_in_summary:
+            month = end_date.strftime("%B")
+            year = end_date.year
+            found = True
+    
+    if found:
+        msg = f'Cannot add/delete holidays. Attendance summary already prepared for {month}, {year}'
+        return msg
+    
+    return False
