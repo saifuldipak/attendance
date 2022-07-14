@@ -7,7 +7,7 @@ from .check import check_access, check_dates
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
                     Attnapplication, Attnsummary, Attnsummaryshow)
-from .db import AttnSummary, Team, db, Employee, Attendance, Applications, ApprLeaveAttn
+from .db import *
 from .auth import head_required, login_required, admin_required, manager_required
 from re import search
 
@@ -72,16 +72,17 @@ def upload():
                 weekday = date.strftime("%A")
                 team = Team.query.filter_by(empid=empid).first()
                 match = search(r'^Fiber', team.name)
-                
+                holiday = Holidays.query.filter_by(date=date).first()
+
                 if application:
                     approved = application.type
-                elif weekday == 'Friday':
+                elif holiday or weekday == 'Friday':
                     approved = 'Holiday'
                 elif weekday == 'Saturday':
-                    if not match:
-                        approved = 'Holiday'
+                    if match:
+                       approved = ''
                     else:
-                        approved = ''
+                        approved = 'Holiday'     
                 else:
                     approved = ''    
 
