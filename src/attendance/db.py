@@ -85,3 +85,8 @@ class LeaveDeduction(db.Model):
     month = db.Column(db.String, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
 
+#Holiday dates
+class Holidays(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    name = db.Column(db.String, nullable=False)
