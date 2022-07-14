@@ -368,4 +368,27 @@
                     </label>
     {% endif %}
 
+    {% if type == 'add_holiday' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.holidays', action='add') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Add holidays</div>
+                    <label>
+                        <span>{{ form.start_date.label }}</span>
+                            {{ form.start_date }}
+                    </label>
+                    <label>
+                        <span>{{ form.end_date.label }} </span>
+                            {{ form.end_date }}
+                    </label>
+                    <label>
+                        <span>{{ form.name.label }} </span>
+                            {{ form.name }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Add" /></label>
+                    </label>
+    {% endif %}
+
 {% endblock %}

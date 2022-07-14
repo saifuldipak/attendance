@@ -428,5 +428,24 @@
     {% endif %}
 
 
+    {% if type == 'holidays' %}
+        <div class="form-style-2-heading">Attendance Application Status</div>
+            <table class="query-result">
+                <th>Id</th>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Action</th>
+                {% for holiday in holidays %}
+                    <tr>
+                        <td>{{ holiday['id'] }}</td>
+                        <td>{{ holiday['date'] }}</td>
+                        <td>{{ holiday['name'] }}</td>
+                        <td><a href={{ url_for('employee.holidays', action='delete', holiday_name=holiday['name']) }}>Delete</a></td>
+                    </tr>
+                {% endfor %}
+                <tr><td><a href={{ url_for('employee.holidays', action='add') }}>Add</a></td></tr>
+            </table>
+        </div>
+    {% endif %}
 
 {% endblock %}

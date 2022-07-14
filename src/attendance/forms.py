@@ -40,6 +40,18 @@ def file_length_check(form, field):
             raise ValidationError('File size can be max 1MB')
         field.data.seek(0)
 
+class Dates(FlaskForm):
+    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
+                            validators=[InputRequired()])
+    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, 
+                        validators=[Optional()])
+    
+    # extra validator added to check End date value with Start date value
+    def validate_start_date(self, field):
+        if self.end_date.data:
+            if field.data > self.end_date.data:
+                raise ValidationError('End date must be same or later than Start date')
+
 #Casual leave application 
 class Leavecasual(FlaskForm):
     start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
@@ -504,3 +516,13 @@ def password_self():
 def create_leave():
     form = Createleave()
     return render_template('forms.html', type='create_leave', form=form)
+
+class Addholidays(Dates):
+    name = StringField('Name', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+
+@forms.route('/forms/holidays/add')
+@login_required
+@admin_required
+def add_holiday():
+    form = Addholidays()
+    return render_template('forms.html', type='add_holiday', form=form)
