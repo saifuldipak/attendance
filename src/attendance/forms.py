@@ -52,48 +52,6 @@ class Dates(FlaskForm):
             if field.data > self.end_date.data:
                 raise ValidationError('End date must be same or later than Start date')
 
-#Casual leave application 
-class Leavecasual(FlaskForm):
-    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
-                            validators=[InputRequired()])
-    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, 
-                        validators=[Optional()])
-    remark = TextAreaField('Remark',
-                            render_kw={'class': 'input-field'},
-                            validators=[InputRequired()])
-    
-    # extra validator added to check End date value with Start date value
-    def validate_start_date(self, field):
-        if self.end_date.data:
-            if field.data > self.end_date.data:
-                raise ValidationError('End date must be same or later than Start date')
-
-#Casual leave application for fiber
-class Leavefibercasual(Leavecasual):
-    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-
-#Attendance application 
-class Attnapplication(Leavecasual):
-    type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, 
-                        validators=[InputRequired()])
-
-#Attendance application for Fiber
-class Attnapplfiber(Attnapplication):
-    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-
-#Medical leave application
-class LeaveMedical(Leavecasual):
-    file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
-                                FileRequired(), file_length_check])
-    file2 = FileField('Upload File 2', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
-                                                file_length_check])
-    file3 = FileField('Upload File 3', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
-                                                file_length_check])  
-
-#Medical leave application for fiber
-class Leavefibermedical(LeaveMedical, Leavefibercasual):
-    pass
-
 #Create employee record
 class Employeecreate(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
@@ -291,6 +249,19 @@ class Createleave(FlaskForm):
 forms = Blueprint('forms', __name__)
 
 #Leave application
+duty_types = ['', 'On site', 'Off site']
+class Leavecasual(Dates):
+    remark = TextAreaField('Remark', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    holiday_duty = SelectField('Adjust with holiday duty', render_kw={'class': 'input-field'}, choices=duty_types)
+
+class LeaveMedical(Leavecasual):
+    file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
+                                FileRequired(), file_length_check])
+    file2 = FileField('Upload File 2', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
+                                                file_length_check])
+    file3 = FileField('Upload File 3', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
+                                                file_length_check])
+
 @forms.route('/forms/leave/<type>', methods=['GET', 'POST'])
 @login_required
 def leave(type):
@@ -303,6 +274,12 @@ def leave(type):
     return render_template('forms.html', type='leave', leave=type, form=form)
 
 #Leave application - Fiber
+class Leavefibercasual(Leavecasual):
+    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+
+class Leavefibermedical(LeaveMedical, Leavefibercasual):
+    pass
+
 @forms.route('/forms/leave/fiber/<type>', methods=['GET', 'POST'])
 @login_required
 def leave_fiber(type):
@@ -317,7 +294,10 @@ def leave_fiber(type):
     
     return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
-#Attendance application
+#Attendance application 
+class Attnapplication(Leavecasual):
+    type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, validators=[InputRequired()])
+
 @forms.route('/forms/attendance/application')
 @login_required
 def attn_application():
@@ -325,6 +305,9 @@ def attn_application():
     return render_template('forms.html', type='attn_application', form=form)
 
 #Attendance application - Fiber
+class Attnapplfiber(Attnapplication):
+    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+
 @forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
 @login_required
 def attn_fiber():
