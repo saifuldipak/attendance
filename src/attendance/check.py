@@ -4,26 +4,27 @@ from flask import flash
 
 #checking if dates in submitted application already exists in previously submitted 
 #applications by this user
-def check_dates(empid, start_date, end_date):
+def check_dates(empid, start_date, end_date=None):
     
-    if not start_date and not end_date:
-        current_app.logger.error('date_check(): start_date and/or end_date missing')
-        return 'Start date and end date must be given'
+    if not start_date:
+        current_app.logger.error('date_check(): start_date missing')
+        return 'Start date must be given'
 
     start_date_exists = Applications.query.filter(Applications.start_date<=start_date, Applications.end_date>=start_date, 
                             Applications.empid==empid).first()
     if start_date_exists:
         return 'Start date overlaps with another application'
 
-    end_date_exists = Applications.query.filter(Applications.start_date<=end_date, Applications.end_date>=end_date, 
+    if end_date:
+        end_date_exists = Applications.query.filter(Applications.start_date<=end_date, Applications.end_date>=end_date, 
                         Applications.empid==empid).first()
-    if end_date_exists:
-        return 'End date overlaps with another application'
+        if end_date_exists:
+            return 'End date overlaps with another application'
 
-    any_date_exists = Applications.query.filter(Applications.start_date>start_date, Applications.end_date<end_date, 
-                        Applications.empid==empid).first()
-    if any_date_exists:
-        return 'Start and/or end dates overlaps with other application'
+        any_date_exists = Applications.query.filter(Applications.start_date>start_date, Applications.end_date<end_date, 
+                            Applications.empid==empid).first()
+        if any_date_exists:
+            return 'Start and/or end dates overlaps with other application'
 
 #Check access to specific application id
 def check_access(application_id):
