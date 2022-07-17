@@ -501,6 +501,84 @@ def cancel(id):
     
     return redirect(url_for('attendance.appl_status_self'))
 
+@attendance.route('/attendance/cancel/team/<application_id>')
+@login_required
+@manager_required
+def cancel_team(application_id):
+    application = Applications.query.filter_by(id=application_id).first()
+    if not application:
+        flash('Attendance application not found', category='error')
+        return redirect(url_for('attendance.status_team'))
+    
+    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
+    if not employee:
+        current_app.logger.warning(' cancel_team(): employee details not found for application:%s', application_id)
+        flash('Employee details not found for this application', category='error')
+        return redirect(url_for('attendance.status_team'))
+    
+    team = Team.query.filter_by(empid=application.empid).first()
+    if not team:
+        flash('Employee team not found for this application', category='error')
+        current_app.logger.warning(' cancel_team(): team not found for %s', application.empid)
+        return redirect(url_for('attendance.status_team'))
+
+    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Employee.role=='Manager', 
+                Team.name==team.name).first()
+    if not manager:
+        flash('You are not authorized', category='error')
+        current_app.logger.warning(' cancel_team(): not the manager of %s', team.name)
+        return redirect(url_for('attendance.status_team'))
+    
+    if application.status == 'Approved':
+        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+                empid=application.empid).first()
+        if summary:
+            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+            flash(msg, category='error')
+            return redirect(url_for('attendance.status_team'))
+    
+    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
+    db.session.delete(application)
+    db.session.commit()
+    flash('Application cancelled', category='message')
+
+    #Send mail to all concerned
+    email_found = True
+    
+    if not manager.email:
+        current_app.logger.warning(' cancel_team(): Team Manager email not found for %s', employee.username)
+        email_found = False
+
+    if application.status == 'Approved':
+        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+        if not admin:
+            current_app.logger.warning(' cancel_team(): Admin email not found')
+            email_found = False
+
+        head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
+        if not head:
+            current_app.logger.warning('Dept. Head email not found')
+            email_found = False
+    
+    if not email_found:
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('attendance.status_team'))
+    
+    if application.status == 'Approved':
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
+                    receiver=admin.email, cc1=head.email, cc2=employee.email, type='attendance', application=application, 
+                    action='cancelled')
+    
+    if application.status == 'Approval Pending':
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
+                    receiver=employee.email, type='attendance', application=application, action='cancelled')
+
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+    
+    return redirect(url_for('attendance.appl_status_team'))
+
 ##Attendance application details##
 @attendance.route('/attendance/application/details/<application_id>')
 @login_required
