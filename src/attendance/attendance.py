@@ -783,24 +783,12 @@ def approval_team():
 @head_required
 def approval_department():
     application_id = request.args.get('application_id')
-    
     if not check_access(application_id):
         flash('You are not authorizes to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_department'))
 
-    #Approve application and update appr_leave_attn table
     application = Applications.query.filter_by(id=application_id).first()
-    start_date = application.start_date
-    end_date = application.end_date
-    type = request.args.get('type')
-    
-    while  start_date <= end_date:
-        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==application.empid).\
-                                        filter(ApprLeaveAttn.date==start_date).first()
-        if attendance:
-            attendance.approved = type
-        
-        start_date += timedelta(days=1)
+    update_apprleaveattn(application.empid, application.start_date, application.end_date, request.args.get('type'))
     
     application.status = 'Approved'
     application.approval_date = datetime.now()
@@ -808,29 +796,34 @@ def approval_department():
     flash('Application approved')
     
     #Send mail to all concerned
+    error = False
     admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
     if not admin:
-        current_app.logger.warning('HR email not found')
-        msg = 'warning'
-
-    head = Employee.query.filter_by(department=application.employee.department, role='Head').first()
-    if not head:
-        current_app.logger.warning('Dept. Head email not found')
-        msg = 'warning'
+        current_app.logger.warning('approval_department(): Admin email not found for employee id: %s', application.employee.id)
+        error = True
     
-    if 'msg' in locals():
+    if application.employee.role == 'Team':
+        team = Team.query.filter_by(empid=application.empid).first()
+        manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
+        if not manager:
+            current_app.logger.warning('approval_department(): manager email not found for employee %s', application.employee.username)
+            error = True
+
+    if error:
         flash('Failed to send mail', category='warning')
         return redirect(url_for('attendance.appl_status_department'))
 
-    host = current_app.config['SMTP_HOST']
-    port = current_app.config['SMTP_PORT'] 
+    if application.employee.role != 'Team':
+        manager.email = None 
     
-    rv = send_mail(host=host, port=port, sender=head.email, receiver=admin.email, cc1=application.employee.email, 
-                    type='attendance', action='approved', application=application)
+    rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], 
+            receiver=admin.email, cc1=application.employee.email, cc2=manager.email, application=application, type='attendance', 
+            action='approved')
     if rv:
-        msg = 'Mail sending failed (' + str(rv) + ')' 
-        flash(msg, category='warning')
-    
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('attendance.appl_status_department'))
+
     return redirect(url_for('attendance.appl_status_department'))
 
 #Update attn_summary table with attendance summary data for each employee
