@@ -97,20 +97,12 @@ def check_leave(empid, start_date, duration, type, update=None):
     return True
  
 #update 'appr_leave_attn' table
-def update_attn(empid, start_date, end_date, type):
-    
-    #start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
-    #end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
-    
+def update_apprleaveattn(empid, start_date, end_date, approved):
     while start_date <= end_date:
-        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==start_date,
-                        ApprLeaveAttn.empid==empid).first()
-
+        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==start_date, ApprLeaveAttn.empid==empid).first()
         if attendance:
-            attendance.approved = type
-        
+            attendance.approved = approved
         start_date += datetime.timedelta(days=1)
-
     db.session.commit()
 
 
@@ -517,6 +509,7 @@ def cancel_team(application_id):
         if error != '':
             flash(error, category='error')
     
+    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
     db.session.delete(application)
     db.session.commit()
     flash('Leave cancelled', category='message')
@@ -615,7 +608,8 @@ def cancel_department(application_id):
         
         if error != '':
             flash(error, category='error')
-    
+
+    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
     db.session.delete(application)
     db.session.commit()
     flash('Leave cancelled', category='message')
@@ -762,7 +756,7 @@ def approval_team():
     application = Applications.query.filter_by(id=application_id).first()
     application.status = 'Approved'
 
-    update_attn(application.empid, application.start_date, application.end_date, application.type)
+    update_apprleaveattn(application.empid, application.start_date, application.end_date, application.type)
     flash('Leave approved', category='message')
     
     #Send mail to all concerned
@@ -821,7 +815,7 @@ def approval_department():
     
     application.status = 'Approved'
 
-    update_attn(application.empid, application.start_date, application.end_date, application.type)
+    update_apprleaveattn(application.empid, application.start_date, application.end_date, application.type)
     flash('Application approved', category='message')
     
     #Send mail to all concerned
