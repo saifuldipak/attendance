@@ -3,6 +3,8 @@ import os
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
+
+from attendance.leave import update_apprleaveattn
 from .check import check_access, check_dates
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
@@ -377,7 +379,7 @@ def query_self():
     else:    
         return render_template('forms.html', type='attnquery_self', form=form)
 
-##Attendance approval application##
+##Attendance application##
 @attendance.route('/attendance/application', methods=['GET', 'POST'])
 @login_required
 def application():
@@ -581,13 +583,7 @@ def approval_team():
     end_date = application.end_date
     type = request.args.get('type')
     
-    while  start_date <= end_date:
-        attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==application.empid).\
-                                        filter(ApprLeaveAttn.date==start_date).first()
-        if attendance:
-            attendance.approved = type
-        
-        start_date += timedelta(days=1)
+    update_apprleaveattn(application.empid, start_date, end_date, type)
     
     application.status = 'Approved'
     application.approval_date = datetime.now()
