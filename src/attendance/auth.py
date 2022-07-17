@@ -32,7 +32,8 @@ def login():
             session['role'] = employee.role
             session['department'] = employee.department
             session['access'] = employee.access
-
+            session['email'] = employee.email
+            
             #Getting team name 
             team = Team.query.filter_by(empid=employee.id).first()
             if team:
