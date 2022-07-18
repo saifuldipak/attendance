@@ -69,7 +69,7 @@ def upload():
                     return redirect(request.url)
 
                 application = Applications.query.filter(Applications.empid==empid, Applications.start_date >= date, 
-                                Applications.end_date <= date).first()
+                                Applications.end_date <= date, Applications.status=='Approved').first()
                 
                 weekday = date.strftime("%A")
                 team = Team.query.filter_by(empid=empid).first()
