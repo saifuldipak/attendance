@@ -320,31 +320,30 @@ def application_status_personal():
     return render_template('data.html', type='leave_status', data='personal', applications=applications)
 
 #Leave application status for team 
-@leave.route('/leave/status/team')
+@leave.route('/leave/application/status/team')
 @login_required
 @manager_required
-def status_team():
+def application_status_team():
     teams = Team.query.join(Employee).filter_by(id=session['empid']).all()
     applications = []
     
     for team in teams:
-        team_applications = Applications.query.select_from(Applications).\
-                            join(Team, Applications.empid==Team.empid).filter(Team.name==team.name, 
-                            Applications.empid!=session['empid'], or_(Applications.type=='Casual', 
-                            Applications.type=='Medical')).order_by(Applications.status, 
-                            Applications.submission_date.desc()).all()
+        team_applications = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).\
+                                filter(Team.name==team.name, Applications.empid!=session['empid'], 
+                                or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, 
+                                Applications.submission_date.desc()).all()
 
         applications += team_applications
 
     return render_template('data.html', type='leave_status', data='team', applications=applications)
 
 #Leave application status for department
-@leave.route('/leave/status/department')
+@leave.route('/leave/application/status/department')
 @login_required
 @head_required
-def status_department():
+def application_status_department():
     applications = Applications.query.join(Employee).\
-                    filter(Employee.department==session['department'], or_(Applications.type=='Casual', 
+                    filter(Employee.department==session['department'], or_(Applications.type.like("Casual%"), 
                     Applications.type=='Medical'), Applications.empid!=session['empid']).\
                     order_by(Applications.status, Applications.submission_date.desc()).all()
 
@@ -747,7 +746,7 @@ def approval_team():
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
         return redirect(url_for('leave.status_team'))
-
+    
     available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
@@ -807,7 +806,7 @@ def approval_department():
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
         return redirect(url_for('leave.status_department'))
-
+    
     available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
@@ -836,10 +835,10 @@ def approval_department():
     if error:
         flash('Failed to send mail', category='warning')
         return redirect(url_for('leave.status_department'))
-
-    if application.employee.role != 'Team':
-        manager.email = None 
     
+    if application.employee.role != 'Team':
+        manager.email = None
+
     rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=department_head.email, 
             receiver=admin.email, cc1=application.employee.email, cc2=manager.email, application=application, type='leave', 
             action='approved')

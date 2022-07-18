@@ -77,14 +77,14 @@
                         </a>
                     {% endif %}
                     {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('leave.status_department') }}" class="navbar-item">
+                        <a href="{{ url_for('leave.application_status_department') }}" class="navbar-item">
                             -- Appl Status
                         </a>
                         <a href="{{ url_for('leave.summary_department', type='department') }}" class="navbar-item">
                             -- Summary
                         </a>
                     {% elif session['role'] == 'Manager' %}
-                        <a href="{{ url_for('leave.status_team') }}" class="navbar-item">
+                        <a href="{{ url_for('leave.application_status_team') }}" class="navbar-item">
                             -- Appl Status
                         </a>
                         <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">
