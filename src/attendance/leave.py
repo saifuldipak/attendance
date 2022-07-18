@@ -141,10 +141,11 @@ def application(type):
             return redirect(request.url)
         
         if type == 'Casual':
-            leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
-                            status='Approval Pending')
+            if form.holiday_duty.data != '':
+                type = form.holiday_duty.data
+            
+            leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
+                        duration=duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status='Approval Pending')
         
         if type == 'Medical':
             #creating a list of file names
@@ -156,10 +157,9 @@ def application(type):
 
             filenames = save_files(files, session['username'])
 
-            leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
-                            file_url=filenames, status='Approval Pending')
+            leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
+                        duration=duration, remark=form.remark.data, submission_date=datetime.datetime.now(), file_url=filenames, 
+                        status='Approval Pending')
         
         db.session.add(leave)
         db.session.commit()
@@ -204,7 +204,7 @@ def application(type):
     else:
         return render_template('forms.html', type='leave', leave=type, form=form)
     
-    return redirect(url_for('forms.leave', type=type))
+    return redirect(request.url)
 
 #Casual and Medical leave application submission for Fiber
 @leave.route('/leave/application/fiber/<type>', methods=['GET', 'POST'])

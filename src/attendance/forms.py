@@ -249,7 +249,7 @@ class Createleave(FlaskForm):
 forms = Blueprint('forms', __name__)
 
 #Leave application
-duty_types = ['', 'On site', 'Off site']
+duty_types = [('', 'No'), ('Holiday on site', 'On site'), ('Holiday off site', 'Off site')]
 class Leavecasual(Dates):
     remark = TextAreaField('Remark', render_kw={'class': 'input-field'}, validators=[InputRequired()])
     holiday_duty = SelectField('Adjust with holiday duty', render_kw={'class': 'input-field'}, choices=duty_types)
