@@ -350,11 +350,11 @@ def application_status_department():
     return render_template('data.html', type='leave_status', data='department', applications=applications)
 
 #Leave application status for all
-@leave.route('/leave/status/all')
+@leave.route('/leave/application/status/all')
 @login_required
 @admin_required
-def status():
-    applications  = Applications.query.join(Employee).filter(or_(Applications.type=='Casual', 
+def application_status_all():
+    applications  = Applications.query.join(Employee).filter(or_(Applications.type.like("Casual%"), 
                     Applications.type=='Medical')).order_by(Applications.status).all()
     
     return render_template('data.html', type='leave_status', applications=applications)
