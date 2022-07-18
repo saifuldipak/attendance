@@ -68,7 +68,7 @@ def upload():
                     flash(error, category='error')
                     return redirect(request.url)
 
-                application = Applications.query.filter(empid==empid).filter(Applications.start_date >= date, 
+                application = Applications.query.filter(Applications.empid==empid, Applications.start_date >= date, 
                                 Applications.end_date <= date).first()
                 
                 weekday = date.strftime("%A")
