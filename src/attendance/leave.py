@@ -310,11 +310,11 @@ def application_fiber(type):
     return redirect(request.url)
 
 #Leave application status for individual 
-@leave.route('/leave/status/personal')
+@leave.route('/leave/application/status/personal')
 @login_required
-def status_personal():
+def application_status_personal():
     applications = Applications.query.join(Employee).filter(Employee.id==session['empid'], 
-                    or_(Applications.type=='Casual', Applications.type=='Medical')).\
+                    or_(Applications.type.like("Casual%"), Applications.type=='Medical')).\
                     order_by(Applications.submission_date.desc()).all()
 
     return render_template('data.html', type='leave_status', data='personal', applications=applications)
