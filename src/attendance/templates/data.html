@@ -2,7 +2,7 @@
 
 {% block content %}
 
-    {% if type == 'leave_status' %}
+    {% if type == 'leave_application_status' %}
         <div class="form-style-2-heading">Leave application status</div>
         <table class="query-result">
             <th>Name</th>
@@ -39,7 +39,7 @@
                                     <a href="{{ url_for('leave.cancel_department', application_id=application['id']) }}">Cancel</a>
                             </td>
                         {% endif %}
-                        {% if data == 'personal' %}
+                        {% if data == 'self' %}
                             {% if application['status'] == "Approval Pending" %}
                                 <td><a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a></td> 
                             {% endif %}

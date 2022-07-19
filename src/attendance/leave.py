@@ -320,7 +320,7 @@ def application_status_self():
                     or_(Applications.type.like("Casual%"), Applications.type=='Medical')).\
                     order_by(Applications.submission_date.desc()).all()
 
-    return render_template('data.html', type='leave_status', data='personal', applications=applications)
+    return render_template('data.html', type='leave_application_status', data='self', applications=applications)
 
 #Leave application status for team 
 @leave.route('/leave/application/status/team')
