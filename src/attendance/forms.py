@@ -247,12 +247,12 @@ class Createleave(FlaskForm):
 forms = Blueprint('forms', __name__)
 
 #Leave application
-duty_types = [('', 'No'), ('Casual adjust - On site', 'On site'), ('Casual adjust - Off site', 'Off site')]
+duty_types = ['No', 'On site', 'Off site']
 class Leavecasual(Dates):
-    remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'}, validators=[InputRequired()])
-    holiday_duty = SelectField('Adjust with holiday duty', render_kw={'class': 'form-input'}, choices=duty_types)
-    holiday_start_date = DateField('Holiday Start Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
-    holiday_end_date = DateField('Holiday End Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
+    remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'})
+    holiday_duty_type = SelectField('Adjust with holiday duty', render_kw={'class': 'form-input'}, choices=duty_types)
+    holiday_duty_start_date = DateField('Holiday Start Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
+    holiday_duty_end_date = DateField('Holiday End Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
     
     #Extra validator
     def validate_holiday_duty(self, field):
