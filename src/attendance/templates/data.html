@@ -117,8 +117,8 @@
     {% endif %}
     
     {#-- Leave Details --#}
-    {% if data_type == 'leave_details' %}
-        <div class="form-style-2-heading">Leave Details</div>
+    {% if data_type == 'leave_application_details' %}
+        <div class="form-style-2-heading">Leave Application Details</div>
         <div class="data">
             <table class="data">
                 {% if details %}
@@ -150,7 +150,18 @@
                         <td class="data-left"> Remark</td>
                         <td class="data-right">{{ details['remark'] }}</td>
                     </tr>
-                    
+                    <tr>
+                        <td class="data-left"> Holiday duty type</td>
+                        <td class="data-right">{{ details['holiday_duty_type'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left"> Holiday duty start date</td>
+                        <td class="data-right">{{ details['holiday_duty_start_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="data-left"> Holiday duty end date</td>
+                        <td class="data-right">{{ details['holiday_duty_end_date'] }}</td>
+                    </tr>
                         {% if details['file_url'] %}
                             <tr>                            
                                 <td class="data-left"> File</td>

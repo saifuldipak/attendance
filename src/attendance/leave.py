@@ -373,7 +373,7 @@ def details(application_id):
         return redirect(url_for('leave.status', type=type))
 
     details = Applications.query.join(Employee).filter(Applications.id==application_id).first()
-    return render_template('data.html', data_type='leave_details', details=details)    
+    return render_template('data.html', data_type='leave_application_details', details=details)    
 
 
 ##Leave application cancel function##
