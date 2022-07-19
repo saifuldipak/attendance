@@ -154,8 +154,8 @@ td.item {
 	border: 1px solid #0C0;
 }
 .form-style-2 .textarea-field{
-	height:100px;
-	width: 55%;
+	height:50px;
+	width: 100%;
 }
 .form-style-2 input[type=submit],
 .form-style-2 input[type=button]{
