@@ -41,10 +41,8 @@ def file_length_check(form, field):
         field.data.seek(0)
 
 class Dates(FlaskForm):
-    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'input-field'},     
-                            validators=[InputRequired()])
-    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, 
-                        validators=[Optional()])
+    start_date = DateField('Start Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[InputRequired()])
+    end_date = DateField('End Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
     
     # extra validator added to check End date value with Start date value
     def validate_start_date(self, field):
@@ -251,8 +249,20 @@ forms = Blueprint('forms', __name__)
 #Leave application
 duty_types = [('', 'No'), ('Casual adjust - On site', 'On site'), ('Casual adjust - Off site', 'Off site')]
 class Leavecasual(Dates):
-    remark = TextAreaField('Remark', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    holiday_duty = SelectField('Adjust with holiday duty', render_kw={'class': 'input-field'}, choices=duty_types)
+    remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'}, validators=[InputRequired()])
+    holiday_duty = SelectField('Adjust with holiday duty', render_kw={'class': 'form-input'}, choices=duty_types)
+    holiday_start_date = DateField('Holiday Start Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
+    holiday_end_date = DateField('Holiday End Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
+    
+    #Extra validator
+    def validate_holiday_duty(self, field):
+        if field.data != 'No':
+            if not self.holiday_start_date.data:
+                raise ValidationError('Must give Holiday start date')
+
+            if self.holiday_end_date.data:
+                if self.holiday_start_date.data > self.holiday_end_date.data:
+                    raise ValidationError('Holiday end date must be same or later than Holiday start date')
 
 class LeaveMedical(Leavecasual):
     file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
