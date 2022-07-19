@@ -141,11 +141,14 @@ def application(type):
             return redirect(request.url)
         
         if type == 'Casual':
-            if form.holiday_duty.data != '':
-                type = form.holiday_duty.data
+            if form.holiday_duty_type.data != 'No':
+                type = 'Casual adjust'
             
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
-                        duration=duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status='Approval Pending')
+                        duration=duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
+                        holiday_duty_start_date=form.holiday_duty_start_date.data,
+                        holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), 
+                        status='Approval Pending')
         
         if type == 'Medical':
             #creating a list of file names
@@ -746,7 +749,6 @@ def approval_team():
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
         return redirect(url_for('leave.status_team'))
-    
     available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
