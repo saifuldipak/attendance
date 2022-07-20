@@ -4,7 +4,7 @@ from flask import flash
 
 #checking if dates in submitted application already exists in previously submitted 
 #applications by this user
-def check_dates(empid, start_date, end_date=None):
+def check_dates(empid, start_date, end_date=None, holiday_duty_start_date=None, holiday_duty_end_date=None):
     
     if not start_date:
         current_app.logger.error('date_check(): start_date missing')
@@ -14,6 +14,12 @@ def check_dates(empid, start_date, end_date=None):
                             Applications.empid==empid).first()
     if start_date_exists:
         return 'Start date overlaps with another application'
+
+    holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=holiday_duty_start_date, 
+                                        Applications.holiday_duty_end_date>=holiday_duty_start_date, 
+                                        Applications.empid==empid).first()
+    if holiday_duty_start_date_exists:
+        return 'Holiday duty start date overlaps with another application'
 
     if end_date:
         end_date_exists = Applications.query.filter(Applications.start_date<=end_date, Applications.end_date>=end_date, 
@@ -25,6 +31,17 @@ def check_dates(empid, start_date, end_date=None):
                             Applications.empid==empid).first()
         if any_date_exists:
             return 'Start and/or end dates overlaps with other application'
+    
+    if holiday_duty_end_date:
+        holiday_duty_end_date_exists = Applications.query.filter(Applications.start_date<=holiday_duty_end_date, 
+                                        Applications.end_date>=holiday_duty_end_date, Applications.empid==empid).first()
+        if holiday_duty_end_date_exists:
+            return 'Holiday duty end date overlaps with another application'
+
+        any_date_exists = Applications.query.filter(Applications.start_date>holiday_duty_start_date, 
+                            Applications.end_date<holiday_duty_end_date, Applications.empid==empid).first()
+        if any_date_exists:
+            return 'Holiday duty start and/or end dates overlaps with other application'
 
 #Check access to specific application id
 def check_access(application_id):

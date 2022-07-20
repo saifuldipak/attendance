@@ -119,16 +119,17 @@ def application(type):
         form = LeaveMedical()
 
     if form.validate_on_submit():
+        date_exists = check_dates(session['empid'], form.start_date.data, form.end_date.data, form.holiday_duty_start_date.data, 
+                        form.holiday_duty_end_date.data)
+        if date_exists:
+            flash(date_exists, category='error')
+            return render_template('forms.html', type='leave', leave=type, form=form)
+        
         if not form.end_date.data:
             form.end_date.data = form.start_date.data
         
         duration = (form.end_date.data - form.start_date.data).days + 1
-        
-        date_exists = check_dates(session['empid'], form.start_date.data, form.end_date.data)
-        if date_exists:
-            flash(date_exists, category='error')
-            return redirect(url_for('forms.leave', type=type))
-        
+
         available = check_leave(session['empid'], form.start_date.data, duration, type)
         if not available:
             flash('Leave not available, please check leave summary', category='error')
@@ -143,6 +144,9 @@ def application(type):
         if type == 'Casual':
             if form.holiday_duty_type.data != 'No':
                 type = 'Casual adjust'
+            
+            if form.holiday_duty_start_date.data and not form.holiday_duty_end_date.data:
+                form.holiday_duty_end_date.data = form.holiday_duty_start_date.data
             
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
                         duration=duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
