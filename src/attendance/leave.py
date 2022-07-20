@@ -338,7 +338,7 @@ def application_status_team():
 
         applications += team_applications
 
-    return render_template('data.html', type='leave_status', data='team', applications=applications)
+    return render_template('data.html', type='leave_application_status', data='team', applications=applications)
 
 #Leave application status for department
 @leave.route('/leave/application/status/department')
@@ -734,25 +734,25 @@ def files(name):
 def approval_team():
     application_id = request.args.get('application_id')
     
-    application_record = db.session.query(Applications, Team).join(Team, Applications.empid==Team.empid).filter(Applications.id==application_id).first()   
-    application = application_record[0]
-    team = application_record[1]
+    application = Applications.query.filter_by(id=application_id).one()
+    team = Team.query.filter_by(empid=application.empid).first()
     
-    manager = Employee.query.join(Team).filter(and_(Team.name==team.name, Employee.role=='Manager')).first()
+    manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').one()
     if manager.username != session['username']:
         flash('You are not authorized', category='error')
-        return redirect(url_for('leave.status_team'))
+        return redirect(url_for('leave.applicatio_status_team'))
 
     summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
                 empid=application.empid).first()
     if summary:
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
-        return redirect(url_for('leave.status_team'))
+        return redirect(url_for('leave.application_status_team'))
+
     available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
-        return redirect(url_for('leave.status_team'))
+        return redirect(url_for('leave.applicaion_status_team'))
     
     application = Applications.query.filter_by(id=application_id).first()
     application.status = 'Approved'
@@ -773,7 +773,7 @@ def approval_team():
     
     if 'rv' in locals():
         flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_team'))
+        return redirect(url_for('leave.application_status_team'))
 
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
@@ -783,9 +783,8 @@ def approval_team():
     if rv:
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_team'))
     
-    return redirect(url_for('leave.status_team'))
+    return redirect(url_for('leave.application_status_team'))
 
 ##Leave approval for Department by Head##
 @leave.route('/leave/approval/department')
