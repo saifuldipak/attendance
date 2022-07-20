@@ -444,7 +444,7 @@ def cancel(application_id):
         db.session.commit()
         flash('Leave cancelled', category='message')
     
-    return redirect(url_for('leave.status_personal'))
+    return redirect(url_for('leave.application_status_self'))
 
 ##Leave application cancel function for team##
 @leave.route('/leave/cancel/team/<application_id>')
@@ -551,7 +551,7 @@ def cancel_team(application_id):
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
     
-    return redirect(url_for('leave.status_team'))
+    return redirect(url_for('leave.application_status_team'))
 
 ##Leave application cancel function for department##
 @leave.route('/leave/cancel/department/<application_id>')
