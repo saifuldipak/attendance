@@ -255,13 +255,13 @@ class Leavecasual(Dates):
     holiday_duty_end_date = DateField('Holiday End Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
     
     #Extra validator
-    def validate_holiday_duty(self, field):
+    def validate_holiday_duty_type(self, field):
         if field.data != 'No':
-            if not self.holiday_start_date.data:
+            if not self.holiday_duty_start_date.data:
                 raise ValidationError('Must give Holiday start date')
 
-            if self.holiday_end_date.data:
-                if self.holiday_start_date.data > self.holiday_end_date.data:
+            if self.holiday_duty_end_date.data:
+                if self.holiday_duty_start_date.data > self.holiday_duty_end_date.data:
                     raise ValidationError('Holiday end date must be same or later than Holiday start date')
 
 class LeaveMedical(Leavecasual):
