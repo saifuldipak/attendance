@@ -2,7 +2,7 @@ from flask import (Blueprint, current_app, redirect, render_template, request, s
                     session, flash, url_for)
 from sqlalchemy import and_, or_
 from .check import check_access, check_dates
-from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
+from .db import (ApprLeaveAttn, Attendance, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
 from .auth import admin_required, login_required, manager_required, head_required
@@ -727,7 +727,7 @@ def summary_all():
 def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
-##Leave approval for Teams by Managers##
+##Leave approval for Teams##
 @leave.route('/leave/approval/team')
 @login_required
 @manager_required
@@ -749,11 +749,37 @@ def approval_team():
         flash(msg, category='error')
         return redirect(url_for('leave.application_status_team'))
 
-    available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
-    if not available:
-        flash('Leave not available, please check leave summary', category='error')
-        return redirect(url_for('leave.applicaion_status_team'))
+    if application.type == 'Casual' or application.type == 'Medical':
+        available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(url_for('leave.applicaion_status_team'))
     
+    if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
+        attendances = Attendance.query.filter(Attendance.date >= application.holiday_duty_start_date, 
+                        Attendance.date <= application.holiday_duty_end_date).all()
+        
+        for attendance in attendances:
+            if attendance.in_time == '00:00:00.000000':
+                approved_attendance = ApprLeaveAttn.query.filter(Applications.empid==application.empid, 
+                                    ApprLeaveAttn.date==attendance.date, or_(ApprLeaveAttn.approved=='In', 
+                                    ApprLeaveAttn.approved=='Both')).one()
+                if not approved_attendance:
+                    msg = f'No in attendance for {attendance.date}'
+                    flash(msg, category='error')
+                    return redirect(url_for('leave.applicaion_status_team'))     
+                        
+            if attendance.out_time == '00:00:00.000000':
+                approved_attendance = ApprLeaveAttn.query.filter(Applications.empid==application.empid, 
+                                    ApprLeaveAttn.date==attendance.date, or_(ApprLeaveAttn.approved=='Out', 
+                                    ApprLeaveAttn.approved=='Both')).one()
+                if not approved_attendance:
+                    msg = f'No out attendance for {attendance.date}'
+                    flash(msg, category='error')
+                    return redirect(url_for('leave.applicaion_status_team'))
+        
+        update_apprleaveattn(application.empid, application.holiday_duty_start_date, application.holiday_duty_end_date, '')
+
     application = Applications.query.filter_by(id=application_id).first()
     application.status = 'Approved'
 
