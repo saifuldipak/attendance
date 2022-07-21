@@ -277,7 +277,11 @@ def application_fiber(type):
                         duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
                         holiday_duty_start_date=form.holiday_duty_start_date.data, 
                         holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), 
-                        status='Approved')  
+                        status='Approved') 
+
+        if form.holiday_duty_type.data != 'No':
+            type = 'Casual adjust'
+            update_apprleaveattn(employee.id, form.holiday_duty_start_date.data, form.holiday_duty_end_date.data, '') 
             
         if type == 'Medical':
             #creating a list of file names
@@ -289,19 +293,17 @@ def application_fiber(type):
 
             filenames = save_files(files, employee.username)
 
-            leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, 
-                            end_date=form.end_date.data, duration=duration,
-                            remark=form.remark.data, submission_date=datetime.datetime.now(), 
-                            file_url=filenames, status='Approved')
-        
+            leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
+                        duration=leave_duration,remark=form.remark.data, submission_date=datetime.datetime.now(), 
+                        file_url=filenames, status='Approved')
+
         db.session.add(leave)
-        db.session.commit()
+        update_apprleaveattn(employee.id, form.start_date.data, form.end_date.data, type)
         flash('Leave approved', category='message')
         
         #Send mail to all concerned
         application = Applications.query.filter_by(start_date=form.start_date.data, 
                             end_date=form.end_date.data, empid=form.empid.data).first()
-        
         
         manager = Employee.query.filter_by(id=session['empid']).first()
         if not manager:
