@@ -263,6 +263,17 @@ class Leavecasual(Dates):
             if self.holiday_duty_end_date.data:
                 if self.holiday_duty_start_date.data > self.holiday_duty_end_date.data:
                     raise ValidationError('Holiday end date must be same or later than Holiday start date')
+    
+            if not self.end_date.data:
+                self.end_date.data = self.start_date.data
+            leave_duration = (self.end_date.data - self.start_date.data).days
+
+            if not self.holiday_duty_end_date.data:
+                self.holiday_duty_end_date.data = self.holiday_duty_start_date.data    
+            holiday_duty_duration = (self.holiday_duty_end_date.data - self.holiday_duty_start_date.data).days
+
+            if leave_duration != holiday_duty_duration:
+                raise ValidationError('Leave duration and holiday duty duration must be same')
 
 class LeaveMedical(Leavecasual):
     file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
