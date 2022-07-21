@@ -361,7 +361,7 @@ def application_status_department():
                     Applications.type=='Medical'), Applications.empid!=session['empid']).\
                     order_by(Applications.status, Applications.submission_date.desc()).all()
 
-    return render_template('data.html', type='leave_status', data='department', applications=applications)
+    return render_template('data.html', type='leave_application_status', data='department', applications=applications)
 
 #Leave application status for all
 @leave.route('/leave/application/status/all')
@@ -572,19 +572,19 @@ def cancel_department(application_id):
     application = Applications.query.filter_by(id=application_id).first()
     if not application:
         flash('Leave application not found', category='error')
-        return redirect(url_for('leave.status_department'))
+        return redirect(url_for('leave.application_status_department'))
     
     employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
     if not employee:
         current_app.logger.warning(' cancel_department(): employee details not found for application:%s', application_id)
         flash('Employee details not found for this application', category='error')
-        return redirect(url_for('leave.status_department'))
+        return redirect(url_for('leave.application_status_department'))
 
     head = Employee.query.filter_by(department=employee.department, id=session['empid'], role='Head').first()
     if not head:
         flash('You are not authorized', category='error')
         current_app.logger.warning(' cancel_department(): not the head of %s', employee.department)
-        return redirect(url_for('leave.status_department'))
+        return redirect(url_for('leave.application_status_department'))
     
     if application.status == 'Approved':
         summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
@@ -592,14 +592,14 @@ def cancel_department(application_id):
         if summary:
             msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
             flash(msg, category='error')
-            return redirect(url_for('leave.status_department'))
+            return redirect(url_for('leave.application_status_department'))
 
         leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
         if not leave:
             current_app.logger.warning(' cancel_department(): no data found in leave_available table for %s', employee.username)
             msg = f'No leave available for {employee.username}'
             flash(msg, category='error')
-            return redirect(url_for('leave.status_department'))
+            return redirect(url_for('leave.application_status_department'))
         
         if application.type == 'Casual':
             leave.casual = leave.casual + application.duration
@@ -767,33 +767,6 @@ def approval_team():
             return redirect(url_for('leave.applicaion_status_team'))
     
     if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
-        attendances = Attendance.query.filter(Attendance.date >= application.holiday_duty_start_date, 
-                        Attendance.date <= application.holiday_duty_end_date).all()
-        
-        if not attendances:
-            msg = f'Attendance not found for one or more days between {application.holiday_duty_start_date} - {application.holiday_duty_end_date}'
-            flash(msg, category='error')
-            return redirect(url_for('leave.application_status_team'))
-        
-        for attendance in attendances:
-            if attendance.in_time == '00:00:00.000000':
-                approved_attendance = ApprLeaveAttn.query.filter(Applications.empid==application.empid, 
-                                    ApprLeaveAttn.date==attendance.date, or_(ApprLeaveAttn.approved=='In', 
-                                    ApprLeaveAttn.approved=='Both')).one()
-                if not approved_attendance:
-                    msg = f'No in attendance for {attendance.date}'
-                    flash(msg, category='error')
-                    return redirect(url_for('leave.applicaion_status_team'))     
-                        
-            if attendance.out_time == '00:00:00.000000':
-                approved_attendance = ApprLeaveAttn.query.filter(Applications.empid==application.empid, 
-                                    ApprLeaveAttn.date==attendance.date, or_(ApprLeaveAttn.approved=='Out', 
-                                    ApprLeaveAttn.approved=='Both')).one()
-                if not approved_attendance:
-                    msg = f'No out attendance for {attendance.date}'
-                    flash(msg, category='error')
-                    return redirect(url_for('leave.applicaion_status_team'))
-        
         update_apprleaveattn(application.empid, application.holiday_duty_start_date, application.holiday_duty_end_date, '')
 
     application = Applications.query.filter_by(id=application_id).first()
@@ -841,22 +814,25 @@ def approval_department():
                         Employee.role=='Head').one()
     if not department_head:
         flash('You are not authorized', category='error')
-        return redirect(url_for('leave.status_department'))
+        return redirect(url_for('leave.application_status_department'))
     
     summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
                 empid=application.empid).first()
     if summary:
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
-        return redirect(url_for('leave.status_department'))
-    
-    available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
-    if not available:
-        flash('Leave not available, please check leave summary', category='error')
-        return redirect(request.url)
+        return redirect(url_for('leave.application_status_department'))
+
+    if application.type == 'Casual' or application.type == 'Medical':
+        available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(request.url)
+
+    if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
+        update_apprleaveattn(application.empid, application.holiday_duty_start_date, application.holiday_duty_end_date, '')
     
     application.status = 'Approved'
-
     update_apprleaveattn(application.empid, application.start_date, application.end_date, application.type)
     flash('Application approved', category='message')
     
