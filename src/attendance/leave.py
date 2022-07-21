@@ -487,26 +487,30 @@ def cancel_team(application_id):
         return redirect(url_for('leave.status_team'))
     
     if application.status == 'Approved':
-        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-        if summary:
-            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-            flash(msg, category='error')
-            return redirect(url_for('leave.status_team'))
+        if application.type == 'Casual' and application.type == 'Medical':
+            summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+                    empid=application.empid).first()
+            if summary:
+                msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+                flash(msg, category='error')
+                return redirect(url_for('leave.status_team'))
 
-        leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
-        if not leave:
-            current_app.logger.warning(' cancel_team(): no data found in leave_available table for %s', employee.username)
-            msg = f'No leave available for {employee.username}'
-            flash(msg, category='error')
-            return redirect(url_for('leave.status_team'))
-        
-        if application.type == 'Casual':
-            leave.casual = leave.casual + application.duration
+            leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
+            if not leave:
+                current_app.logger.warning(' cancel_team(): no data found in leave_available table for %s', employee.username)
+                msg = f'No leave available for {employee.username}'
+                flash(msg, category='error')
+                return redirect(url_for('leave.status_team'))
+            
+            if application.type == 'Casual':
+                leave.casual = leave.casual + application.duration
 
-        if application.type == 'Medical':
-            leave.medical = leave.medical + application.duration
+            if application.type == 'Medical':
+                leave.medical = leave.medical + application.duration
         
+        if application.type == 'Casual adjust':
+            update_apprleaveattn(employee.id, application.holiday_duty_start_date, application.holiday_duty_end_date, 'Holiday')
+
     #delete files attached with medical leave application
     if application.type == 'Medical':
         files = application.file_url.split(';')
@@ -587,26 +591,30 @@ def cancel_department(application_id):
         return redirect(url_for('leave.application_status_department'))
     
     if application.status == 'Approved':
-        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-        if summary:
-            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-            flash(msg, category='error')
-            return redirect(url_for('leave.application_status_department'))
+        if application.type == 'Casual' and application.type == 'Medical':
+            summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+                    empid=application.empid).first()
+            if summary:
+                msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+                flash(msg, category='error')
+                return redirect(url_for('leave.application_status_department'))
 
-        leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
-        if not leave:
-            current_app.logger.warning(' cancel_department(): no data found in leave_available table for %s', employee.username)
-            msg = f'No leave available for {employee.username}'
-            flash(msg, category='error')
-            return redirect(url_for('leave.application_status_department'))
+            leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
+            if not leave:
+                current_app.logger.warning(' cancel_department(): no data found in leave_available table for %s', employee.username)
+                msg = f'No leave available for {employee.username}'
+                flash(msg, category='error')
+                return redirect(url_for('leave.application_status_department'))
         
-        if application.type == 'Casual':
-            leave.casual = leave.casual + application.duration
+            if application.type == 'Casual':
+                leave.casual = leave.casual + application.duration
 
-        if application.type == 'Medical':
-            leave.medical = leave.medical + application.duration
+            if application.type == 'Medical':
+                leave.medical = leave.medical + application.duration
         
+        if application.type == 'Casual adjust':
+            update_apprleaveattn(employee.id, application.holiday_duty_start_date, application.holiday_duty_end_date, 'Holiday')
+
     #delete files attached with medical leave application
     if application.type == 'Medical':
         files = application.file_url.split(';')
@@ -649,7 +657,7 @@ def cancel_department(application_id):
     
     if not email_found:
         flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_department'))
+        return redirect(url_for('leave.application_status_department'))
     
     if employee.role != 'Team':
             manager.email = None
@@ -667,7 +675,7 @@ def cancel_department(application_id):
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
     
-    return redirect(url_for('leave.status_department'))
+    return redirect(url_for('leave.application_status_department'))
 
 ##Leave summary personal##
 @leave.route('/leave/summary/self')
@@ -853,7 +861,7 @@ def approval_department():
 
     if error:
         flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_department'))
+        return redirect(url_for('leave.application_status_department'))
     
     if application.employee.role != 'Team':
         manager.email = None
@@ -865,9 +873,8 @@ def approval_department():
     if rv:
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_department'))
     
-    return redirect(url_for('leave.status_department'))
+    return redirect(url_for('leave.application_status_department'))
 
 ## Leave deduction function ##
 @leave.route('/leave/deduction', methods=['GET', 'POST'])
