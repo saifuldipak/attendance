@@ -5,7 +5,7 @@ from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
 
 from attendance.leave import update_apprleaveattn
-from .check import check_access, check_dates
+from .check import check_access, check_application_dates
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
                     Attnapplication, Attnsummary, Attnsummaryshow)
@@ -388,7 +388,7 @@ def application():
     
     if form.validate_on_submit():
 
-        msg = check_dates(session['empid'], form.start_date.data, form.end_date.data)
+        msg = check_application_dates(session['empid'], form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
             return redirect(url_for('forms.attn_application'))
@@ -902,7 +902,7 @@ def application_fiber():
             flash('Employee does not exists', category='error')
             return redirect(url_for('forms.attn_fiber'))
         
-        msg = check_dates(employee.id, form.start_date.data, form.end_date.data)
+        msg = check_application_dates(employee.id, form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
             return redirect(url_for('forms.attn_fiber'))
