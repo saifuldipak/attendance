@@ -8,7 +8,7 @@ from .mail import send_mail
 from .auth import admin_required, login_required, manager_required, head_required
 from werkzeug.utils import secure_filename
 import os
-from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
+from .forms import (Createleave, Employeedelete, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
 import datetime
 
 
@@ -236,12 +236,18 @@ def application_fiber(type):
         if not employee:
             flash('Employee does not exists', category='error')
             return redirect(url_for('forms.leave', type=type))
-
-        msg = check_application_dates(employee.id, form.start_date.data, form.end_date.data)
-        if msg:
-            flash(msg, category='error')
+        
+        leave_dates_exist = check_application_dates(employee.id, form.start_date.data, form.end_date.data)
+        if leave_dates_exist:
+            flash(leave_dates_exist, category='error')
             return redirect(url_for('forms.leave', type=type))
         
+        if form.holiday_duty_type.data == 'On site':
+            holiday_dates_exist = check_holiday_dates(employee.id, form.holiday_duty_start_date.data, form.holiday_duty_end_date.data)
+            if holiday_dates_exist:
+                flash(holiday_dates_exist, category='error')
+                return render_template('forms.html', type='leave', leave=type, form=form)
+
         summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), 
                 empid=form.empid.data).first()
         if summary:
@@ -252,17 +258,27 @@ def application_fiber(type):
         if not form.end_date.data:
             form.end_date.data = form.start_date.data
         
-        duration = (form.end_date.data - form.start_date.data).days + 1
+        leave_duration = (form.end_date.data - form.start_date.data).days + 1
         
-        available = check_available_leave(employee.id, form.start_date.data, duration, type, 'update')
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
-            return redirect(request.url)
+        if form.holiday_duty_type.data == 'No':
+            available = check_available_leave(employee.id, form.start_date.data, leave_duration, type, 'update')
+            if not available:
+                flash('Leave not available, please check leave summary', category='error')
+                return redirect(request.url)
         
         if type == 'Casual':
+            if form.holiday_duty_type.data != 'No':
+                type = 'Casual adjust'
+            
+            if form.holiday_duty_start_date.data and not form.holiday_duty_end_date.data:
+                form.holiday_duty_end_date.data = form.holiday_duty_start_date.data
+
             leave = Applications(empid=employee.id, type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
-                        duration=duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status='Approved')
-        
+                        duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
+                        holiday_duty_start_date=form.holiday_duty_start_date.data, 
+                        holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), 
+                        status='Approved')  
+            
         if type == 'Medical':
             #creating a list of file names
             files = [form.file1.data]
