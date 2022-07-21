@@ -1,7 +1,7 @@
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
                     session, flash, url_for)
 from sqlalchemy import and_, or_
-from .check import check_access, check_dates
+from .check import check_access, check_holiday_dates, check_application_dates
 from .db import (ApprLeaveAttn, Attendance, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
@@ -46,7 +46,7 @@ def delete_files(files):
     return file_list
 
 #Checking and updating leave
-def check_leave(empid, start_date, duration, type, update=None):
+def check_available_leave(empid, start_date, duration, type, update=None):
     
     leave = LeaveAvailable.query.filter(LeaveAvailable.empid==empid, 
                 and_(LeaveAvailable.year_start < start_date, 
@@ -119,27 +119,34 @@ def application(type):
         form = LeaveMedical()
 
     if form.validate_on_submit():
-        date_exists = check_dates(session['empid'], form.start_date.data, form.end_date.data, form.holiday_duty_start_date.data, 
-                        form.holiday_duty_end_date.data)
-        if date_exists:
-            flash(date_exists, category='error')
+        leave_dates_exist = check_application_dates(session['empid'], form.start_date.data, form.end_date.data)
+        if leave_dates_exist:
+            flash(leave_dates_exist, category='error')
             return render_template('forms.html', type='leave', leave=type, form=form)
         
-        if not form.end_date.data:
-            form.end_date.data = form.start_date.data
-        
-        duration = (form.end_date.data - form.start_date.data).days + 1
+        if form.holiday_duty_type.data == 'On site':
+            holiday_dates_exist = check_holiday_dates(session['empid'], form.holiday_duty_start_date.data, form.holiday_duty_end_date.data)
+            if holiday_dates_exist:
+                flash(holiday_dates_exist, category='error')
+                return render_template('forms.html', type='leave', leave=type, form=form)
 
-        available = check_leave(session['empid'], form.start_date.data, duration, type)
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
-            return redirect(request.url)
-
-        summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), empid=session['empid']).first()
+        summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), 
+                    empid=session['empid']).first()
         if summary:
             msg = f'You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
             flash(msg, category='error')
             return redirect(request.url)
+
+        if not form.end_date.data:
+            form.end_date.data = form.start_date.data
+        
+        leave_duration = (form.end_date.data - form.start_date.data).days + 1
+
+        if form.holiday_duty_type.data == 'No':
+            available = check_available_leave(session['empid'], form.start_date.data, leave_duration, type)
+            if not available:
+                flash('Leave not available, please check leave summary', category='error')
+                return redirect(request.url)
         
         if type == 'Casual':
             if form.holiday_duty_type.data != 'No':
@@ -149,7 +156,7 @@ def application(type):
                 form.holiday_duty_end_date.data = form.holiday_duty_start_date.data
             
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
-                        duration=duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
+                        duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
                         holiday_duty_start_date=form.holiday_duty_start_date.data,
                         holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), 
                         status='Approval Pending')
@@ -165,7 +172,7 @@ def application(type):
             filenames = save_files(files, session['username'])
 
             leave = Applications(empid=session['empid'], type=type, start_date=form.start_date.data, end_date=form.end_date.data, 
-                        duration=duration, remark=form.remark.data, submission_date=datetime.datetime.now(), file_url=filenames, 
+                        duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), file_url=filenames, 
                         status='Approval Pending')
         
         db.session.add(leave)
@@ -230,7 +237,7 @@ def application_fiber(type):
             flash('Employee does not exists', category='error')
             return redirect(url_for('forms.leave', type=type))
 
-        msg = check_dates(employee.id, form.start_date.data, form.end_date.data)
+        msg = check_application_dates(employee.id, form.start_date.data, form.end_date.data)
         if msg:
             flash(msg, category='error')
             return redirect(url_for('forms.leave', type=type))
@@ -247,7 +254,7 @@ def application_fiber(type):
         
         duration = (form.end_date.data - form.start_date.data).days + 1
         
-        available = check_leave(employee.id, form.start_date.data, duration, type, 'update')
+        available = check_available_leave(employee.id, form.start_date.data, duration, type, 'update')
         if not available:
             flash('Leave not available, please check leave summary', category='error')
             return redirect(request.url)
@@ -754,7 +761,7 @@ def approval_team():
         return redirect(url_for('leave.application_status_team'))
 
     if application.type == 'Casual' or application.type == 'Medical':
-        available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
+        available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
         if not available:
             flash('Leave not available, please check leave summary', category='error')
             return redirect(url_for('leave.applicaion_status_team'))
@@ -762,6 +769,11 @@ def approval_team():
     if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
         attendances = Attendance.query.filter(Attendance.date >= application.holiday_duty_start_date, 
                         Attendance.date <= application.holiday_duty_end_date).all()
+        
+        if not attendances:
+            msg = f'Attendance not found for one or more days between {application.holiday_duty_start_date} - {application.holiday_duty_end_date}'
+            flash(msg, category='error')
+            return redirect(url_for('leave.application_status_team'))
         
         for attendance in attendances:
             if attendance.in_time == '00:00:00.000000':
@@ -838,7 +850,7 @@ def approval_department():
         flash(msg, category='error')
         return redirect(url_for('leave.status_department'))
     
-    available = check_leave(application.empid, application.start_date, application.duration, application.type, 'update')
+    available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
     if not available:
         flash('Leave not available, please check leave summary', category='error')
         return redirect(request.url)
