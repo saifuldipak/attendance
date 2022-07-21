@@ -1,25 +1,15 @@
-from .db import Applications, Employee, Team, AttnSummary
+from .db import Applications, ApprLeaveAttn, Employee, Team, AttnSummary, Attendance
 from flask import current_app, session
-from flask import flash
+from sqlalchemy import func, or_
 
-#checking if dates in submitted application already exists in previously submitted 
-#applications by this user
-def check_dates(empid, start_date, end_date=None, holiday_duty_start_date=None, holiday_duty_end_date=None):
-    
+def check_application_dates(empid, start_date, end_date):
     if not start_date:
-        current_app.logger.error('date_check(): start_date missing')
         return 'Start date must be given'
 
     start_date_exists = Applications.query.filter(Applications.start_date<=start_date, Applications.end_date>=start_date, 
                             Applications.empid==empid).first()
     if start_date_exists:
         return 'Start date overlaps with another application'
-
-    holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=holiday_duty_start_date, 
-                                        Applications.holiday_duty_end_date>=holiday_duty_start_date, 
-                                        Applications.empid==empid).first()
-    if holiday_duty_start_date_exists:
-        return 'Holiday duty start date overlaps with another application'
 
     if end_date:
         end_date_exists = Applications.query.filter(Applications.start_date<=end_date, Applications.end_date>=end_date, 
@@ -32,7 +22,18 @@ def check_dates(empid, start_date, end_date=None, holiday_duty_start_date=None, 
         if any_date_exists:
             return 'Start and/or end dates overlaps with other application'
     
-    if holiday_duty_end_date:
+def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
+    if not holiday_duty_end_date:
+        holiday_duty_end_date = holiday_duty_start_date
+
+    #Check dates in 'applications' table
+    holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=holiday_duty_start_date, 
+                                        Applications.holiday_duty_end_date>=holiday_duty_start_date, 
+                                        Applications.empid==empid).first()
+    if holiday_duty_start_date_exists:
+        return 'Holiday duty start date overlaps with another application'
+    
+    if holiday_duty_start_date != holiday_duty_end_date:
         holiday_duty_end_date_exists = Applications.query.filter(Applications.start_date<=holiday_duty_end_date, 
                                         Applications.end_date>=holiday_duty_end_date, Applications.empid==empid).first()
         if holiday_duty_end_date_exists:
@@ -43,7 +44,38 @@ def check_dates(empid, start_date, end_date=None, holiday_duty_start_date=None, 
         if any_date_exists:
             return 'Holiday duty start and/or end dates overlaps with other application'
 
-#Check access to specific application id
+    #Check dates in 'appr_leave_attn' table
+    holiday_duty_duration = (holiday_duty_end_date - holiday_duty_start_date).days + 1
+    holiday = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==empid, ApprLeaveAttn.date>=holiday_duty_start_date, 
+                        ApprLeaveAttn.date<=holiday_duty_end_date, ApprLeaveAttn.approved=='Holiday').\
+                        with_entities(func.count(ApprLeaveAttn.id).label('count')).one()
+   
+    if holiday_duty_duration != holiday.count:
+        if holiday_duty_end_date != holiday_duty_start_date:
+            return f'One or more days not holiday between dates {holiday_duty_start_date} & {holiday_duty_end_date}'
+        else:
+            return f'Date {holiday_duty_start_date} is not a holiday'
+
+    #Check dates in 'attendance' table
+    attendances = Attendance.query.filter(Attendance.empid==empid, Attendance.date>=holiday_duty_start_date, 
+                    Attendance.date<=holiday_duty_end_date).all()
+    if not attendances:
+        return f'Attendance not found for one or more days between dates {holiday_duty_start_date} & {holiday_duty_end_date}'
+        
+    for attendance in attendances:
+        current_app.logger.warning('%s, %s, %s', empid, type(attendance.in_time), attendance.date)
+        if attendance.in_time.strftime('%H:%M:%S') == '00:00:00':
+            approved_attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==empid, ApprLeaveAttn.date==attendance.date, 
+                                    or_(ApprLeaveAttn.approved=='In', ApprLeaveAttn.approved=='Both')).first()
+            if not approved_attendance:
+                return f'No attendance "In time" for date {attendance.date}'
+                       
+        if attendance.out_time.strftime('%H:%M:%S') == '00:00:00':
+            approved_attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==empid, ApprLeaveAttn.date==attendance.date, 
+                                    or_(ApprLeaveAttn.approved=='Out', ApprLeaveAttn.approved=='Both')).one()
+            if not approved_attendance:
+                return f'No attendance "Out time" for date {attendance.date}'
+
 def check_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
     manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, 
