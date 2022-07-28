@@ -50,6 +50,9 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
     
     if 'cc2' in kwargs:
         receivers.append(kwargs['cc2'])
+    
+    if 'cc3' in kwargs:
+        receivers.append(kwargs['cc3'])
 
     #creating email subject
     if type == 'leave':
@@ -97,6 +100,9 @@ def send_mail(host, port, sender, receiver, type, **kwargs):
  
         if 'cc2' in kwargs:
             msg.add_header('cc', kwargs['cc2'])
+        
+        if 'cc3' in kwargs:
+            msg.add_header('cc', kwargs['cc3'])
     
     msg.add_header('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     msg.add_header('subject', subject)
