@@ -208,7 +208,7 @@ def application(type):
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, 
+        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, cc1=employee.email, 
                         type='leave', application=application, action='submitted')
         
         if rv:
@@ -329,8 +329,8 @@ def application_fiber(type):
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-                        cc1=head.email, type='leave', application=application, action='approved')
+        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=manager.email, 
+                        cc2=head.email, type='leave', application=application, action='approved')
         
         if rv:
             current_app.logger.warning(rv)
@@ -459,7 +459,7 @@ def cancel(application_id):
     
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT']
-    rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, 
+    rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, cc1=employee.email, cc2=employee.email, 
                     type='leave', application=application, action='cancelled')
     
     if rv:
@@ -573,12 +573,13 @@ def cancel_team(application_id):
     
     if application.status == 'Approved':
         rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
-                    receiver=admin.email, cc1=head.email, cc2=employee.email, type='leave', application=application, 
-                    action='cancelled')
+                    receiver=admin.email, cc1=head.email, cc2=employee.email, cc3=manager.email, type='leave', 
+                    application=application, action='cancelled')
     
     if application.status == 'Approval Pending':
         rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
-                    receiver=employee.email, type='leave', application=application, action='cancelled')
+                    receiver=employee.email, cc1=manager.email, cc2=manager.email, type='leave', application=application, 
+                    action='cancelled')
 
     if rv:
         current_app.logger.warning(rv)
@@ -682,12 +683,13 @@ def cancel_department(application_id):
 
     if application.status == 'Approved': 
         rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=admin.email, cc1=employee.email, cc2=manager.email, type='leave', application=application, 
-                    action='cancelled')
+                    receiver=admin.email, cc1=employee.email, cc2=manager.email, cc3=head.email, type='leave', 
+                    application=application, action='cancelled')
     
     if application.status == 'Approval Pending':
         rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=employee.email, cc2=manager.email, type='leave', application=application, action='cancelled')
+                    receiver=employee.email, cc2=manager.email, cc3=head.email, type='leave', application=application, 
+                    action='cancelled')
 
     if rv:
         current_app.logger.warning(rv)
@@ -819,7 +821,7 @@ def approval_team():
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
     rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, 
-            cc2=head.email, application=application, type='leave', action='approved')
+            cc2=head.email, cc3=manager.email, application=application, type='leave', action='approved')
     
     if rv:
         current_app.logger.warning(rv)
@@ -885,8 +887,8 @@ def approval_department():
         manager.email = None
 
     rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=department_head.email, 
-            receiver=admin.email, cc1=application.employee.email, cc2=manager.email, application=application, type='leave', 
-            action='approved')
+            receiver=admin.email, cc1=application.employee.email, cc2=manager.email, cc3=department_head.email, 
+            application=application, type='leave', action='approved')
     
     if rv:
         current_app.logger.warning(rv)
