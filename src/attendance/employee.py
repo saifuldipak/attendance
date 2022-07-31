@@ -179,7 +179,7 @@ def delete():
 ## Employee record update menu ##
 @employee.route('/employee/update_menu')
 @login_required
-@admin_required     
+@admin_required
 def update_menu():
     return render_template('emp_update.html')
 

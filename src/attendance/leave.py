@@ -183,24 +183,28 @@ def application(type):
         application = Applications.query.filter_by(start_date=form.start_date.data, 
                             end_date=form.end_date.data, empid=session['empid']).first()
         
+        supervisor = None
         if session['role'] == 'Team':
-            manager = Employee.query.join(Team).filter(Team.name==session['team'], 
-                                                    Employee.role=='Manager').first()
-            if not manager:
-                current_app.logger.warning('Team Manager email not found')
-            else:            
+            supervisor = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Supervisor').first()
+            if supervisor:
+                receiver_email = supervisor.email
+
+        manager = None
+        if not supervisor or session['role'] == 'Supervisor':
+            manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
+            if manager:
                 receiver_email = manager.email
-
-        if session['role'] == 'Manager' or not manager:
-            head = Employee.query.join(Team).filter(Employee.department==session['department'], 
-                                                    Employee.role=='Head').first()
-            if not head:
-                current_app.logger.warning('Dept. Head email not found')
-                rv = 'failed'
-            else:
+        
+        message = ''
+        if not manager or session['role'] == 'Manager':
+            head = Employee.query.join(Team).filter(Employee.department==session['department'], Employee.role=='Head').first()
+            if head:
                 receiver_email = head.email
-
-        if 'rv' in locals():
+            else:
+                current_app.logger.warning('leave.application() - Supervisor, Manager, Head none found for %s', session['username'])
+                message = 'failed'
+                
+        if message != '':
             flash('Failed to send mail', category='warning')
             return redirect(request.url)
 
