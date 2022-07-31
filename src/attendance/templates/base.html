@@ -61,9 +61,7 @@
         </div>
 
     
-
-    {#-- Menu for managers and Head --#}
-    {% if session['role'] == 'Manager' or session['role'] == 'Head' %}
+    {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' or session['role'] == 'Head' %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
