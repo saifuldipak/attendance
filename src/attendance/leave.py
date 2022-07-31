@@ -5,7 +5,7 @@ from .check import check_access, check_holiday_dates, check_application_dates
 from .db import (ApprLeaveAttn, Attendance, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
-from .auth import admin_required, login_required, manager_required, head_required, supervisor_required
+from .auth import admin_required, login_required, manager_required, head_required, supervisor_required, team_leader_required
 from werkzeug.utils import secure_filename
 import os
 from .forms import (Createleave, Employeedelete, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
@@ -358,7 +358,7 @@ def application_status_self():
 #Leave application status for team 
 @leave.route('/leave/application/status/team')
 @login_required
-@manager_required
+@team_leader_required
 def application_status_team():
     teams = Team.query.join(Employee).filter_by(id=session['empid']).all()
     applications = []
