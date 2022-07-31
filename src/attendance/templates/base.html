@@ -81,7 +81,7 @@
                         <a href="{{ url_for('leave.summary_department', type='department') }}" class="navbar-item">
                             -- Summary
                         </a>
-                    {% elif session['role'] == 'Manager' %}
+                    {% elif session['role'] == 'Manager' or session['role'] == 'Supervisor' %}
                         <a href="{{ url_for('leave.application_status_team') }}" class="navbar-item">
                             -- Appl Status
                         </a>
