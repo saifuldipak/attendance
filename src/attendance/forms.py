@@ -13,10 +13,7 @@ from werkzeug.security import check_password_hash
 
 
 departments = ['Accounts', 'Sales', 'Technical']
-teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 
-                'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Implementation', 
-                'Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
-                'Accounts']
+
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 
             'October', 'November', 'December']
 attendance = ['In', 'Out', 'Both']
@@ -27,8 +24,6 @@ designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'As
                 'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 
                 'Jr. Asst. Engineer', 'Team Coordinator', 'Jr. Splice Tech', 'Jr. Cable Tech', 'Splice Tech', 'Cable Tech', 
                 'Driver', 'Peon']
-roles = ['Team', 'Manager', 'Head']
-access = ['User', 'Admin', 'None']
 types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
 queries = ['Details', 'Summary']
 
@@ -49,42 +44,6 @@ class Dates(FlaskForm):
         if self.end_date.data:
             if field.data > self.end_date.data:
                 raise ValidationError('End date must be same or later than Start date')
-
-#Create employee record
-class Employeecreate(FlaskForm):
-    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    fullname = StringField('Full Name', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    password = PasswordField('Password', 
-                                render_kw={'class': 'input-field'}, 
-                                validators=[InputRequired(), 
-                                EqualTo('rpassword', message='Password must match')])
-    rpassword = PasswordField('Retype Password', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    email = EmailField('Email', render_kw={'class': 'input-field'})
-    phone = StringField('Phone', render_kw={'class': 'input-field'})
-    department = SelectField('Department', render_kw={'class': 'input-field'},
-                            choices=departments)
-    designation = SelectField('Designation', render_kw={'class': 'input-field'}, 
-                            choices=designations)
-    team = SelectField('Team',      
-                        render_kw={'class': 'input-field'},
-                        choices=teams)
-    role = SelectField('Role',
-                            render_kw={'class': 'input-field'},
-                            choices=roles)
-    access = SelectField('Access',
-                        render_kw={'class': 'input-field'},
-                        choices=access)
-
-#Delete employee record
-class Employeedelete(FlaskForm):
-    empid = IntegerField('Employee ID', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-
-#Update employee record
-class Employeeupdate(FlaskForm):
-    empid = StringField('Employee ID', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    team = SelectField('Team Add', 
-                        render_kw={'class': 'input-field'},
-                        choices=teams)
 
 #Attendance file upload
 class Attndataupload(FlaskForm):
@@ -201,13 +160,6 @@ class Updatephone(FlaskForm):
     phone = TelField('Phone', render_kw={'class': 'input-field'}, 
                         validators=[InputRequired()])
 
-#Update team
-class Updateteam(FlaskForm):
-    username = StringField('Username', render_kw={'class': 'input-field'}, 
-                            validators=[InputRequired()])
-    team = SelectField('Team', render_kw={'class': 'input-field'}, choices=teams)
-    action = SelectField('Action', render_kw={'class': 'input-field'}, choices=actions)
-
 #Update department
 class Updatedept(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
@@ -218,18 +170,6 @@ class Updatedept(FlaskForm):
 class Resetpass(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
                             validators=[InputRequired()])
-
-#Update role
-class Updaterole(FlaskForm):
-    username = StringField('Username', render_kw={'class': 'input-field'}, 
-                            validators=[InputRequired()])
-    role = SelectField('Role', render_kw={'class': 'input-field'}, choices=roles)
-
-#Update access
-class Updateaccess(FlaskForm):
-    username = StringField('Username', render_kw={'class': 'input-field'}, 
-                            validators=[InputRequired()])
-    access = SelectField('Role', render_kw={'class': 'input-field'}, choices=access)
 
 #Employee search
 class Employeesearch(FlaskForm):
@@ -339,6 +279,54 @@ def attn_fiber():
     
     return render_template('forms.html', type='attn_application', team='fiber', form=form)
 
+#Create, delete, update employee record
+teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 
+                'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Implementation', 
+                'Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
+                'Accounts']
+roles = ['Team', 'Supervisor', 'Manager', 'Head']
+access = ['User', 'Admin', 'None']
+
+class Employeecreate(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    fullname = StringField('Full Name', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    password = PasswordField('Password', render_kw={'class': 'input-field'}, validators=[InputRequired(), 
+                    EqualTo('rpassword', message='Password must match')])
+    rpassword = PasswordField('Retype Password', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    email = EmailField('Email', render_kw={'class': 'input-field'})
+    phone = StringField('Phone', render_kw={'class': 'input-field'})
+    department = SelectField('Department', render_kw={'class': 'input-field'}, choices=departments)
+    designation = SelectField('Designation', render_kw={'class': 'input-field'}, choices=designations)
+    team = SelectField('Team', render_kw={'class': 'input-field'}, choices=teams)
+    role = SelectField('Role', render_kw={'class': 'input-field'}, choices=roles)
+    access = SelectField('Access', render_kw={'class': 'input-field'}, choices=access)
+
+class Employeedelete(FlaskForm):
+    empid = IntegerField('Employee ID', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+
+class Employeeupdate(FlaskForm):
+    empid = StringField('Employee ID', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    team = SelectField('Team Add', 
+                        render_kw={'class': 'input-field'},
+                        choices=teams)
+
+@forms.route('/forms/employee/<action>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def employee(action):
+
+    if action == 'create':
+        form = Employeecreate()
+        form_type = 'employee_create'
+    elif action == 'delete':
+        form = Employeedelete()
+        form_type = 'employee_delete'
+    elif action == 'update':
+        form = Employeeupdate()
+        form_type = 'employee_update'
+    
+    return render_template('forms.html', form_type=form_type, form=form)
+
 #Attendance file upload 
 @forms.route('/forms/attendance/upload', methods=['GET', 'POST'])
 @login_required
@@ -409,24 +397,6 @@ def leave_deduction():
     form = Leavededuction()
     return render_template('forms.html', type='leave_deduction', form=form)
 
-#Employee create
-@forms.route('/forms/employee/<action>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def employee(action):
-
-    if action == 'create':
-        form = Employeecreate()
-        form_type = 'employee_create'
-    elif action == 'delete':
-        form = Employeedelete()
-        form_type = 'employee_delete'
-    elif action == 'update':
-        form = Employeeupdate()
-        form_type = 'employee_update'
-    
-    return render_template('forms.html', form_type=form_type, form=form)
-
 #Employee modify - email
 @forms.route('/forms/employee/update_email')
 @login_required
@@ -460,6 +430,12 @@ def update_phone():
     return render_template('emp_update.html', type='phone', form=form)
 
 #Employee modify - team
+class Updateteam(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, 
+                            validators=[InputRequired()])
+    team = SelectField('Team', render_kw={'class': 'input-field'}, choices=teams)
+    action = SelectField('Action', render_kw={'class': 'input-field'}, choices=actions)
+
 @forms.route('/forms/employee/update_team')
 @login_required
 @admin_required
@@ -484,6 +460,10 @@ def reset_pass():
     return render_template('emp_update.html', type='pass', form=form)
 
 #Employee modify - role
+class Updaterole(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    role = SelectField('Role', render_kw={'class': 'input-field'}, choices=roles)
+
 @forms.route('/forms/employee/update_role')
 @login_required
 @admin_required
@@ -492,6 +472,11 @@ def update_role():
     return render_template('emp_update.html', type='role', form=form)
 
 #Employee modify - access
+class Updateaccess(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, 
+                            validators=[InputRequired()])
+    access = SelectField('Role', render_kw={'class': 'input-field'}, choices=access)
+
 @forms.route('/forms/employee/update_access')
 @login_required
 @admin_required
