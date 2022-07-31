@@ -5,7 +5,7 @@ from .check import check_access, check_holiday_dates, check_application_dates
 from .db import (ApprLeaveAttn, Attendance, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
                     LeaveAvailable, AttnSummary)
 from .mail import send_mail
-from .auth import admin_required, login_required, manager_required, head_required
+from .auth import admin_required, login_required, manager_required, head_required, supervisor_required
 from werkzeug.utils import secure_filename
 import os
 from .forms import (Createleave, Employeedelete, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
@@ -227,7 +227,7 @@ def application(type):
 #Casual and Medical leave application submission for Fiber
 @leave.route('/leave/application/fiber/<type>', methods=['GET', 'POST'])
 @login_required
-@manager_required
+@supervisor_required
 def application_fiber(type):
     
     if type == 'Casual':

@@ -112,3 +112,16 @@ def head_required(view):
         return view(**kwargs)
     
     return wrapped_view
+
+#check whether user's role is 'Supervisor' or not
+def supervisor_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        
+        if g.user.role != 'Supervisor':
+            flash('You are not authorized to access', category='error')
+            return render_template('base.html')
+
+        return view(**kwargs)
+    
+    return wrapped_view
