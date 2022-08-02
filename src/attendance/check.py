@@ -78,15 +78,13 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
 
 def check_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
-    manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, 
-                Employee.role=='Manager').first()
+    supervisor = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
     head = Employee.query.filter_by(department=session['department'], role='Head').first()
 
     if employee.username == session['username']:
         return True
-    elif manager:
-        return True
-    elif head:
+    elif supervisor or manager or head:
         return True
     elif session['access'] == 'Admin':
         return True
