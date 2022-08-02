@@ -403,7 +403,7 @@ def details(application_id):
     
     if not rv:
         flash('You are not authorized to see this record', category='error')
-        return redirect(url_for('leave.status', type=type))
+        return redirect(url_for('leave.application_status_team', type=type))
 
     details = Applications.query.join(Employee).filter(Applications.id==application_id).first()
     return render_template('data.html', data_type='leave_application_details', details=details)    
