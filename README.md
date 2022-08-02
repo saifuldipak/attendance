@@ -33,7 +33,7 @@ $ source venv/bin/activate
 4. Edit the config file 'config.py' and 'logging.yaml' 
 ```bash
 #copy config files to instance folder, replace 'x' with your installed python 
-#version number. run command "$ python3 --version" to get the versio
+#version number. run command "$ python3 --version" to get the version
 (venv)$ cd ~/attendance/venv/lib/python3.x/site-packages/attendance/config
 (venv)$ cp config.py logging.yaml ~/attendance/venv/var/attendance-instance/
 
