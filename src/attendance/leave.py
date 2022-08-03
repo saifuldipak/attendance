@@ -281,7 +281,7 @@ def application_fiber(type):
                         duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, 
                         holiday_duty_start_date=form.holiday_duty_start_date.data, 
                         holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), 
-                        status='Approved') 
+                        approval_date=datetime.datetime.now(), status='Approved') 
 
         if form.holiday_duty_type.data != 'No':
             type = 'Casual adjust'
