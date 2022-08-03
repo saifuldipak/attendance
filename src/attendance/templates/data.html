@@ -31,6 +31,14 @@
                                 <a href="{{ url_for('leave.cancel_team', application_id=application['id']) }}">Cancel</a>
                             </td>
                         {% endif %}
+                        {% if data == 'team_fiber' %}
+                            <td>
+                                {% if application['status'] == "Approval Pending" %}
+                                    <a href="{{ url_for('leave.approval_team', application_id=application['id']) }}">Approve</a>
+                                {% endif %}
+                                <a href="{{ url_for('leave.cancel_team_fiber', application_id=application['id']) }}">Cancel</a>
+                            </td>
+                        {% endif %}
                         {% if data == 'department' %}
                             <td>
                                 {% if application['status'] == "Approval Pending" %}
