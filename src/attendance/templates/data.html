@@ -78,12 +78,14 @@
         </div>
         
             <table class="query-result">
+                <th>ID</th>
                 <th>User Name</th>
                 <th>Full Name</th>
                 <th>Department</th>
                 {% for employee in employees %}
                     <tr>
                         {% if employee %}
+                            <td><a href="{{ url_for('employee.details', id=employee['id']) }}">{{ employee['id'] }}</a></td>
                             <td><a href="{{ url_for('employee.details', id=employee['id']) }}">{{ employee['username'] }}</a></td>
                             <td>{{ employee['fullname'] }}</td>        
                             <td>{{ employee['department'] }}</td>
