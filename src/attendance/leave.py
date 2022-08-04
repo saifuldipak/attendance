@@ -428,7 +428,7 @@ def application_status_all():
     applications  = Applications.query.join(Employee).filter(or_(Applications.type.like("Casual%"), 
                     Applications.type=='Medical')).order_by(Applications.status).all()
     
-    return render_template('data.html', type='leave_status', applications=applications)
+    return render_template('data.html', type='leave_application_status', applications=applications)
 
 ## Query & show details of each leave application using application id ##
 @leave.route('/leave/details/<application_id>')
