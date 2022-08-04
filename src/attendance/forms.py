@@ -7,7 +7,7 @@ from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField,
                         EmailField, TelField, SelectField, RadioField) 
 from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
                                 Optional, NumberRange)
-from .auth import admin_required, login_required, manager_required
+from .auth import admin_required, login_required, manager_required, supervisor_required
 from .db import Employee, Team
 from werkzeug.security import check_password_hash
 
@@ -256,7 +256,7 @@ def leave_fiber(type):
     return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
 #Attendance application 
-class Attnapplication(Leavecasual):
+class Attnapplication(Dates):
     type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, validators=[InputRequired()])
 
 @forms.route('/forms/attendance/application')
@@ -268,9 +268,11 @@ def attn_application():
 #Attendance application - Fiber
 class Attnapplfiber(Attnapplication):
     empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+    remark = TextAreaField('Remark', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
 @forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
 @login_required
+@supervisor_required
 def attn_fiber():
     form = Attnapplfiber()
     
