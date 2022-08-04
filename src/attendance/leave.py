@@ -544,7 +544,7 @@ def cancel_team(application_id):
         return redirect(url_for('leave.status_team'))
     
     if application.status == 'Approved':
-        if application.type == 'Casual' and application.type == 'Medical':
+        if application.type == 'Casual' or application.type == 'Medical':
             summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
                     empid=application.empid).first()
             if summary:
@@ -567,7 +567,7 @@ def cancel_team(application_id):
         
         if application.type == 'Casual adjust':
             update_apprleaveattn(employee.id, application.holiday_duty_start_date, application.holiday_duty_end_date, 'Holiday')
-
+    
     #delete files attached with medical leave application
     if application.type == 'Medical':
         files = application.file_url.split(';')
