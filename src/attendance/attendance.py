@@ -3,7 +3,6 @@ import os
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
-
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates
 from .mail import send_mail
@@ -34,7 +33,6 @@ attendance = Blueprint('attendance', __name__)
 def upload():
     form = Attndataupload()
     
-
     if form.validate_on_submit():
             df = pd.read_excel(form.file1.data, names=col_names)
            
@@ -82,7 +80,7 @@ def upload():
                     approved = 'Holiday'
                 elif weekday == 'Saturday':
                     if match:
-                       approved = ''
+                        approved = ''
                     else:
                         approved = 'Holiday'     
                 else:
@@ -500,6 +498,52 @@ def cancel(id):
             flash('Failed to send mail', category='warning')
     
     return redirect(url_for('attendance.appl_status_self'))
+
+
+@attendance.route('/attendance/application/cancel/team/fiber/<id>')
+@login_required
+@supervisor_required
+def cancel_team_fiber(id):
+    application = Applications.query.filter_by(id=id).first()
+
+    if not application:
+        flash('Application not found', category='error')
+        return redirect(url_for(attendance.appl_status_team))
+
+    update_apprleaveattn(application.empid, application.start_date, application.end_date, '')
+    
+    db.session.delete(application)
+    db.session.commit()
+    
+    flash('Application cancelled', category='message')
+
+    #Send mail to all concerned
+    manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
+    head = Employee.query.filter(Employee.department==session['department'], Employee.role=='Head').first()
+    
+    if not manager and not head:
+        current_app.logger.error(' cancel_team_fiber() - Neither Manager and Head record found for team %s', session['team'])
+        flash('Failed to send mail', category='warning')
+        return redirect(url_for('attendance.appl_status_team'))
+
+    if not manager:
+        receiver_email = head.email
+    else:            
+        receiver_email = manager.email
+
+    supervisor = Employee.query.filter_by(id=session['empid']).first()
+    
+    host = current_app.config['SMTP_HOST']
+    port = current_app.config['SMTP_PORT']
+    rv = send_mail(host=host, port=port, sender=supervisor.email, receiver=receiver_email, type='attendance', 
+                    application=application, action='cancelled')
+    
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+    
+    return redirect(url_for('attendance.appl_status_team'))
+
 
 @attendance.route('/attendance/cancel/team/<application_id>')
 @login_required
