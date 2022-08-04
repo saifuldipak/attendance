@@ -9,7 +9,7 @@ from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
                     Attnapplication, Attnsummary, Attnsummaryshow)
 from .db import *
-from .auth import head_required, login_required, admin_required, manager_required
+from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from re import search
 
 # file extensions allowed to be uploaded
@@ -727,7 +727,7 @@ def appl_status_self():
 #Attendance application status for team 
 @attendance.route('/attendance/application/status/team')
 @login_required
-@manager_required
+@team_leader_required
 def appl_status_team():
     teams = Team.query.join(Employee).filter(Employee.username==session['username']).all()
     applications = []
@@ -934,13 +934,11 @@ def prepare_summary():
 ##Casual and Medical attendance application submission for Fiber##
 @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
 @login_required
-@manager_required
+@supervisor_required
 def application_fiber():
-    
     form = Attnapplfiber()
 
     if form.validate_on_submit():
-        
         employee = Employee.query.filter_by(id=form.empid.data).first()
         if not employee:
             flash('Employee does not exists', category='error')
@@ -951,38 +949,22 @@ def application_fiber():
             flash(msg, category='error')
             return redirect(url_for('forms.attn_fiber'))
             
-        #Submit & approve application
-        if form.end_date.data: 
-            duration = (form.end_date.data - form.start_date.data).days + 1
-        else:
-            duration = 1
-        
         if not form.end_date.data:
             form.end_date.data = form.start_date.data
-        
-        application = Applications(empid=employee.id, start_date=form.start_date.data, 
-                                    end_date=form.end_date.data, duration=duration, 
-                                    type=form.type.data, remark=form.remark.data, 
-                                    submission_date=datetime.now(), status='Approved')
+
+        duration = (form.end_date.data - form.start_date.data).days + 1
+
+        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, 
+                        duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), 
+                        status='Approved')
         db.session.add(application)
         db.session.commit()
         flash('Attendance application approved', category='message')
         
-        #Updating appr_leave_attn table
-        start_date = form.start_date.data
-        end_date = form.end_date.data
-        while start_date <= end_date:
-            attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==start_date, 
-                            ApprLeaveAttn.empid==employee.id).first()
-        
-            if attendance:
-                attendance.approved = form.type.data
-            
-            start_date += timedelta(days=1)
-
+        update_apprleaveattn(employee.id, form.start_date.data, form.end_date.data, form.type.data)
         db.session.commit()
         
-        #Send mail to all concerned with application details
+        #Send mail to all concerned 
         application = Applications.query.filter_by(empid=employee.id, 
                                                 start_date=form.start_date.data, 
                                                 end_date=form.end_date.data, type=form.type.data).first()
@@ -995,8 +977,7 @@ def application_fiber():
             current_app.logger.warning('application_fiber(): Admin email not found')
             rv = 'failed'
 
-        head = Employee.query.filter(Employee.department==manager.department, 
-                                        Employee.role=='Head').first()
+        head = Employee.query.filter(Employee.department==session['department'], Employee.role=='Head').first()
         if not head:
             current_app.logger.warning('application_fiber(): Dept. head email not found')
             rv = 'failed'
