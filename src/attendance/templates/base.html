@@ -108,7 +108,7 @@
                         <a href="{{ url_for('attendance.appl_status_department') }}" class="navbar-item">
                             -- Appl Status
                         </a>
-                    {% elif session['role'] == 'Manager' %}
+                    {% elif session['role'] == 'Manager' or session['role'] == 'Supervisor' %}
                         <a href="{{ url_for('attendance.appl_status_team') }}" class="navbar-item">
                             -- Appl Status
                         </a>
