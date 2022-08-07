@@ -142,11 +142,12 @@ def application(type):
             flash(leave_dates_exist, category='error')
             return render_template('forms.html', type='leave', leave=type, form=form)
         
-        if form.holiday_duty_type.data == 'On site':
-            holiday_dates_exist = check_holiday_dates(session['empid'], form.holiday_duty_start_date.data, form.holiday_duty_end_date.data)
-            if holiday_dates_exist:
-                flash(holiday_dates_exist, category='error')
-                return render_template('forms.html', type='leave', leave=type, form=form)
+        if type == 'Casual':
+            if form.holiday_duty_type.data == 'On site':
+                holiday_dates_exist = check_holiday_dates(session['empid'], form.holiday_duty_start_date.data, form.holiday_duty_end_date.data)
+                if holiday_dates_exist:
+                    flash(holiday_dates_exist, category='error')
+                    return render_template('forms.html', type='leave', leave=type, form=form)
 
         summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), 
                     empid=session['empid']).first()
@@ -160,11 +161,18 @@ def application(type):
         
         leave_duration = (form.end_date.data - form.start_date.data).days + 1
 
-        if form.holiday_duty_type.data == 'No':
+        if type == 'Medical':
             available = check_available_leave(session['empid'], form.start_date.data, leave_duration, type)
             if not available:
                 flash('Leave not available, please check leave summary', category='error')
                 return redirect(request.url)
+        
+        if type == 'Casual':
+            if form.holiday_duty_type.data == 'No':
+                available = check_available_leave(session['empid'], form.start_date.data, leave_duration, type)
+                if not available:
+                    flash('Leave not available, please check leave summary', category='error')
+                    return redirect(request.url)
         
         if type == 'Casual':
             if form.holiday_duty_type.data != 'No':

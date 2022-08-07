@@ -41,38 +41,40 @@
                         </tr>
                     {% endif %}
                         
+                    <tr>
+                        <td>{{ form.start_date.label }}{{ form.start_date }}</td>
+                        <td>{{ form.end_date.label }}{{ form.end_date }}</td>
+                    </tr>
+                
+                    <tr>
+                        <td colspan="2">{{ form.remark.label }}{{ form.remark }}</td>
+                    </tr>
+                        
+                        
+                    {% if leave == 'Casual' %}
                             <tr>
-                                <td>{{ form.start_date.label }}{{ form.start_date }}</td>
-                                <td>{{ form.end_date.label }}{{ form.end_date }}</td>
+                                <td>{{ form.holiday_duty_type.label }}{{ form.holiday_duty_type }}</td>
                             </tr>
-                        
                             <tr>
-                                <td colspan="2">{{ form.remark.label }}{{ form.remark }}</td>
+                                <td>{{ form.holiday_duty_start_date.label }}{{ form.holiday_duty_start_date }}</td>
+                                <td>{{ form.holiday_duty_end_date.label }}{{ form.holiday_duty_end_date }}</td>
                             </tr>
+                    {% endif %}
                         
-                        
-                        {% if leave == 'Casual' %}
-                                <tr>
-                                    <td>{{ form.holiday_duty_type.label }}{{ form.holiday_duty_type }}</td>
-                                </tr>
-                                <tr>
-                                    <td>{{ form.holiday_duty_start_date.label }}{{ form.holiday_duty_start_date }}</td>
-                                    <td>{{ form.holiday_duty_end_date.label }}{{ form.holiday_duty_end_date }}</td>
-                                </tr>
-                        {% endif %}
-                        
-                        {% if leave == 'Medical' %}
-                            
-                                <span>{{ form.file1.label }}</span>
-                                {{ form.file1 }}                    
-                            
-                                <span>{{ form.file2.label }}</span>
-                                {{ form.file2 }}                    
-                            
-                                <span>{{ form.file3.label }}</span>
-                                {{ form.file3 }}                    
-                            
-                        {% endif %}
+                    {% if leave == 'Medical' %}
+                        <tr>
+                            <td>{{ form.file1.label }}</td>
+                            <td>{{ form.file1 }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.file2.label }}</td>
+                            <td>{{ form.file2 }}</td>
+                        </tr>    
+                        <tr>
+                            <td>{{ form.file3.label }}</td>
+                            <td>{{ form.file3 }}</td>
+                        </tr>                                           
+                    {% endif %}
 
                         <tr>
                             <td><input type="submit" value="Submit" /></td>

@@ -216,7 +216,8 @@ class Leavecasual(Dates):
             if leave_duration != holiday_duty_duration:
                 raise ValidationError('Leave duration and holiday duty duration must be same')
 
-class LeaveMedical(Leavecasual):
+class LeaveMedical(Dates):
+    remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'}, validators=[InputRequired()])
     file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
                                 FileRequired(), file_length_check])
     file2 = FileField('Upload File 2', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
