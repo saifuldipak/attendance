@@ -255,9 +255,11 @@ def leave_fiber(type):
     
     return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
+
 #Attendance application 
 class Attnapplication(Dates):
     type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, validators=[InputRequired()])
+    remark = TextAreaField('Remark', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
 @forms.route('/forms/attendance/application')
 @login_required
@@ -265,11 +267,11 @@ def attn_application():
     form = Attnapplication()
     return render_template('forms.html', type='attn_application', form=form)
 
+
 #Attendance application - Fiber
 class Attnapplfiber(Attnapplication):
     empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-    remark = TextAreaField('Remark', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-
+    
 @forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
 @login_required
 @supervisor_required
