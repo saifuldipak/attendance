@@ -1,4 +1,4 @@
-from .db import Applications, ApprLeaveAttn, Employee, Team, AttnSummary, Attendance
+from .db import Applications, ApprLeaveAttn, Employee, Team, AttnSummary, Attendance, Holidays
 from flask import current_app, session
 from sqlalchemy import func, or_
 
@@ -21,12 +21,13 @@ def check_application_dates(empid, start_date, end_date):
                             Applications.empid==empid).first()
         if any_date_exists:
             return 'Start and/or end dates overlaps with other application'
-    
+
+
 def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
     if not holiday_duty_end_date:
         holiday_duty_end_date = holiday_duty_start_date
 
-    #Check dates in 'applications' table
+    #Check whether holiday duty dates exists in any other application
     holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=holiday_duty_start_date, 
                                         Applications.holiday_duty_end_date>=holiday_duty_start_date, 
                                         Applications.empid==empid).first()
@@ -44,11 +45,10 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
         if any_date_exists:
             return 'Holiday duty start and/or end dates overlaps with other application'
 
-    #Check dates in 'appr_leave_attn' table
+    #Check whether holidays added or not
     holiday_duty_duration = (holiday_duty_end_date - holiday_duty_start_date).days + 1
-    holiday = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==empid, ApprLeaveAttn.date>=holiday_duty_start_date, 
-                        ApprLeaveAttn.date<=holiday_duty_end_date, ApprLeaveAttn.approved=='Holiday').\
-                        with_entities(func.count(ApprLeaveAttn.id).label('count')).one()
+    holiday = Holidays.query.filter(Holidays.date>=holiday_duty_start_date, Holidays.date<=holiday_duty_end_date).\
+                with_entities(func.count(Holidays.id).label('count')).one()
    
     if holiday_duty_duration != holiday.count:
         if holiday_duty_end_date != holiday_duty_start_date:
@@ -56,7 +56,7 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
         else:
             return f'Date {holiday_duty_start_date} is not a holiday'
 
-    #Check dates in 'attendance' table
+    #Check whether attendance data is uploaded
     attendances = Attendance.query.filter(Attendance.empid==empid, Attendance.date>=holiday_duty_start_date, 
                     Attendance.date<=holiday_duty_end_date).all()
     if not attendances:
@@ -76,6 +76,7 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
             if not approved_attendance:
                 return f'No attendance "Out time" for date {attendance.date}'
 
+
 def check_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
     supervisor = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
@@ -91,7 +92,7 @@ def check_access(application_id):
     else:
         return False
 
-#Check attn_summary table
+
 def check_attnsummary(start_date, end_date=None):
     start_date_in_summary = AttnSummary.query.filter(AttnSummary.year==start_date.year, 
                                 AttnSummary.month==start_date.strftime("%B")).first()
