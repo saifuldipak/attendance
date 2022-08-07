@@ -2,14 +2,15 @@ from datetime import datetime
 from flask import Blueprint, Flask, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import validators
+from wtforms import validators, widgets
 from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, 
-                        EmailField, TelField, SelectField, RadioField) 
+                        EmailField, TelField, SelectField, RadioField, DateTimeField, TimeField, SelectMultipleField) 
 from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
                                 Optional, NumberRange)
 from .auth import admin_required, login_required, manager_required, supervisor_required
 from .db import Employee, Team
 from werkzeug.security import check_password_hash
+from sqlalchemy import or_
 
 
 departments = ['Accounts', 'Sales', 'Technical']
@@ -519,3 +520,30 @@ class Addholidays(Dates):
 def add_holiday():
     form = Addholidays()
     return render_template('forms.html', type='add_holiday', form=form)
+
+
+#Duty schedule - Fiber
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+class Dutyschedule(FlaskForm):
+    empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+    start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    start_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    end_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+
+
+
+@forms.route('/forms/duty_schedule/fiber', methods=['GET', 'POST'])
+@login_required
+@supervisor_required
+def duty_schedule_fiber():
+    form = Dutyschedule()
+
+    names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
+                Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
+    form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+    return render_template('forms.html', type='duty_schedule', team='fiber', form=form)

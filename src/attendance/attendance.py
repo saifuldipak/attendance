@@ -7,7 +7,7 @@ from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow)
+                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedule)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from re import search
@@ -1000,3 +1000,16 @@ def application_fiber():
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
     return redirect(url_for('forms.attn_fiber'))
+
+
+@attendance.route('/attendance/duty_schedule/fiber', methods=['GET', 'POST'])
+@login_required
+@supervisor_required
+def duty_schedule_fiber():
+    form = Dutyschedule()
+
+    if form.validate_on_submit():
+        dates = f'{form.empid.data} {form.start_date.data} {form.start_time.data}/ {form.end_date.data} {form.end_time.data}'
+        flash(dates)
+    
+    return render_template('forms.html', type='duty_schedule', form=form)

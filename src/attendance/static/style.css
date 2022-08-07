@@ -146,6 +146,7 @@ td.item {
 	-moz-border-radius: 3px;
 	padding: 7px;
 	outline: none;
+    width: 100%;
 }
 .form-style-2 .input-field:focus, 
 .form-style-2 .tel-number-field:focus, 

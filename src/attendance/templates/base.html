@@ -113,6 +113,12 @@
                             -- Appl Status
                         </a>
                     {% endif %}
+                    {% if session['role'] == 'Supervisor' %}
+                        <a href="{{ url_for('forms.duty_schedule_fiber') }}" class="navbar-item">
+                            -- Create duty schedule
+                        </a>
+                    {% endif %}
+
                     <a href="{{ url_for('attendance.query_menu') }}" class="navbar-item">
                         -- Query
                     </a>

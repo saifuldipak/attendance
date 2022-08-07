@@ -397,4 +397,34 @@
                     </label>
     {% endif %}
 
+    {% if type == 'duty_schedule' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.duty_schedule_fiber') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Duty schedule Fiber</div>
+                    <table>
+                        {% for subfield in form.empid %}
+                            <tr>
+                                <td>{{ subfield }}</td>
+                                <td>{{ subfield.label }}</td>
+                            </tr>
+                        {% endfor %}
+                    
+                        <tr>
+                            <td>{{ form.start_date.label }}</td>
+                            <td>{{ form.start_date }}</td>
+                            <td>{{ form.start_time }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.end_date.label }}</td>
+                            <td>{{ form.end_date }}</td>
+                            <td>{{ form.end_time }}</td>
+                        </tr>
+                    </table>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Add" /></label>
+                    </label>
+    {% endif %}
+
 {% endblock %}
