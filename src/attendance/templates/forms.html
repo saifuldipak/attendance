@@ -378,7 +378,7 @@
 
     {% if type == 'add_holiday' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('employee.holidays', action='add') }}">
+                <form method="post" action="{{ url_for('attendance.holidays', action='add') }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Add holidays</div>
                     <label>

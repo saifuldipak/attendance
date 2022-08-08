@@ -535,8 +535,6 @@ class Dutyschedule(FlaskForm):
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
-
-
 @forms.route('/forms/duty_schedule/fiber', methods=['GET', 'POST'])
 @login_required
 @supervisor_required
