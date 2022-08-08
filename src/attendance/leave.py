@@ -984,9 +984,9 @@ def approval_department():
 
     application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
    
-    department_head = Employee.query.filter(Employee.id==session['empid'], Employee.department==application.employee.department, 
+    head = Employee.query.filter(Employee.id==session['empid'], Employee.department==application.employee.department, 
                         Employee.role=='Head').one()
-    if not department_head:
+    if not head:
         flash('You are not authorized', category='error')
         return redirect(url_for('leave.application_status_department'))
     
@@ -1013,27 +1013,32 @@ def approval_department():
     #Send mail to all concerned
     error = False
     
+    if not head.email:
+        current_app.logger.warning('approval_department(): Head email not found for employee id: %s', application.employee.username)
+        error = True
+
     admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
     if not admin:
-        current_app.logger.warning('approval_department(): Admin email not found for employee id: %s', application.employee.id)
+        current_app.logger.warning('approval_department(): Admin email not found for employee id: %s', application.employee.username)
         error = True
     
-    if application.employee.role == 'Team':
+    if application.employee.role == 'Team' or application.employee.role == 'Supervisor':
         team = Team.query.filter_by(empid=application.empid).first()
         manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
-        if not manager:
-            current_app.logger.warning('approval_department(): manager email not found for employee %s', application.employee.username)
-            error = True
+        if manager:
+            manager_email = manager.email
+        else:
+            manager_email = None
+    
+    if application.employee.role == 'Manager':
+        manager_email = None
 
     if error:
         flash('Failed to send mail', category='warning')
         return redirect(url_for('leave.application_status_department'))
-    
-    if application.employee.role != 'Team':
-        manager.email = None
 
-    rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=department_head.email, 
-            receiver=admin.email, cc1=application.employee.email, cc2=manager.email, cc3=department_head.email, 
+    rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
+            receiver=admin.email, cc1=application.employee.email, cc2=manager_email, cc3=head.email, 
             application=application, type='leave', action='approved')
     
     if rv:
