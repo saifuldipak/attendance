@@ -1028,10 +1028,10 @@ def approval_department():
         if manager:
             manager_email = manager.email
         else:
-            manager_email = None
+            manager_email = ''
     
     if application.employee.role == 'Manager':
-        manager_email = None
+        manager_email = ''
 
     if error:
         flash('Failed to send mail', category='warning')
