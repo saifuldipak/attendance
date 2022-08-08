@@ -805,10 +805,9 @@ def cancel_department(application_id):
 
     if employee.role == 'Team':
         manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
-        if not manager.email:
-            current_app.logger.warning(' cancel_department(): Team Manager email not found for %s', employee.username)
-            email_found = False
-
+        if manager:
+            manager_email = manager.email
+            
     if application.status == 'Approved':
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
         if not admin:
@@ -825,16 +824,16 @@ def cancel_department(application_id):
         return redirect(url_for('leave.application_status_department'))
     
     if employee.role != 'Team':
-            manager.email = None
+            manager_email = ''
 
     if application.status == 'Approved': 
         rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=admin.email, cc1=employee.email, cc2=manager.email, cc3=head.email, type='leave', 
+                    receiver=admin.email, cc1=employee.email, cc2=manager_email, cc3=head.email, type='leave', 
                     application=application, action='cancelled')
     
     if application.status == 'Approval Pending':
         rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=employee.email, cc2=manager.email, cc3=head.email, type='leave', application=application, 
+                    receiver=employee.email, cc2=manager_email, cc3=head.email, type='leave', application=application, 
                     action='cancelled')
 
     if rv:
