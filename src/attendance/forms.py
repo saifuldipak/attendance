@@ -537,10 +537,10 @@ class Dutyschedule(FlaskForm):
 
 
 
-@forms.route('/forms/duty_schedule/fiber', methods=['GET', 'POST'])
+@forms.route('/forms/duty_schedule', methods=['GET', 'POST'])
 @login_required
 @supervisor_required
-def duty_schedule_fiber():
+def duty_schedule():
     form = Dutyschedule()
 
     names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 

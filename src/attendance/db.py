@@ -94,9 +94,21 @@ class Holidays(db.Model):
     date = db.Column(db.Date, nullable=False)
     name = db.Column(db.String, nullable=False)
 
+class DutyShift(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    team = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    in_time = db.Column(db.Time, nullable=False)
+    out_time = db.Column(db.Time, nullable=False)
+
 class DutySchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
+    duty_shift = db.Column(db.Integer, db.ForeignKey('duty_shift.id'), nullable=False)
     in_time = db.Column(db.Time, nullable=False)
     out_time = db.Column(db.Time, nullable=False)
+
+
+    
