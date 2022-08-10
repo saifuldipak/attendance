@@ -531,9 +531,9 @@ class MultiCheckboxField(SelectMultipleField):
 class Dutyschedule(FlaskForm):
     empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
     start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    start_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    end_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    in_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    out_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
 
 
