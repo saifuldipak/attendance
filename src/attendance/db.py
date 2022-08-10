@@ -93,3 +93,10 @@ class Holidays(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
     name = db.Column(db.String, nullable=False)
+
+class DutySchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    in_time = db.Column(db.Time, nullable=False)
+    out_time = db.Column(db.Time, nullable=False)
