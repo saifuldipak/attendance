@@ -96,7 +96,6 @@ class Holidays(db.Model):
 
 class DutyShift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     team = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
     in_time = db.Column(db.Time, nullable=False)
