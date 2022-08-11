@@ -7,8 +7,8 @@ from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField,
                         EmailField, TelField, SelectField, RadioField, DateTimeField, TimeField, SelectMultipleField) 
 from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
                                 Optional, NumberRange)
-from .auth import admin_required, login_required, manager_required, supervisor_required
-from .db import Employee, Team
+from .auth import admin_required, login_required, manager_required, supervisor_required, team_leader_required
+from .db import Employee, Team, DutyShift
 from werkzeug.security import check_password_hash
 from sqlalchemy import or_
 
@@ -523,28 +523,29 @@ def add_holiday():
     return render_template('forms.html', type='add_holiday', form=form)
 
 
-#Duty schedule - Fiber
+#Duty schedule - Fiber, Support & Customer Care
 class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
 class Dutyschedule(FlaskForm):
     empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+    duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
     start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    in_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    out_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-
-
-
-@forms.route('/forms/duty_schedule', methods=['GET', 'POST'])
-@login_required
-@supervisor_required
-def duty_schedule():
-    form = Dutyschedule()
-
-    names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
-                Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
-    form.empid.choices = [(i.id, i.fullname) for i in names]
     
-    return render_template('forms.html', type='duty_schedule', team='fiber', form=form)
+@forms.route('/forms/duty_schedule/<team_name>', methods=['GET', 'POST'])
+@login_required
+@team_leader_required
+def duty_schedule(team_name):
+    form = Dutyschedule()
+    
+    if team_name == 'fiber':
+        names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
+                    Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
+        form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+        shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
+        form.duty_shift.choices = [(i.id, i.name) for i in shifts]
+
+        return render_template('forms.html', type='duty_schedule', team='fiber', form=form)
