@@ -7,7 +7,7 @@ from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedule)
+                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from re import search
@@ -1002,29 +1002,51 @@ def application_fiber():
     return redirect(url_for('forms.attn_fiber'))
 
 
-@attendance.route('/attendance/duty_schedule/fiber', methods=['GET', 'POST'])
+@attendance.route('/attendance/duty_schedule/<team>/<action>', methods=['GET', 'POST'])
 @login_required
 @supervisor_required
-def duty_schedule_fiber():
-    form = Dutyschedule()
-
+def duty_schedule(team, action):
+    if team != 'fiber' and team !='support' and team !='care':
+        current_app.logger.error(' duty_schedule() - team name unknown')
+        flash('Unknown team name', category='error')
+        return render_template('base.html')
+    
+    if action == 'query':
+        form = Dutyschedulequery()
+    elif action == 'create':
+        form = Dutyschedulecreate()
+    else:
+        current_app.logger.error(' duty_schedule() - action unknown')
+        flash('Unknown action', category='error')
+        return render_template('base.html')    
+            
     if form.validate_on_submit():
-        for empid in form.empid.data:
-            schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
-                                DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
+        if action == 'create':
+            for empid in form.empid.data:
+                schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
+                                    DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
             if schedule_exist:
                 employee = Employee.query.filter_by(id=empid).one()
                 msg = f'Schedule exists for {employee.fullname}'
                 flash(msg, category='error')
                 return redirect(url_for('forms.duty_schedule', team_name='fiber'))
         
-        while form.start_date.data <= form.end_date.data:
-            for empid in form.empid.data:
-                schedule = DutySchedule(empid=empid, date=form.start_date.data, duty_shift=form.duty_shift.data)
-                db.session.add(schedule)
-            form.start_date.data += timedelta(days=1)
+            while form.start_date.data <= form.end_date.data:
+                for empid in form.empid.data:
+                    schedule = DutySchedule(empid=empid, date=form.start_date.data, duty_shift=form.duty_shift.data)
+                    db.session.add(schedule)
+                form.start_date.data += timedelta(days=1)
 
-        db.session.commit()
+            db.session.commit()
 
-    flash('Duty schedule created', category='message')           
-    return render_template('forms.html', type='duty_schedule', form=form)
+            flash('Duty schedule created', category='message')
+
+        if action == 'query':
+            if team == 'fiber':
+                schedule = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).\
+                            filter(Team.name.like("Fiber%"), extract('month', DutySchedule.date)==form.month.data, 
+                            extract('year', DutySchedule.date==form.year.data)).order_by(DutySchedule.date).all()
+               
+                return render_template('data.html', type='duty_schedule', schedule=schedule)
+
+    return render_template('forms.html', type='duty_schedule', team=team, action=action, form=form)

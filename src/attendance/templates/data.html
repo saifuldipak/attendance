@@ -479,4 +479,23 @@
         </div>
     {% endif %}
 
+    {% if type == 'duty_schedule' %}
+        <div class="form-style-2-heading">Duty schedule</div>
+            <table class="query-result">
+                <th>Id</th>
+                <th>Date</th>
+                <th>Fullname</th>
+                <th>Shift</th>
+                {% for row in schedule %}
+                    <tr>
+                        <td>{{ row['id'] }}</td>
+                        <td>{{ row['date'] }}</td>
+                        <td>{{ row['employee']['fullname'] }}</td>
+                        <td>{{ row['dutyshift']['name'] }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    {% endif %}
+
 {% endblock %}
