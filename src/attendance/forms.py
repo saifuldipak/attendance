@@ -528,24 +528,44 @@ class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
-class Dutyschedule(FlaskForm):
+class Dutyschedulecreate(FlaskForm):
     empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
     duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
     start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    
-@forms.route('/forms/duty_schedule/<team_name>', methods=['GET', 'POST'])
+
+class Dutyschedulequery(FlaskForm):
+    month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
+    year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
+
+@forms.route('/forms/duty_schedule/<team>/<action>', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
-def duty_schedule(team_name):
-    form = Dutyschedule()
-    
-    if team_name == 'fiber':
-        names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
-                    Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
-        form.empid.choices = [(i.id, i.fullname) for i in names]
-    
-        shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
-        form.duty_shift.choices = [(i.id, i.name) for i in shifts]
+def duty_schedule(team, action):
+    if team == 'fiber':
+        teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel']
+        if session['team'] not in teams:
+            flash('You are not a member of any fiber team', category='error')
+            return render_template('base.html') 
 
-        return render_template('forms.html', type='duty_schedule', team='fiber', form=form)
+        if action == 'create':
+            form = Dutyschedulecreate()
+            
+            names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
+                        Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
+            form.empid.choices = [(i.id, i.fullname) for i in names]
+        
+            shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
+            form.duty_shift.choices = [(i.id, i.name) for i in shifts]
+
+            return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
+        elif action == 'query':
+            form = Dutyschedulequery()
+            return render_template('forms.html', type='duty_schedule', action='query', team='fiber', form=form)
+        else:
+            current_app.logger.error(' duty_schedule(): <action> value not correct')
+            flash('Cannot create duty schedule form', category='error')
+            return render_template('base.html')
+    
+    
+        
