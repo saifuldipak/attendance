@@ -1009,7 +1009,22 @@ def duty_schedule_fiber():
     form = Dutyschedule()
 
     if form.validate_on_submit():
-        dates = f'{form.empid.data} {form.start_date.data} {form.start_time.data}/ {form.end_date.data} {form.end_time.data}'
-        flash(dates)
-    
+        for empid in form.empid.data:
+            schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
+                                DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
+            if schedule_exist:
+                employee = Employee.query.filter_by(id=empid).one()
+                msg = f'Schedule exists for {employee.fullname}'
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_schedule', team_name='fiber'))
+        
+        while form.start_date.data <= form.end_date.data:
+            for empid in form.empid.data:
+                schedule = DutySchedule(empid=empid, date=form.start_date.data, duty_shift=form.duty_shift.data)
+                db.session.add(schedule)
+            form.start_date.data += timedelta(days=1)
+
+        db.session.commit()
+
+    flash('Duty schedule created', category='message')           
     return render_template('forms.html', type='duty_schedule', form=form)
