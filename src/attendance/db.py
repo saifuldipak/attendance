@@ -20,6 +20,7 @@ class Employee(db.Model):
     attendance = db.relationship('Attendance', cascade='delete, merge, save-update', backref='employee', lazy=True)
     approved = db.relationship('ApprLeaveAttn', cascade='delete, merge, save-update', backref='employee', lazy=True)
     attnsummary = db.relationship('AttnSummary', cascade='delete, merge, save-update', backref='employee', lazy=True)
+    dutyschedule = db.relationship('DutySchedule', cascade='delete, merge, save-update', backref='employee', lazy=True)
 
 #Employee team
 class Team(db.Model):
@@ -100,6 +101,7 @@ class DutyShift(db.Model):
     name = db.Column(db.String, nullable=False)
     in_time = db.Column(db.Time, nullable=False)
     out_time = db.Column(db.Time, nullable=False)
+    dutyschedule = db.relationship('DutySchedule', cascade='delete, merge, save-update', backref='dutyshift', lazy=True)
 
 class DutySchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
