@@ -409,10 +409,14 @@
                             <tr>
                                 <td>{{ subfield }}</td>
                                 <td>{{ subfield.label }}</td>
-                                <td>{{ form.duty_shift}}</td>
+                                
                             </tr>
                         {% endfor %}
-                    
+                        <tr>
+                            <td> {{ form.duty_shift.label }}</td>
+                            <td> {{ form.duty_shift}}</td>
+                        </tr>
+                        
                         <tr>
                             <td>{{ form.start_date.label }}</td>
                             <td>{{ form.start_date }}</td>
