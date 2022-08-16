@@ -114,6 +114,12 @@
                         </a>
                     {% endif %}
                     {% if session['role'] == 'Supervisor' %}
+                        <a href="{{ url_for('forms.duty_shift', team='fiber', action='query') }}" class="navbar-item">
+                            -- Show duty shift
+                        </a>
+                        <a href="{{ url_for('forms.duty_shift', team='fiber', action='create') }}" class="navbar-item">
+                            -- Create duty shift
+                        </a>
                         <a href="{{ url_for('forms.duty_schedule', team='fiber', action='query') }}" class="navbar-item">
                             -- Show duty schedule
                         </a>

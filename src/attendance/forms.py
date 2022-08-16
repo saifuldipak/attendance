@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 from flask import Blueprint, Flask, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
@@ -524,6 +525,8 @@ def add_holiday():
 
 
 #Duty schedule - Fiber, Support & Customer Care
+fiber_teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel']
+
 class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
@@ -568,4 +571,35 @@ def duty_schedule(team, action):
             return render_template('base.html')
     
     
-        
+#Duty shift - create & query
+shifts = ['Morning', 'Evening', 'Night', 'Regular']
+class Dutyshiftcreate(FlaskForm):
+    shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
+    in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    out_time = TimeField('Out time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+
+@forms.route('/forms/duty_shift/<team>/create', methods=['GET', 'POST'])
+@login_required
+@team_leader_required
+def duty_shift(team):
+    if team == 'fiber':
+        match = re.search('^Fiber', session['team'])
+        if not match:
+            flash('You are not a member of any Fiber team', category='error')
+            return render_template('base.html')
+    elif team == 'support':
+        match = re.search('Support', session['team'])
+        if not match:
+            flash('You are not a member of any Support team', category='error')
+            return render_template('base.html')
+    elif team == 'care':
+        if session['team'] != 'Customer Care':
+            flash('You are not a member of Customer care team', category='error')
+            return render_template('base.html')
+    else:
+        current_app.logger.error(' duty_shift(): <team> value not correct')
+        flash('Cannot create duty shift form', category='error')
+        return render_template('base.html')
+
+    form = Dutyshiftcreate()
+    return render_template('forms.html', type='duty_shift', form=form)

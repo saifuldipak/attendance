@@ -459,4 +459,34 @@
                     {% endif %}
     {% endif %}
 
+    {% if type == 'duty_shift' %}
+            <div class="form-style-2">
+                
+                        <form method="post" action="{{ url_for('attendance.duty_shift', team=team, action='create') }}">
+                            {{ form.csrf_token }}
+                    
+                        <div class="form-style-2-heading">Create duty shift</div>
+                        <table>
+                            
+                            <tr>
+                                <td> {{ form.shift_name.label }}</td>
+                                <td> {{ form.shift_name}}</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>{{ form.in_time.label }}</td>
+                                <td>{{ form.in_time }}</td>
+                                <td>(HH:MM AM/PM)</td>
+                            </tr>
+                            <tr>
+                                <td>{{ form.out_time.label }}</td>
+                                <td>{{ form.out_time }}</td>
+                                <td>(HH:MM AM/PM)</td>
+                            </tr>
+                        </table>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Add" /></label>
+                        </label>
+                    {% endif %}
 {% endblock %}
