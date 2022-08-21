@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import os
+import re
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
@@ -7,7 +8,7 @@ from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery)
+                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from re import search
@@ -1050,3 +1051,62 @@ def duty_schedule(team, action):
                 return render_template('data.html', type='duty_schedule', schedule=schedule)
 
     return render_template('forms.html', type='duty_schedule', team=team, action=action, form=form)
+
+
+@attendance.route('/attendance/duty_shift/<action>', methods=['GET', 'POST'])
+@login_required
+@team_leader_required
+def duty_shift(action):
+    if action != 'query' and action != 'create' and action != 'delete':
+        current_app.logger.error(' duty_shift() - action unknown')
+        flash('Unknown action', category='error')
+        return render_template('base.html')
+    
+    match = re.search('^Fiber', session['team'])
+    if match:
+        team_name = 'Fiber'
+
+    match = re.search('^Support', session['team'])
+    if match:
+        team_name = 'Support'
+
+    if team_name != 'Fiber' and team_name != 'Support':
+        team_name = session['team']
+
+    if action == 'query':
+        shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
+        return render_template('data.html', type='duty_shift', shifts=shifts)
+    
+    if action == 'create':
+        form = Dutyshiftcreate()
+        
+        if form.validate_on_submit():
+            shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, 
+                            DutyShift.team==team_name).all()
+            if shift_exist:
+                flash('Shift exists', category='error')
+                return redirect(url_for('forms.duty_shift_create', form=form))
+        
+            duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, 
+                            out_time=form.out_time.data)
+            db.session.add(duty_shift)
+            db.session.commit()
+
+            flash('Duty shift created', category='message')
+            return redirect(url_for('attendance.duty_shift', action='query'))
+
+    if action == 'delete':
+        shift_id = request.args.get('shift_id')
+        
+        shift = DutyShift.query.filter_by(id=shift_id).one()
+        if not shift:
+            flash('Shift not found', category='error')
+            current_app.logger.warning('duty_shift(action="delete"): Shift id not found')
+            return redirect(url_for('attendance.duty_shift', action='query'))
+        
+        db.session.delete(shift)
+        db.session.commit()
+
+        flash('Duty shift deleted', category='message')
+        return redirect(url_for('attendance.duty_shift', action='query'))
+

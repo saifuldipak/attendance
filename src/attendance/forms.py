@@ -578,28 +578,15 @@ class Dutyshiftcreate(FlaskForm):
     in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     out_time = TimeField('Out time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
-@forms.route('/forms/duty_shift/<team>/create', methods=['GET', 'POST'])
+class Dutyshiftquery(FlaskForm):
+    month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
+    year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
+
+@forms.route('/forms/duty_shift/create', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
-def duty_shift(team):
-    if team == 'fiber':
-        match = re.search('^Fiber', session['team'])
-        if not match:
-            flash('You are not a member of any Fiber team', category='error')
-            return render_template('base.html')
-    elif team == 'support':
-        match = re.search('Support', session['team'])
-        if not match:
-            flash('You are not a member of any Support team', category='error')
-            return render_template('base.html')
-    elif team == 'care':
-        if session['team'] != 'Customer Care':
-            flash('You are not a member of Customer care team', category='error')
-            return render_template('base.html')
-    else:
-        current_app.logger.error(' duty_shift(): <team> value not correct')
-        flash('Cannot create duty shift form', category='error')
-        return render_template('base.html')
-
+def duty_shift_create():
     form = Dutyshiftcreate()
-    return render_template('forms.html', type='duty_shift', form=form)
+    return render_template('forms.html', type='duty_shift_create', form=form)
+    
+    

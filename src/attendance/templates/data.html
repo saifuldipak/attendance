@@ -498,4 +498,26 @@
         </div>
     {% endif %}
 
+    {% if type == 'duty_shift' %}
+        <div class="form-style-2-heading">Duty Shift</div>
+            <table class="query-result">
+                <th>Team</th>
+                <th>Shift</th>
+                <th>In time</th>
+                <th>Out time</th>
+                <th>Action</th>
+                {% for shift in shifts %}
+                    <tr>
+                        <td>{{ shift['team'] }}</td>
+                        <td>{{ shift['name'] }}</td>
+                        <td>{{ shift['in_time'] }}</td>
+                        <td>{{ shift['out_time'] }}</td>
+                        <td><a href={{ url_for('attendance.duty_shift', action='delete', shift_id=shift['id']) }}>Delete</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <p><a href={{ url_for('forms.duty_shift_create') }}>Add shift</a></p>
+        </div>
+    {% endif %}
+
 {% endblock %}
