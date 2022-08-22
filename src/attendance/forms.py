@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+from attendance.functions import convert_team_name
 from flask import Blueprint, Flask, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
@@ -524,7 +525,7 @@ def add_holiday():
     return render_template('forms.html', type='add_holiday', form=form)
 
 
-#Duty schedule - Fiber, Support & Customer Care
+#Duty schedule - Create, Query
 fiber_teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel']
 
 class MultiCheckboxField(SelectMultipleField):
@@ -541,37 +542,31 @@ class Dutyschedulequery(FlaskForm):
     month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
     year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
 
-@forms.route('/forms/duty_schedule/<team>/<action>', methods=['GET', 'POST'])
+@forms.route('/forms/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
-def duty_schedule(team, action):
-    if team == 'fiber':
-        teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel']
-        if session['team'] not in teams:
-            flash('You are not a member of any fiber team', category='error')
-            return render_template('base.html') 
+def duty_schedule(action):
+    if action == 'create':
+        form = Dutyschedulecreate()
+        team_name_string = convert_team_name() + '%'
 
-        if action == 'create':
-            form = Dutyschedulecreate()
-            
-            names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
-                        Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
-            form.empid.choices = [(i.id, i.fullname) for i in names]
-        
-            shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
-            form.duty_shift.choices = [(i.id, i.name) for i in shifts]
+        names = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
+        form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+        shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
+        form.duty_shift.choices = [(i.id, i.name) for i in shifts]
 
-            return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
-        elif action == 'query':
-            form = Dutyschedulequery()
-            return render_template('forms.html', type='duty_schedule', action='query', team='fiber', form=form)
-        else:
-            current_app.logger.error(' duty_schedule(): <action> value not correct')
-            flash('Cannot create duty schedule form', category='error')
-            return render_template('base.html')
+        return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
+    elif action == 'query':
+        form = Dutyschedulequery()
+        return render_template('forms.html', type='duty_schedule', action='query', form=form)
+    else:
+        current_app.logger.error(' duty_schedule(): <action> value not correct')
+        flash('Cannot create duty schedule form', category='error')
+        return render_template('base.html')
     
     
-#Duty shift - create & query
+#Duty shift - create
 shifts = ['Morning', 'Evening', 'Night', 'Regular']
 class Dutyshiftcreate(FlaskForm):
     shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
