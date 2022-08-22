@@ -105,6 +105,7 @@ class DutyShift(db.Model):
 
 class DutySchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    team = db.Column(db.String, nullable=False)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     duty_shift = db.Column(db.Integer, db.ForeignKey('duty_shift.id'), nullable=False)
