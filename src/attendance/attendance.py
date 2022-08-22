@@ -61,9 +61,9 @@ def upload():
                     flash(error, category='error')
                     return redirect(request.url)
                 
-                data = Attendance.query.filter(Attendance.empid==empid, Attendance.date==date).first()
-                if data:
-                    error = f"Employee ID '{str(empid)}' & date '{date}' record already exists"
+                record_exists = Attendance.query.filter(Attendance.empid==empid, Attendance.date==date).first()
+                if record_exists:
+                    error = f"Employee ID '{str(empid)}' & date '{date}' record already exists in database or duplicate data in uploaded file"
                     flash(error, category='error')
                     return redirect(request.url)
 
