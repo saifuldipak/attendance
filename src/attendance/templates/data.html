@@ -481,20 +481,34 @@
 
     {% if type == 'duty_schedule' %}
         <div class="form-style-2-heading">Duty schedule</div>
-            <table class="query-result">
-                <th>Id</th>
-                <th>Date</th>
-                <th>Fullname</th>
-                <th>Shift</th>
-                {% for row in schedule %}
+            <form method="post" action="{{ url_for('attendance.duty_schedule', action='query') }}">
+                {{ form.csrf_token }}
+                <table>
                     <tr>
-                        <td>{{ row['id'] }}</td>
-                        <td>{{ row['date'] }}</td>
-                        <td>{{ row['employee']['fullname'] }}</td>
-                        <td>{{ row['dutyshift']['name'] }}</td>
+                        <td>{{ form.month.label }}</td>
+                        <td>{{ form.month}}</td>
+                        <td>{{ form.year.label }}</td>
+                        <td>{{ form.year }}</td>
+                        <td></td><td><input type="submit" value="Show" /></td>
                     </tr>
-                {% endfor %}
-            </table>
+                </table>
+                <p><a href={{ url_for('forms.duty_schedule', action='create') }}>Add schedule</a></p>
+                <table class="query-result">
+                    <th>Id</th>
+                    <th>Date</th>
+                    <th>Fullname</th>
+                    <th>Shift</th>
+                    <th>Action</th>
+                    {% for row in schedule %}
+                        <tr>
+                            <td>{{ row['id'] }}</td>
+                            <td>{{ row['date'] }}</td>
+                            <td>{{ row['employee']['fullname'] }}</td>
+                            <td>{{ row['dutyshift']['name'] }}</td>
+                            <td><a href={{ url_for('attendance.duty_schedule', action='delete', id=row['id']) }}>Delete</a></td>
+                        </tr>
+                    {% endfor %}
+                </table>
         </div>
     {% endif %}
 

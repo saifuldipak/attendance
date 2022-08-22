@@ -1,17 +1,17 @@
 from datetime import datetime, timedelta
 import os
-import re
+from re import search
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
 from attendance.leave import update_apprleaveattn
-from .check import check_access, check_application_dates
+from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
                     Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from re import search
+from .functions import convert_team_name
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -24,22 +24,6 @@ def month_name_num(month):
     months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 
                 'October', 'November', 'December']
     return months.index(month) + 1
-
-#Convert all team names of Fiber & Support to generic name
-def convert_team_name():
-    match = re.search('^Fiber', session['team'])
-    if match:
-        team_name = 'Fiber'
-
-    match = re.search('^Support', session['team'])
-    if match:
-        team_name = 'Support'
-
-    if team_name != 'Fiber' and team_name != 'Support':
-        team_name = session['team']
-    
-    return team_name
-
 
 attendance = Blueprint('attendance', __name__)
 
@@ -1019,56 +1003,86 @@ def application_fiber():
     return redirect(url_for('forms.attn_fiber'))
 
 
-@attendance.route('/attendance/duty_schedule/<team>/<action>', methods=['GET', 'POST'])
+@attendance.route('/attendance/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
-@supervisor_required
-def duty_schedule(team, action):
-    if team != 'fiber' and team !='support' and team !='care':
-        current_app.logger.error(' duty_schedule() - team name unknown')
-        flash('Unknown team name', category='error')
+@team_leader_required
+def duty_schedule(action):
+    if action != 'query' and action != 'create' and action != 'delete':
+        current_app.logger.error(' duty_shift() - action unknown')
+        flash('Unknown action', category='error')
         return render_template('base.html')
-    
+   
     if action == 'query':
         form = Dutyschedulequery()
     elif action == 'create':
-        form = Dutyschedulecreate()
-    else:
-        current_app.logger.error(' duty_schedule() - action unknown')
-        flash('Unknown action', category='error')
-        return render_template('base.html')    
-            
-    if form.validate_on_submit():
-        if action == 'create':
-            for empid in form.empid.data:
-                schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
-                                    DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
-            if schedule_exist:
-                employee = Employee.query.filter_by(id=empid).one()
-                msg = f'Schedule exists for {employee.fullname}'
-                flash(msg, category='error')
-                return redirect(url_for('forms.duty_schedule', team_name='fiber'))
+        form = Dutyschedulecreate()   
+    
+    team_name = convert_team_name()
+
+    if action == 'query':
+        if form.validate_on_submit():
+            month = form.month.data
+            year = form.year.data
+        else:
+            month = datetime.now().month
+            year = datetime.now().year
+
+        schedule = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).\
+                        filter(DutySchedule.team==team_name, extract('month', DutySchedule.date)==month,
+                        extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
         
-            while form.start_date.data <= form.end_date.data:
-                for empid in form.empid.data:
-                    schedule = DutySchedule(empid=empid, date=form.start_date.data, duty_shift=form.duty_shift.data)
-                    db.session.add(schedule)
-                form.start_date.data += timedelta(days=1)
+        return render_template('data.html', type='duty_schedule', schedule=schedule, form=form)
 
-            db.session.commit()
+    if action == 'create':
+        attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)
+        if attnsummary_prepared:
+            msg = 'Cannot create duty schedule (' + attnsummary_prepared + ')'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='create'))
+            
+        for empid in form.empid.data:
+            schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
+                                DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
+        if schedule_exist:
+            employee = Employee.query.filter_by(id=empid).one()
+            msg = f'Schedule exists for {employee.fullname}'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='create'))
+    
+        while form.start_date.data <= form.end_date.data:
+            for empid in form.empid.data:
+                schedule = DutySchedule(empid=empid, team=team_name, date=form.start_date.data, 
+                            duty_shift=form.duty_shift.data)
+                db.session.add(schedule)
+            form.start_date.data += timedelta(days=1)
 
-            flash('Duty schedule created', category='message')
+        db.session.commit()
 
-        if action == 'query':
-            if team == 'fiber':
-                schedule = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).\
-                            filter(Team.name.like("Fiber%"), extract('month', DutySchedule.date)==form.month.data, 
-                            extract('year', DutySchedule.date==form.year.data)).order_by(DutySchedule.date).all()
-               
-                return render_template('data.html', type='duty_schedule', schedule=schedule)
+        flash('Duty schedule created', category='message')
+        return redirect(url_for('attendance.duty_schedule', action='query'))
+    
+    if action == 'delete':
+        duty_schedule_id = request.args.get('id')
 
-    return render_template('forms.html', type='duty_schedule', team=team, action=action, form=form)
+        duty_schedule = DutySchedule.query.filter_by(id=duty_schedule_id).one()
 
-
+        if not duty_schedule:
+            flash('Duty schdule record not found', category='error')
+            current_app.logger.error('duty_schedule(action="delete"): Duty schedule id %s not found', duty_schedule_id)
+            return redirect(url_for('attendance.duty_schedule', action='query'))
+        
+        attnsummary_prepared = check_attnsummary(duty_schedule.date)
+        if attnsummary_prepared:
+            msg = 'Cannot delete duty schedule (' + attnsummary_prepared + ')'
+            flash(msg, category='error')
+            return redirect(url_for('attendance.duty_schedule', action='query'))
+        
+        db.session.delete(duty_schedule)
+        db.session.commit()
+        
+        flash('Duty schedule record deleted', category='message')
+        return redirect(url_for('attendance.duty_schedule', action='query'))
+    
 @attendance.route('/attendance/duty_shift/<action>', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
