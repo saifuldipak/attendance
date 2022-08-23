@@ -195,7 +195,6 @@ def files(name):
 @login_required
 @head_required
 def query_department(query_type):
-
     if query_type == 'date':
         form = Attnquerydate()
     elif query_type == 'username':
@@ -895,30 +894,35 @@ def prepare_summary():
         employees = Employee.query.all()
 
         count = 0
-        
         for employee in employees:
-            absent = db.session.query(func.count(Attendance.empid).label('count')).join(ApprLeaveAttn, 
-                        and_(Attendance.date==ApprLeaveAttn.date, Attendance.empid==ApprLeaveAttn.empid)).\
-                        filter(Attendance.empid==employee.id, extract('month', Attendance.date)==month_num, 
-                        Attendance.in_time=='00:00:00.000000', ApprLeaveAttn.approved=='').first()
-                            
-            late = db.session.query(func.count(Attendance.empid).label('count')).\
-                    join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                    Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
-                    extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
-                    Attendance.in_time > current_app.config['LATE'], ApprLeaveAttn.approved=='').first()
-                    
-            early = db.session.query(func.count(Attendance.empid).label('count')).\
-                    join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                    Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
-                    extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
-                    or_(Attendance.out_time=='00:00:00.000000', Attendance.out_time < current_app.config['EARLY']), 
-                    ApprLeaveAttn.approved=='').first()
+            attendances = Attendance.query.join(ApprLeaveAttn, and_(Attendance.empid==ApprLeaveAttn.empid, 
+                            Attendance.date==ApprLeaveAttn.date)).filter(Attendance.empid==employee.id, 
+                            extract('month', Attendance.date)==month_num, ApprLeaveAttn.approved=='').all()
+            absent_count = 0
+            late_count = 0
+            early_count = 0
+            for attendance in attendances:
+                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, 
+                                    DutySchedule.date==attendance.date).first()
+                if duty_schedule:
+                    standard_in_time = duty_schedule.dutyshift.in_time
+                    standard_out_time = duty_schedule.dutyshift.out_time
+                else:
+                    standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
+                    standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
 
-            if absent.count > 0 or late.count > 0 or early.count > 0:
-                attnsummary = AttnSummary(empid=employee.id, year=form.year.data, 
-                                month=form.month.data, absent=absent.count, late=late.count, 
-                                early=early.count)
+                if attendance.in_time == datetime.strptime('00:00:00', '%H:%M:%S').time():
+                    absent_count += 1
+
+                if attendance.in_time > standard_in_time:
+                    late_count += 1
+
+                if attendance.out_time < standard_out_time:
+                    early_count += 1
+
+            if absent_count > 0 or late_count > 0 or early_count > 0:
+                attnsummary = AttnSummary(empid=employee.id, year=form.year.data, month=form.month.data, 
+                                absent=absent_count, late=late_count, early=early_count)
                 db.session.add(attnsummary)
                 count += 1
             
