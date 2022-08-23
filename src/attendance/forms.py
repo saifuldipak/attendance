@@ -365,7 +365,7 @@ def attendance_query(query_type):
         query_for = 'All'
     elif session['role'] == 'Head':
         query_for = 'Department'
-    elif session['role'] == 'Manager':
+    elif session['role'] == 'Manager' or session['role'] == 'Supervisor':
         query_for = 'Team'
     else:
         current_app.logger.error('attendance_query(): Unknow user type %s, %s', session['role'], session['access'])
