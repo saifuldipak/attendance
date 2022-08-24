@@ -359,7 +359,7 @@ def attendance_query(query_type):
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
     
-    if session['role'] == 'Manager':
+    if session['role'] == 'Manager' or session['role'] == 'Supervisor':
         query_for = 'Team'
     elif session['role'] == 'Head':
         query_for = 'Department'
