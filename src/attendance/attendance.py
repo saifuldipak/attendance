@@ -257,7 +257,7 @@ def query_department(query_type):
 ##Query attendance data for team by managers##
 @attendance.route('/attendance/query/team/<query_type>', methods=['GET', 'POST'])
 @login_required
-@manager_required
+@team_leader_required
 def query_team(query_type):
     
     if query_type == 'date':
@@ -302,9 +302,9 @@ def query_team(query_type):
         if query_type == 'username':
             team = Team.query.join(Employee).filter(Employee.username==form.username.data).first()
 
-            manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager', 
-                        Employee.id==session['empid']).first()
-            if not manager:
+            team_leader = Employee.query.join(Team).filter(Team.name==team.name, or_(Employee.role=='Manager', 
+                        Employee.role=='Supervisor', Employee.id==session['empid'])).first()
+            if not team_leader:
                 current_app.logger.warning('query_team(): Trying to query attendance of another team by %s', session['username'])
                 flash('Username not found', category='error')
                 return render_template('attn_query.html')
