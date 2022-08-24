@@ -479,4 +479,59 @@
         </div>
     {% endif %}
 
+    {% if type == 'duty_schedule' %}
+        <div class="form-style-2-heading">Duty schedule</div>
+            <form method="post" action="{{ url_for('attendance.duty_schedule', action='query') }}">
+                {{ form.csrf_token }}
+                <table>
+                    <tr>
+                        <td>{{ form.month.label }}</td>
+                        <td>{{ form.month}}</td>
+                        <td>{{ form.year.label }}</td>
+                        <td>{{ form.year }}</td>
+                        <td></td><td><input type="submit" value="Show" /></td>
+                    </tr>
+                </table>
+                <p><a href={{ url_for('forms.duty_schedule', action='create') }}>Add schedule</a></p>
+                <table class="query-result">
+                    <th>Id</th>
+                    <th>Date</th>
+                    <th>Fullname</th>
+                    <th>Shift</th>
+                    <th>Action</th>
+                    {% for row in schedule %}
+                        <tr>
+                            <td>{{ row['id'] }}</td>
+                            <td>{{ row['date'] }}</td>
+                            <td>{{ row['employee']['fullname'] }}</td>
+                            <td>{{ row['dutyshift']['name'] }}</td>
+                            <td><a href={{ url_for('attendance.duty_schedule', action='delete', id=row['id']) }}>Delete</a></td>
+                        </tr>
+                    {% endfor %}
+                </table>
+        </div>
+    {% endif %}
+
+    {% if type == 'duty_shift' %}
+        <div class="form-style-2-heading">Duty Shift</div>
+            <table class="query-result">
+                <th>Team</th>
+                <th>Shift</th>
+                <th>In time</th>
+                <th>Out time</th>
+                <th>Action</th>
+                {% for shift in shifts %}
+                    <tr>
+                        <td>{{ shift['team'] }}</td>
+                        <td>{{ shift['name'] }}</td>
+                        <td>{{ shift['in_time'] }}</td>
+                        <td>{{ shift['out_time'] }}</td>
+                        <td><a href={{ url_for('attendance.duty_shift', action='delete', shift_id=shift['id']) }}>Delete</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <p><a href={{ url_for('forms.duty_shift_create') }}>Add shift</a></p>
+        </div>
+    {% endif %}
+
 {% endblock %}

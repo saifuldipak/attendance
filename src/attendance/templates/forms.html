@@ -401,32 +401,89 @@
 
     {% if type == 'duty_schedule' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.duty_schedule_fiber') }}">
-                    {{ form.csrf_token }}
-                    <div class="form-style-2-heading">Duty schedule Fiber</div>
-                    <table>
-                        {% for subfield in form.empid %}
-                            <tr>
-                                <td>{{ subfield }}</td>
-                                <td>{{ subfield.label }}</td>
-                            </tr>
-                        {% endfor %}
+                {% if action == 'create' %}
+                        <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='create') }}">
+                            {{ form.csrf_token }}
                     
-                        <tr>
-                            <td>{{ form.start_date.label }}</td>
-                            <td>{{ form.start_date }}</td>
-                            <td>{{ form.start_time }}</td>
-                        </tr>
-                        <tr>
-                            <td>{{ form.end_date.label }}</td>
-                            <td>{{ form.end_date }}</td>
-                            <td>{{ form.end_time }}</td>
-                        </tr>
-                    </table>
-                    <label>
-                        <span> </span>
-                        <input type="submit" value="Add" /></label>
-                    </label>
+                        <div class="form-style-2-heading">Create duty schedule</div>
+                        <table>
+                            {% for subfield in form.empid %}
+                                <tr>
+                                    <td>{{ subfield }}</td>
+                                    <td>{{ subfield.label }}</td>
+                                    
+                                </tr>
+                            {% endfor %}
+                            <tr>
+                                <td> {{ form.duty_shift.label }}</td>
+                                <td> {{ form.duty_shift}}</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>{{ form.start_date.label }}</td>
+                                <td>{{ form.start_date }}</td>
+                                <td>{{ form.start_time }}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ form.end_date.label }}</td>
+                                <td>{{ form.end_date }}</td>
+                                <td>{{ form.end_time }}</td>
+                            </tr>
+                        </table>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Add" /></label>
+                        </label>
+                    {% endif %}
+
+                    {% if action == 'query' %}
+                        <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='query') }}">
+                            {{ form.csrf_token }}
+                    
+                        <div class="form-style-2-heading">Show duty schedule</div>
+                        <table>
+                            <tr>
+                                <td> {{ form.month.label }}</td>
+                                <td> {{ form.month}}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ form.year.label }}</td>
+                                <td>{{ form.year }}</td>
+                              
+                            </tr>
+                        </table>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Show" /></label>
+                        </label>
+                    {% endif %}
+    {% endif %}
+
+    {% if type == 'duty_shift_create' %}
+        <form method="post" action="{{ url_for('attendance.duty_shift', team=team, action='create') }}">
+            {{ form.csrf_token }}
+    
+        <div class="form-style-2-heading">Create duty shift</div>
+        <table>
+            <tr>
+                <td> {{ form.shift_name.label }}</td>
+                <td> {{ form.shift_name}}</td>
+            </tr>
+            <tr>
+                <td>{{ form.in_time.label }}</td>
+                <td>{{ form.in_time }}</td>
+                <td>(HH:MM AM/PM)</td>
+            </tr>
+            <tr>
+                <td>{{ form.out_time.label }}</td>
+                <td>{{ form.out_time }}</td>
+                <td>(HH:MM AM/PM)</td>
+            </tr>
+        </table>
+        <label>
+            <span> </span>
+            <input type="submit" value="Add" /></label>
+        </label>
     {% endif %}
 
 {% endblock %}

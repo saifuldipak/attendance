@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import os
+from re import search
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
@@ -7,10 +8,10 @@ from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
 from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedule, Addholidays)
+                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from re import search
+from .functions import convert_team_name
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -60,9 +61,9 @@ def upload():
                     flash(error, category='error')
                     return redirect(request.url)
                 
-                data = Attendance.query.filter(Attendance.empid==empid, Attendance.date==date).first()
-                if data:
-                    error = f"Employee ID '{str(empid)}' & date '{date}' record already exists"
+                record_exists = Attendance.query.filter(Attendance.empid==empid, Attendance.date==date).first()
+                if record_exists:
+                    error = f"Employee ID '{str(empid)}' & date '{date}' record already exists in database or duplicate data in uploaded file"
                     flash(error, category='error')
                     return redirect(request.url)
 
@@ -194,7 +195,6 @@ def files(name):
 @login_required
 @head_required
 def query_department(query_type):
-
     if query_type == 'date':
         form = Attnquerydate()
     elif query_type == 'username':
@@ -257,7 +257,7 @@ def query_department(query_type):
 ##Query attendance data for team by managers##
 @attendance.route('/attendance/query/team/<query_type>', methods=['GET', 'POST'])
 @login_required
-@manager_required
+@team_leader_required
 def query_team(query_type):
     
     if query_type == 'date':
@@ -302,8 +302,8 @@ def query_team(query_type):
         if query_type == 'username':
             team = Team.query.join(Employee).filter(Employee.username==form.username.data).first()
 
-            manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager', 
-                        Employee.id==session['empid']).first()
+            manager = Employee.query.join(Team).filter(Team.name==team.name, or_(Employee.role=='Manager', 
+                        Employee.role=='Supervisor'), Employee.id==session['empid']).first()
             if not manager:
                 current_app.logger.warning('query_team(): Trying to query attendance of another team by %s', session['username'])
                 flash('Username not found', category='error')
@@ -894,30 +894,35 @@ def prepare_summary():
         employees = Employee.query.all()
 
         count = 0
-        
         for employee in employees:
-            absent = db.session.query(func.count(Attendance.empid).label('count')).join(ApprLeaveAttn, 
-                        and_(Attendance.date==ApprLeaveAttn.date, Attendance.empid==ApprLeaveAttn.empid)).\
-                        filter(Attendance.empid==employee.id, extract('month', Attendance.date)==month_num, 
-                        Attendance.in_time=='00:00:00.000000', ApprLeaveAttn.approved=='').first()
-                            
-            late = db.session.query(func.count(Attendance.empid).label('count')).\
-                    join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                    Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
-                    extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
-                    Attendance.in_time > current_app.config['LATE'], ApprLeaveAttn.approved=='').first()
-                    
-            early = db.session.query(func.count(Attendance.empid).label('count')).\
-                    join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                    Attendance.empid==ApprLeaveAttn.empid)).filter(Attendance.empid==employee.id, 
-                    extract('month', Attendance.date)==month_num, Attendance.in_time!='00:00:00.000000', 
-                    or_(Attendance.out_time=='00:00:00.000000', Attendance.out_time < current_app.config['EARLY']), 
-                    ApprLeaveAttn.approved=='').first()
+            attendances = Attendance.query.join(ApprLeaveAttn, and_(Attendance.empid==ApprLeaveAttn.empid, 
+                            Attendance.date==ApprLeaveAttn.date)).filter(Attendance.empid==employee.id, 
+                            extract('month', Attendance.date)==month_num, ApprLeaveAttn.approved=='').all()
+            absent_count = 0
+            late_count = 0
+            early_count = 0
+            for attendance in attendances:
+                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, 
+                                    DutySchedule.date==attendance.date).first()
+                if duty_schedule:
+                    standard_in_time = duty_schedule.dutyshift.in_time
+                    standard_out_time = duty_schedule.dutyshift.out_time
+                else:
+                    standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
+                    standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
 
-            if absent.count > 0 or late.count > 0 or early.count > 0:
-                attnsummary = AttnSummary(empid=employee.id, year=form.year.data, 
-                                month=form.month.data, absent=absent.count, late=late.count, 
-                                early=early.count)
+                if attendance.in_time == datetime.strptime('00:00:00', '%H:%M:%S').time():
+                    absent_count += 1
+
+                if attendance.in_time > standard_in_time:
+                    late_count += 1
+
+                if attendance.out_time < standard_out_time:
+                    early_count += 1
+
+            if absent_count > 0 or late_count > 0 or early_count > 0:
+                attnsummary = AttnSummary(empid=employee.id, year=form.year.data, month=form.month.data, 
+                                absent=absent_count, late=late_count, early=early_count)
                 db.session.add(attnsummary)
                 count += 1
             
@@ -1002,17 +1007,134 @@ def application_fiber():
     return redirect(url_for('forms.attn_fiber'))
 
 
-@attendance.route('/attendance/duty_schedule/fiber', methods=['GET', 'POST'])
+@attendance.route('/attendance/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
-@supervisor_required
-def duty_schedule_fiber():
-    form = Dutyschedule()
-
-    if form.validate_on_submit():
-        dates = f'{form.empid.data} {form.start_date.data} {form.start_time.data}/ {form.end_date.data} {form.end_time.data}'
-        flash(dates)
+@team_leader_required
+def duty_schedule(action):
+    if action != 'query' and action != 'create' and action != 'delete':
+        current_app.logger.error(' duty_shift() - action unknown')
+        flash('Unknown action', category='error')
+        return render_template('base.html')
+   
+    if action == 'query':
+        form = Dutyschedulequery()
+    elif action == 'create':
+        form = Dutyschedulecreate()   
     
-    return render_template('forms.html', type='duty_schedule', form=form)
+    team_name = convert_team_name()
+
+    if action == 'query':
+        if form.validate_on_submit():
+            month = form.month.data
+            year = form.year.data
+        else:
+            month = datetime.now().month
+            year = datetime.now().year
+
+        schedule = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).\
+                        filter(DutySchedule.team==team_name, extract('month', DutySchedule.date)==month,
+                        extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
+        
+        return render_template('data.html', type='duty_schedule', schedule=schedule, form=form)
+
+    if action == 'create':
+        attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)
+        if attnsummary_prepared:
+            msg = 'Cannot create duty schedule (' + attnsummary_prepared + ')'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='create'))
+            
+        for empid in form.empid.data:
+            schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
+                                DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
+        if schedule_exist:
+            employee = Employee.query.filter_by(id=empid).one()
+            msg = f'Schedule exists for {employee.fullname}'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='create'))
+    
+        while form.start_date.data <= form.end_date.data:
+            for empid in form.empid.data:
+                schedule = DutySchedule(empid=empid, team=team_name, date=form.start_date.data, 
+                            duty_shift=form.duty_shift.data)
+                db.session.add(schedule)
+            form.start_date.data += timedelta(days=1)
+
+        db.session.commit()
+
+        flash('Duty schedule created', category='message')
+        return redirect(url_for('attendance.duty_schedule', action='query'))
+    
+    if action == 'delete':
+        duty_schedule_id = request.args.get('id')
+
+        duty_schedule = DutySchedule.query.filter_by(id=duty_schedule_id).one()
+
+        if not duty_schedule:
+            flash('Duty schdule record not found', category='error')
+            current_app.logger.error('duty_schedule(action="delete"): Duty schedule id %s not found', duty_schedule_id)
+            return redirect(url_for('attendance.duty_schedule', action='query'))
+        
+        attnsummary_prepared = check_attnsummary(duty_schedule.date)
+        if attnsummary_prepared:
+            msg = 'Cannot delete duty schedule (' + attnsummary_prepared + ')'
+            flash(msg, category='error')
+            return redirect(url_for('attendance.duty_schedule', action='query'))
+        
+        db.session.delete(duty_schedule)
+        db.session.commit()
+        
+        flash('Duty schedule record deleted', category='message')
+        return redirect(url_for('attendance.duty_schedule', action='query'))
+
+
+@attendance.route('/attendance/duty_shift/<action>', methods=['GET', 'POST'])
+@login_required
+@team_leader_required
+def duty_shift(action):
+    if action != 'query' and action != 'create' and action != 'delete':
+        current_app.logger.error(' duty_shift() - action unknown')
+        flash('Unknown action', category='error')
+        return render_template('base.html')
+    
+    team_name = convert_team_name()
+
+    if action == 'query':
+        shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
+        return render_template('data.html', type='duty_shift', shifts=shifts)
+    
+    if action == 'create':
+        form = Dutyshiftcreate()
+        
+        if form.validate_on_submit():
+            shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, 
+                            DutyShift.team==team_name).all()
+            if shift_exist:
+                flash('Shift exists', category='error')
+                return redirect(url_for('forms.duty_shift_create', form=form))
+        
+            duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, 
+                            out_time=form.out_time.data)
+            db.session.add(duty_shift)
+            db.session.commit()
+
+            flash('Duty shift created', category='message')
+            return redirect(url_for('attendance.duty_shift', action='query'))
+
+    if action == 'delete':
+        shift_id = request.args.get('shift_id')
+        
+        shift = DutyShift.query.filter_by(id=shift_id).one()
+        if not shift:
+            flash('Shift not found', category='error')
+            current_app.logger.warning('duty_shift(action="delete"): Shift id not found')
+            return redirect(url_for('attendance.duty_shift', action='query'))
+        
+        db.session.delete(shift)
+        db.session.commit()
+
+        flash('Duty shift deleted', category='message')
+        return redirect(url_for('attendance.duty_shift', action='query'))
 
 
 @attendance.route('/attendance/holidays/<action>', methods=['GET', 'POST'])

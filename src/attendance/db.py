@@ -20,6 +20,7 @@ class Employee(db.Model):
     attendance = db.relationship('Attendance', cascade='delete, merge, save-update', backref='employee', lazy=True)
     approved = db.relationship('ApprLeaveAttn', cascade='delete, merge, save-update', backref='employee', lazy=True)
     attnsummary = db.relationship('AttnSummary', cascade='delete, merge, save-update', backref='employee', lazy=True)
+    dutyschedule = db.relationship('DutySchedule', cascade='delete, merge, save-update', backref='employee', lazy=True)
 
 #Employee team
 class Team(db.Model):
@@ -93,3 +94,19 @@ class Holidays(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
     name = db.Column(db.String, nullable=False)
+
+class DutyShift(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    team = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    in_time = db.Column(db.Time, nullable=False)
+    out_time = db.Column(db.Time, nullable=False)
+    dutyschedule = db.relationship('DutySchedule', cascade='delete, merge, save-update', backref='dutyshift', lazy=True)
+
+class DutySchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    team = db.Column(db.String, nullable=False)
+    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    duty_shift = db.Column(db.Integer, db.ForeignKey('duty_shift.id'), nullable=False)
+

@@ -112,7 +112,7 @@ def check_attnsummary(start_date, end_date=None):
             found = True
     
     if found:
-        msg = f'Cannot add/delete holidays. Attendance summary already prepared for {month}, {year}'
+        msg = f'Attendance summary already prepared for {month}, {year}'
         return msg
     
     return False

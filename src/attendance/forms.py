@@ -1,4 +1,6 @@
 from datetime import datetime
+import re
+from attendance.functions import convert_team_name
 from flask import Blueprint, Flask, current_app, flash, render_template, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
@@ -7,8 +9,8 @@ from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField,
                         EmailField, TelField, SelectField, RadioField, DateTimeField, TimeField, SelectMultipleField) 
 from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
                                 Optional, NumberRange)
-from .auth import admin_required, login_required, manager_required, supervisor_required
-from .db import Employee, Team
+from .auth import admin_required, login_required, manager_required, supervisor_required, team_leader_required
+from .db import Employee, Team, DutyShift
 from werkzeug.security import check_password_hash
 from sqlalchemy import or_
 
@@ -359,12 +361,12 @@ def attendance_query(query_type):
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
     
-    if session['role'] == 'Manager':
-        query_for = 'Team'
+    if session['access'] == 'Admin':
+        query_for = 'All'
     elif session['role'] == 'Head':
         query_for = 'Department'
-    elif session['access'] == 'Admin':
-        query_for = 'All'
+    elif session['role'] == 'Manager' or session['role'] == 'Supervisor':
+        query_for = 'Team'
     else:
         current_app.logger.error('attendance_query(): Unknow user type %s, %s', session['role'], session['access'])
         flash('Failed to create form', category='error')
@@ -523,26 +525,63 @@ def add_holiday():
     return render_template('forms.html', type='add_holiday', form=form)
 
 
-#Duty schedule - Fiber
+#Duty schedule - Create, Query
+fiber_teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel']
+
 class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
-class Dutyschedule(FlaskForm):
+class Dutyschedulecreate(FlaskForm):
     empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+    duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
     start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    start_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    end_time = TimeField('', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
-@forms.route('/forms/duty_schedule/fiber', methods=['GET', 'POST'])
+class Dutyschedulequery(FlaskForm):
+    month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
+    year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
+
+@forms.route('/forms/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
-@supervisor_required
-def duty_schedule_fiber():
-    form = Dutyschedule()
+@team_leader_required
+def duty_schedule(action):
+    if action == 'create':
+        form = Dutyschedulecreate()
+        team_name_string = convert_team_name() + '%'
 
-    names = Employee.query.join(Team).filter(or_(Team.name=='Fiber-Dhanmondi', Team.name=='Fiber-Gulshan', 
-                Team.name=='Fiber-Motijheel'), Employee.role=='Team').all()
-    form.empid.choices = [(i.id, i.fullname) for i in names]
+        names = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
+        form.empid.choices = [(i.id, i.fullname) for i in names]
     
-    return render_template('forms.html', type='duty_schedule', team='fiber', form=form)
+        shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
+        form.duty_shift.choices = [(i.id, i.name) for i in shifts]
+
+        return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
+    elif action == 'query':
+        form = Dutyschedulequery()
+        return render_template('forms.html', type='duty_schedule', action='query', form=form)
+    else:
+        current_app.logger.error(' duty_schedule(): <action> value not correct')
+        flash('Cannot create duty schedule form', category='error')
+        return render_template('base.html')
+    
+    
+#Duty shift - create
+shifts = ['Morning', 'Evening', 'Night', 'Regular']
+class Dutyshiftcreate(FlaskForm):
+    shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
+    in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    out_time = TimeField('Out time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+
+class Dutyshiftquery(FlaskForm):
+    month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
+    year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
+
+@forms.route('/forms/duty_shift/create', methods=['GET', 'POST'])
+@login_required
+@team_leader_required
+def duty_shift_create():
+    form = Dutyshiftcreate()
+    return render_template('forms.html', type='duty_shift_create', form=form)
+    
+    
