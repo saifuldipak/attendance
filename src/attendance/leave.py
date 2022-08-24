@@ -1,4 +1,4 @@
-from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, `session, flash, url_for)
+from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, session, flash, url_for)
 from sqlalchemy import and_, or_
 from .check import check_access, check_holiday_dates, check_application_dates
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttnSummary)
@@ -856,7 +856,7 @@ def summary_self():
 ##Leave summary team##
 @leave.route('/leave/summary/team')
 @login_required
-@manager_required     
+@team_leader_required     
 def summary_team():
     teams = Team.query.filter_by(empid=session['empid']).all()
     team_leaves = []
