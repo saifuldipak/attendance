@@ -7,7 +7,7 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
-from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
+from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
                     Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
@@ -1135,3 +1135,55 @@ def duty_shift(action):
         flash('Duty shift deleted', category='message')
         return redirect(url_for('attendance.duty_shift', action='query'))
 
+@attendance.route('/employee/holidays/<action>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def holidays(action):
+    
+    if action == 'show':
+        holidays = Holidays.query.filter(extract('year', Holidays.date)==datetime.now().year).all()
+        return render_template('data.html', type='holidays', holidays=holidays)
+    elif action == 'add':
+        form = Addholidays()
+
+        if form.validate_on_submit():
+            if not form.end_date.data:
+                form.end_date.data = form.start_date.data
+            
+            rv = check_attnsummary(form.start_date.data, form.end_date.data)
+            if rv:
+                flash(rv, category='error')
+                return redirect(url_for('employee.holidays', action='show'))
+
+            holiday = Holidays.query.filter(Holidays.date>=form.start_date.data, Holidays.date<=form.end_date.data).first()
+            if holiday:
+                    flash('Date exists in holidays', category='error')
+                    return redirect(url_for('employee.holidays', action='show'))
+
+            while form.start_date.data <= form.end_date.data:
+                holiday = Holidays(date=form.start_date.data, name=form.name.data)
+                db.session.add(holiday)
+                form.start_date.data += timedelta(days=1)
+            
+            db.session.commit()
+            return redirect(url_for('employee.holidays', action='show'))
+
+        return render_template('forms.html', type='add_holiday', form=form)
+    elif action == 'delete':
+        holiday_name = request.args.get('holiday_name')
+        holidays = Holidays.query.filter_by(name=holiday_name).all()
+        for holiday in holidays:
+            rv = check_attnsummary(holiday.date)
+            if rv:
+                flash(rv, category='error')
+                return redirect(url_for('employee.holidays', action='show'))
+        
+        for holiday in holidays:
+            db.session.delete(holiday)
+        
+        db.session.commit()
+    else:
+        current_app.logger.error(' holidays(): unknown action %s', action)
+        flash('Unknown action', category='error')
+    
+    return redirect(url_for('employee.holidays', action='show'))
