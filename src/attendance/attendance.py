@@ -7,7 +7,7 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
-from .forms import (Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
+from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
                     Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
@@ -1179,7 +1179,6 @@ def holidays(action):
         return render_template('forms.html', type='add_holiday', form=form)
     elif action == 'delete':
         holiday_name = request.args.get('holiday_name')
-
         holidays = Holidays.query.filter_by(name=holiday_name).all()
         for holiday in holidays:
             rv = check_attnsummary(holiday.date)
