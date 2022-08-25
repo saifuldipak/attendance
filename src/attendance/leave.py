@@ -1,14 +1,12 @@
-from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, 
-                    session, flash, url_for)
+from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, session, flash, url_for)
 from sqlalchemy import and_, or_
 from .check import check_access, check_holiday_dates, check_application_dates
-from .db import (ApprLeaveAttn, Attendance, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, 
-                    LeaveAvailable, AttnSummary)
+from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttnSummary)
 from .mail import send_mail
-from .auth import admin_required, login_required, manager_required, head_required, supervisor_required, team_leader_required
+from .auth import *
 from werkzeug.utils import secure_filename
 import os
-from .forms import (Createleave, Employeedelete, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
+from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
 import datetime
 
 
@@ -112,10 +110,10 @@ def return_available_leave(empid, start_date, duration):
     if summary:
         return f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
                 
-    leave = LeaveAvailable.query.filter_by(empid=employee.id).first()
+    leave = LeaveAvailable.query.filter_by(empid=empid).first()
     if not leave:
-        current_app.logger.warning(' cancel_team(): no data found in leave_available table for %s', employee.username)
-        return f'No leave available for {employee.username}'
+        current_app.logger.warning(' cancel_team(): no data found in leave_available table for employee id: %s', empid)
+        return f'No leave available for employee id: {empid}'
             
     if application.type == 'Casual':
         leave.casual = leave.casual + application.duration
@@ -858,7 +856,7 @@ def summary_self():
 ##Leave summary team##
 @leave.route('/leave/summary/team')
 @login_required
-@manager_required     
+@team_leader_required     
 def summary_team():
     teams = Team.query.filter_by(empid=session['empid']).all()
     team_leaves = []
@@ -1066,7 +1064,7 @@ def deduction():
         flash('You have already deducted leave for this month', category='error')
         return redirect(url_for('forms.leave_deduction'))
 
-    summary = AttnSummary.query.filter(AttnSummary.year==form.year.data).filter(AttnSummary.month==form.month.data).all()
+    summary = AttnSummary.query.filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
     if summary:
         for employee in summary:
             if employee.late >= 3 or employee.early >= 3:
