@@ -71,7 +71,12 @@ def upload():
                                 Applications.end_date <= date, Applications.status=='Approved').first()
                 
                 weekday = date.strftime("%A")
-                team = Team.query.filter_by(empid=empid).first()
+                team = Team.query.filter_by(empid=employee.id).first()
+                if not team:
+                    msg = f'Team name not found for {employee.fullname}'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.upload'))
+
                 match = search(r'^Fiber', team.name)
                 holiday = Holidays.query.filter_by(date=date).first()
 
