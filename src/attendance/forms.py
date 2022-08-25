@@ -291,7 +291,7 @@ def attn_fiber():
 teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 
                 'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Implementation', 
                 'Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
-                'Accounts']
+                'Accounts', 'Sales']
 roles = ['Team', 'Supervisor', 'Manager', 'Head']
 access = ['User', 'Admin', 'None']
 
