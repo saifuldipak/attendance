@@ -110,3 +110,11 @@ class DutySchedule(db.Model):
     date = db.Column(db.Date, nullable=False)
     duty_shift = db.Column(db.Integer, db.ForeignKey('duty_shift.id'), nullable=False)
 
+#Monthly leave deduction of each employee
+class LeaveDeductionSummary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    month = db.Column(db.Integer, nullable=False)
+    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    late_early = db.Column(db.Integer) #days leave deducted due to late & early days
+    casual_overlap = db.Column(db.Integer) #days leave deducted due to casual before or after holidays
+    salary_deduct = db.Column(db.Integer) #days salary deducted due to leave unavailable
