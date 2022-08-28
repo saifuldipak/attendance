@@ -113,6 +113,7 @@ class DutySchedule(db.Model):
 #Monthly leave deduction of each employee
 class LeaveDeductionSummary(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     late_early = db.Column(db.Integer) #days leave deducted due to late & early days
