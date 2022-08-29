@@ -66,11 +66,10 @@ def upload():
                     error = f"Employee ID '{str(empid)}' & date '{date}' record already exists in database or duplicate data in uploaded file"
                     flash(error, category='error')
                     return redirect(request.url)
-
+                
                 application = Applications.query.filter(Applications.empid==empid, Applications.start_date >= date, 
                                 Applications.end_date <= date, Applications.status=='Approved').first()
                 
-                weekday = date.strftime("%A")
                 team = Team.query.filter_by(empid=employee.id).first()
                 if not team:
                     msg = f'Team name not found for {employee.fullname}'
@@ -79,21 +78,26 @@ def upload():
 
                 match = search(r'^Fiber', team.name)
                 holiday = Holidays.query.filter_by(date=date).first()
+                weekday = date.strftime("%A")
 
                 if application:
-                    approved = application.type
-                elif holiday or weekday == 'Friday':
-                    approved = 'Holiday'
-                elif weekday == 'Saturday':
-                    if match:
-                        approved = ''
-                    else:
-                        approved = 'Holiday'     
+                    application_id = application.id
                 else:
-                    approved = ''    
+                    application_id = None
 
-                apprleaveattn = ApprLeaveAttn(empid=empid, date=date, approved=approved)
-                db.session.add(apprleaveattn)
+                if holiday:
+                    holiday_id = holiday.id
+                elif weekday == 'Friday':
+                    holiday_id = 0
+                elif weekday == 'Saturday':
+                    if not match:
+                        holiday_id = 1     
+                else:
+                    holiday_id = None    
+
+                applications_holidays = ApplicationsHolidays(empid=empid, date=date, application_id=application_id, 
+                                            holiday_id=holiday_id)
+                db.session.add(applications_holidays)
 
                 attendance = Attendance(empid=empid, date=date, in_time=in_time, out_time=out_time)
                 db.session.add(attendance)
