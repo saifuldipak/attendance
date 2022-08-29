@@ -1052,12 +1052,12 @@ def duty_schedule(action):
         for empid in form.empid.data:
             schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
                                 DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
-        if schedule_exist:
-            employee = Employee.query.filter_by(id=empid).one()
-            msg = f'Schedule exists for {employee.fullname}'
-            flash(msg, category='error')
-            return redirect(url_for('forms.duty_schedule', action='create'))
-    
+            if schedule_exist:
+                employee = Employee.query.filter_by(id=empid).one()
+                msg = f'Schedule exists for {employee.fullname}'
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_schedule', action='create'))
+        
         while form.start_date.data <= form.end_date.data:
             for empid in form.empid.data:
                 schedule = DutySchedule(empid=empid, team=team_name, date=form.start_date.data, 
