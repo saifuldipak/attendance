@@ -11,7 +11,7 @@ from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername
                     Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import convert_team_name
+from .functions import check_holidays, convert_team_name
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -1154,7 +1154,7 @@ def duty_shift(action):
 def holidays(action):
     
     if action == 'show':
-        holidays = Holidays.query.filter(extract('year', Holidays.date)==datetime.now().year).all()
+        holidays = Holidays.query.filter(extract('year', Holidays.start_date)==datetime.now().year, extract('year', Holidays.end_date)==datetime.now().year).all()
         return render_template('data.html', type='holidays', holidays=holidays)
     elif action == 'add':
         form = Addholidays()
@@ -1167,43 +1167,54 @@ def holidays(action):
             if rv:
                 flash(rv, category='error')
                 return redirect(url_for('attendance.holidays', action='show'))
-
-            holiday = Holidays.query.filter(Holidays.date>=form.start_date.data, Holidays.date<=form.end_date.data).first()
-            if holiday:
-                    flash('Date exists in holidays', category='error')
-                    return redirect(url_for('attendance.holidays', action='show'))
-
-            while form.start_date.data <= form.end_date.data:
-                holiday = Holidays(date=form.start_date.data, name=form.name.data)
-                db.session.add(holiday)
-                
-                attendances = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==form.start_date.data).all()
-                if attendances:
-                    for attendance in attendances:
-                        attendance.approved = form.name.data 
-                
-                form.start_date.data += timedelta(days=1)
             
+            holiday_exists = check_holidays(form.name.data, form.start_date.data, form.end_date.data)
+            if holiday_exists:
+                    flash(holiday_exists, category='error')
+                    return redirect(url_for('attendance.holidays', action='show'))
+            
+            duration = (form.end_date.data - form.start_date.data).days + 1
+
+            holiday = Holidays(name=form.name.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration)
+            db.session.add(holiday)
             db.session.commit()
+
+            holiday = Holidays.query.filter_by(name=form.name.data, start_date=form.start_date.data, end_date=form.end_date.data).first()
+            if holiday:
+                dates = ApplicationsHolidays.query.filter(ApplicationsHolidays.date>=form.start_date.data, ApplicationsHolidays.date<=form.end_date.data).all()
+                
+                for date in dates:
+                    date.holiday_id = holiday.id
+                
+                db.session.commit()
+            else:
+                current_app.logger.error("Holiday '%s' not found", form.name.data)
+                msg = f'No holiday named {form.name.data}'
+                flash(msg, category='error')
+                
             return redirect(url_for('attendance.holidays', action='show'))
 
         return render_template('forms.html', type='add_holiday', form=form)
     elif action == 'delete':
-        holiday_name = request.args.get('holiday_name')
-        holidays = Holidays.query.filter_by(name=holiday_name).all()
-        for holiday in holidays:
-            rv = check_attnsummary(holiday.date)
-            if rv:
-                flash(rv, category='error')
-                return redirect(url_for('attendance.holidays', action='show'))
+        holiday_id = request.args.get('holiday_id')
+        holiday = Holidays.query.filter_by(id=holiday_id).first()
         
-        for holiday in holidays:
-            attendances = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==holiday.date).all()
-            if attendances:
-                for attendance in attendances:
-                    attendance.approved = ''
-            
-            db.session.delete(holiday)
+        if not holiday:
+            current_app.logger.error('Holiday id: %s not found in holidays table', holiday_id)
+            flash('Holiday not found', category='error')
+            return redirect(url_for('attendance.holidays', action='show'))
+
+        rv = check_attnsummary(holiday.start_date, holiday.end_date)
+        if rv:
+            flash(rv, category='error')
+            return redirect(url_for('attendance.holidays', action='show'))
+        
+        holidays = ApplicationsHolidays.query.filter(ApplicationsHolidays.date>=holiday.start_date, ApplicationsHolidays.date<=holiday.end_date).all()
+        if holidays:
+            for holiday in holidays:
+                holidays.holiday_id = None
+        
+        db.session.delete(holiday)
         
         db.session.commit()
     else:
