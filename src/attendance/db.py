@@ -93,9 +93,12 @@ class LeaveDeduction(db.Model):
 #Holiday dates
 class Holidays(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date, nullable=False)
     name = db.Column(db.String, nullable=False)
-
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    applications_holidays = db.relationship('ApplicationsHolidays', cascade='delete, merge, save-update', backref='holidays', lazy=True)
+    
 class DutyShift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     team = db.Column(db.String, nullable=False)
