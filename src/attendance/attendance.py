@@ -78,7 +78,6 @@ def upload():
 
                 match = search(r'^Fiber', team.name)
                 holiday = Holidays.query.filter_by(date=date).first()
-                weekday = date.strftime("%A")
 
                 if application:
                     application_id = application.id
@@ -87,16 +86,19 @@ def upload():
 
                 if holiday:
                     holiday_id = holiday.id
-                elif weekday == 'Friday':
-                    holiday_id = 0
-                elif weekday == 'Saturday':
-                    if not match:
-                        holiday_id = 1     
                 else:
-                    holiday_id = None    
+                    holiday_id = None
 
-                applications_holidays = ApplicationsHolidays(empid=empid, date=date, application_id=application_id, 
-                                            holiday_id=holiday_id)
+                day_name = date.strftime("%A")
+                if  day_name == 'Friday':
+                    weekend_id = 7
+                elif day_name == 'Saturday':
+                    if not match:
+                        weekend_id = 1
+                    else:
+                        weekend_id = None     
+
+                applications_holidays = ApplicationsHolidays(empid=empid, date=date, application_id=application_id, holiday_id=holiday_id, weekend_id=weekend_id)
                 db.session.add(applications_holidays)
 
                 attendance = Attendance(empid=empid, date=date, in_time=in_time, out_time=out_time)
