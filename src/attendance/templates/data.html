@@ -463,15 +463,19 @@
         <div class="form-style-2-heading">Holidays</div>
             <table class="query-result">
                 <th>Id</th>
-                <th>Date</th>
                 <th>Name</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Duration(days)</th>
                 <th>Action</th>
                 {% for holiday in holidays %}
                     <tr>
                         <td>{{ holiday['id'] }}</td>
-                        <td>{{ holiday['date'] }}</td>
                         <td>{{ holiday['name'] }}</td>
-                        <td><a href={{ url_for('attendance.holidays', action='delete', holiday_name=holiday['name']) }}>Delete</a></td>
+                        <td>{{ holiday['start_date'] }}</td>
+                        <td>{{ holiday['end_date'] }}</td>
+                        <td>{{ holiday['duration'] }}</td>
+                        <td><a href={{ url_for('attendance.holidays', action='delete', holiday_id=holiday['id']) }}>Delete</a></td>
                     </tr>
                 {% endfor %}
                 <tr><td><a href={{ url_for('attendance.holidays', action='add') }}>Add</a></td></tr>
