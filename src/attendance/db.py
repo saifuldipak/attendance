@@ -129,6 +129,6 @@ class ApplicationsHolidays(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    application_id = db.Column(db.Integer, db.ForeignKey('applications.id'), unique=True)
+    application_id = db.Column(db.Integer, db.ForeignKey('applications.id'))
     holiday_id = db.Column(db.Integer, db.ForeignKey('holidays.id'))
     weekend_id = db.Column(db.Integer)
