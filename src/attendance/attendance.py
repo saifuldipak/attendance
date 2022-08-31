@@ -67,8 +67,8 @@ def upload():
                     flash(error, category='error')
                     return redirect(request.url)
                 
-                application = Applications.query.filter(Applications.empid==empid, Applications.start_date >= date, 
-                                Applications.end_date <= date, Applications.status=='Approved').first()
+                application = Applications.query.filter(Applications.empid==empid, Applications.start_date<=date, 
+                                Applications.end_date>=date, Applications.status=='Approved').first()
                 
                 team = Team.query.filter_by(empid=employee.id).first()
                 if not team:
@@ -77,7 +77,7 @@ def upload():
                     return redirect(url_for('forms.upload'))
 
                 match = search(r'^Fiber', team.name)
-                holiday = Holidays.query.filter_by(date=date).first()
+                holiday = Holidays.query.filter(Holidays.start_date<=date, Holidays.end_date>=date).first()
 
                 if application:
                     application_id = application.id
@@ -1191,7 +1191,7 @@ def holidays(action):
                 current_app.logger.error("Holiday '%s' not found", form.name.data)
                 msg = f'No holiday named {form.name.data}'
                 flash(msg, category='error')
-                
+
             return redirect(url_for('attendance.holidays', action='show'))
 
         return render_template('forms.html', type='add_holiday', form=form)
