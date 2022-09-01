@@ -1,6 +1,8 @@
+import datetime
 import re
-from attendance.db import Holidays
+from .db import db, ApplicationsHolidays, Holidays
 from flask import session
+
 
 #Convert all team names of Fiber & Support to generic name
 def convert_team_name():
@@ -36,3 +38,13 @@ def check_holidays(name, start_date, end_date=None):
             any_date_exists = Holidays.query.filter(Holidays.start_date>start_date, Holidays.end_date<end_date).first()
             if any_date_exists:
                 return 'Holiday start and/or end dates overlaps with other holidays'
+
+def update_applications_holidays(empid, start_date, end_date, application_id):
+    while start_date <= end_date:
+        attendance = ApplicationsHolidays.query.filter(ApplicationsHolidays.date==start_date, ApplicationsHolidays.empid==empid).first()
+        if attendance:
+            attendance.application_id = application_id
+        
+        start_date += datetime.timedelta(days=1)
+    
+    db.session.commit()
