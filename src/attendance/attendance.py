@@ -7,8 +7,7 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
-from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
+from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from .functions import check_holidays, convert_team_name
@@ -132,12 +131,7 @@ def query_all(query_type):
     if form.validate_on_submit():
         
         if query_type == 'date':
-            attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, 
-                            and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).\
-                            with_entities(Employee.fullname, Attendance.date, Attendance.in_time, 
-                            Attendance.out_time, ApprLeaveAttn.approved).\
-                            filter(Attendance.date==form.date.data).all()
+            attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, Attendance.empid==ApprLeaveAttn.empid)).with_entities(Employee.fullname, Attendance.date, Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).filter(Attendance.date==form.date.data).all()
             
             if not attendance:
                 flash('No record found', category='warning')
@@ -172,7 +166,7 @@ def query_all(query_type):
                             attendance_list.append(None) 
                         
                         attendances_list.append(attendance_list)
-                        
+
                     attendances = attendances_list
                 else:
                     flash('No record found', category='warning')
@@ -1222,11 +1216,15 @@ def holidays(action):
             flash(rv, category='error')
             return redirect(url_for('attendance.holidays', action='show'))
         
-        holidays = ApplicationsHolidays.query.filter(ApplicationsHolidays.date>=holiday.start_date, ApplicationsHolidays.date<=holiday.end_date).all()
-        if holidays:
-            for holiday in holidays:
-                holidays.holiday_id = None
-        
+        dates = ApplicationsHolidays.query.filter(ApplicationsHolidays.holiday_id==holiday_id).all()
+        if dates:
+            for date in dates:
+                date.holiday_id = None
+        else:
+            current_app.logger.error('Holiday "%s" not found in applications_holidays table', holiday.name)
+            flash('Holiday id not found', category='error')
+            return redirect(url_for('attendance.holidays', action='show'))
+
         db.session.delete(holiday)
         
         db.session.commit()
