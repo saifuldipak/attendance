@@ -129,11 +129,9 @@ def supervisor_required(view):
 def team_leader_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
-        
-        if g.user.role != 'Supervisor' and g.user.role != 'Manager':
+        team_leaders = ['Supervisor', 'Manager', 'Head']    
+        if g.user.role not in team_leaders:
             flash('You are not authorized to access', category='error')
             return render_template('base.html')
-
         return view(**kwargs)
-    
     return wrapped_view
