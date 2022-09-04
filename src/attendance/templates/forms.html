@@ -265,36 +265,39 @@
                 {% endif %}    
                 
                 {{ form.csrf_token }}
-                    
-                {% if team == 'fiber' %}
-                    <label for="empid">
-                        <span>{{ form.empid.label }}</span>
-                        {{ form.empid }}                    
-                    </label>
-                {% endif %}
-                
-                <label for="start_date">
-                    <span>{{ form.start_date.label }}</span>
-                        {{ form.start_date }}
-                </label>
-                <label for="end_date">
-                    <span>{{ form.end_date.label }} </span>
-                    {{ form.end_date }}(optional)
-                </label>
-                <label for="end_date">
-                    <span>{{ form.type.label }}</span>
-                        {% for subfield in form.type %}
-                        <span>{{ subfield }}{{ subfield.label }} </span> 
-                        {% endfor %}
-                </label>
-                <label for="remark">
-                    <span>{{ form.remark.label }} </span>
-                    {{ form.remark }}
-                </label>
-                <label>
-                    <span> </span>
-                    <input type="submit" value="Submit" /></label>
-                </label>
+                <table>
+                    {% if team == 'fiber' %}
+                        <tr>
+                            <td>{{ form.empid.label }}</td>
+                            <td>{{ form.empid }}</td>
+                        </tr>
+                    {% endif %}
+                        <tr>
+                            <td>{{ form.start_date.label }}</td>
+                            <td>{{ form.start_date }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.end_date.label }}</td>
+                            <td>{{ form.end_date }}(optional)</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.type.label }}</td>
+                            <td>
+                                {% for subfield in form.type %}
+                                    {{ subfield }}{{ subfield.label }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.remark.label }}</td>
+                            <td>{{ form.remark }}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td><input type="submit" value="Submit" /></td>
+                        </tr>
+
+                </table>
     {% endif %}
 
     {# -- attendance summary prepare -- #}

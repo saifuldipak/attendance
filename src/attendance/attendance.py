@@ -95,7 +95,9 @@ def upload():
                     if not match:
                         weekend_id = 1
                     else:
-                        weekend_id = None     
+                        weekend_id = None
+                else:
+                    weekend_id = None     
 
                 applications_holidays = ApplicationsHolidays(empid=empid, date=date, application_id=application_id, holiday_id=holiday_id, weekend_id=weekend_id)
                 db.session.add(applications_holidays)
@@ -115,7 +117,7 @@ def upload():
 def query_menu():
     return render_template('attn_query.html')
 
-#
+
 @attendance.route('/attendance/query/all/<query_type>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -155,7 +157,6 @@ def query_all(query_type):
                         
                         if  attendance_list[3]:
                             application = Applications.query.filter_by(id=attendance_list[3]).first()
-                            current_app.logger.error('%s', attendance_list[3])
                             attendance_list.append(application.type)
                         else:
                             attendance_list.append(None)
