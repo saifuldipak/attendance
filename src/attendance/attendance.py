@@ -863,10 +863,10 @@ def approval_department():
         return redirect(url_for('attendance.appl_status_department'))
 
     if application.employee.role != 'Team':
-        manager.email = None 
+        manager_email = None 
     
     rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], 
-            receiver=admin.email, cc1=application.employee.email, cc2=manager.email, application=application, type='attendance', 
+            receiver=admin.email, cc1=application.employee.email, cc2=manager_email, application=application, type='attendance', 
             action='approved')
     if rv:
         current_app.logger.warning(rv)
