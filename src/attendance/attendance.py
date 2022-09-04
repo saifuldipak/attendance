@@ -973,23 +973,34 @@ def application_fiber():
 
         duration = (form.end_date.data - form.start_date.data).days + 1
 
-        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, 
-                        duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), 
-                        status='Approved')
+        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), status='Approved')
         db.session.add(application)
         db.session.commit()
         flash('Attendance application approved', category='message')
         
-        update_apprleaveattn(employee.id, form.start_date.data, form.end_date.data, form.type.data)
+        application = Applications.query.filter_by(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, type=form.type.data).first()
+        if not application:
+            current_app.logger.error('Application employee: %s, type: %s, start_date: %s, end_date: %s not found', employee.id, form.start_date.data, form.end_date.data, form.type.data)
+            return redirect(url_for('forms.attn_fiber'))
+
+        update_applications_holidays(employee.id, form.start_date.data, form.end_date.data, application.id)
         db.session.commit()
         
-        #Send mail to all concerned 
-        application = Applications.query.filter_by(empid=employee.id, 
-                                                start_date=form.start_date.data, 
-                                                end_date=form.end_date.data, type=form.type.data).first()
-       
-        manager = Employee.query.join(Team).filter(Team.name==session['team'], 
-                                                    Employee.role=='Manager').first()
+        #Send mail to all concerned
+        supervisor = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Supervisor').first()
+        if supervisor:
+            if not supervisor.email:
+                current_app.logger.warning('application_fiber(): Supervisor email not found for %s', session['username'])
+                rv = 'failed'
+        else:
+            current_app.logger.warning('application_fiber(): Supervisor email not found for %s', session['username'])
+            rv = 'failed'
+
+        manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
+        if not manager:
+            manager_email = ''
+        else:
+            manager_email = manager.email
 
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
         if not admin:
@@ -1003,17 +1014,16 @@ def application_fiber():
         
         if 'rv' in locals():
             flash('Failed to send mail', category='warning')
-            return redirect(request.url)
+            return redirect(url_for('forms.attn_fiber'))
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-                        cc1=head.email, application=application, type='attendance', action='approved')
+        rv = send_mail(host=host, port=port, sender=supervisor.email, receiver=admin.email, cc1=manager_email, cc2=head.email, application=application, type='attendance', action='approved')
         
         if rv:
             current_app.logger.warning(rv)
             flash('Failed to send mail', category='warning')
-            return redirect(request.url)
+            return redirect(url_for('forms.attn_fiber'))
 
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
