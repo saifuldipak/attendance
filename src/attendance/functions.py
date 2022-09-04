@@ -1,6 +1,6 @@
 import datetime
 import re
-from .db import db, ApplicationsHolidays, Holidays
+from .db import Employee, db, ApplicationsHolidays, Holidays, Applications, Team
 from flask import session
 
 
@@ -48,3 +48,21 @@ def update_applications_holidays(empid, start_date, end_date, application_id):
         start_date += datetime.timedelta(days=1)
     
     db.session.commit()
+
+#check whether session user is the team leader of the employee of the supplied application_id 
+def check_team_access(application_id):
+    employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
+    
+    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    if supervisor:
+        return True
+
+    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+    if manager:
+        return True
+
+    head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
+    if head:
+        return True
+
+    return False
