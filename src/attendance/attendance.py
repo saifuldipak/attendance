@@ -10,7 +10,7 @@ from .mail import send_mail
 from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_holidays, convert_team_name
+from .functions import check_holidays, convert_team_name, update_applications_holidays, check_team_access
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -155,6 +155,7 @@ def query_all(query_type):
                         
                         if  attendance_list[3]:
                             application = Applications.query.filter_by(id=attendance_list[3]).first()
+                            current_app.logger.error('%s', attendance_list[3])
                             attendance_list.append(application.type)
                         else:
                             attendance_list.append(None)
@@ -782,24 +783,22 @@ def appl_status_all():
     return render_template('data.html', type='attn_appl_status', user='all', 
                         applications=applications)
 
-##Attendance application approval for Team##
-@attendance.route('/attendance/application/approval/team')
+
+@attendance.route('/attendance/application/approval')
 @login_required
-@manager_required
-def approval_team():
+@team_leader_required
+def approval():
     application_id = request.args.get('application_id')
     
-    if not check_access(application_id):
-        flash('You are not authorizes to perform this action', category='error')
+    if not check_team_access(application_id):
+        flash('You are not authorized to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
-    #Approve application and update appr_leave_attn table
     application = Applications.query.filter_by(id=application_id).first()
     start_date = application.start_date
     end_date = application.end_date
-    type = request.args.get('type')
     
-    update_apprleaveattn(application.empid, start_date, end_date, type)
+    update_applications_holidays(application.empid, start_date, end_date, application_id)
     
     application.status = 'Approved'
     application.approval_date = datetime.now()
@@ -817,22 +816,19 @@ def approval_team():
         current_app.logger.warning('Team Manager email not found')
         msg = 'warning'
 
-    head = Employee.query.filter(Employee.department==application.employee.department, 
-                                    Employee.role=='Head').first()
+    head = Employee.query.filter(Employee.department==application.employee.department, Employee.role=='Head').first()
     if not head:
         current_app.logger.warning('Dept. Head email not found')
         msg = 'warning'
     
     if 'msg' in locals():
         flash('Failed to send mail', category='warning')
-        return redirect(request.url)
+        return redirect(url_for('attendance.appl_status_team'))
 
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
     
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-                    cc1=application.employee.email, cc2=head.email, type='attendance', 
-                    action='approved', application=application)
+    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, cc2=head.email, type='attendance', action='approved', application=application)
     if rv:
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
