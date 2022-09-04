@@ -455,7 +455,7 @@
                             {% if data == 'team' %}
                                 <td>
                                     {% if application['status'] == "Approval Pending" %}
-                                        <a href="{{ url_for('attendance.approval_team', application_id=application['id'], type=application['type']) }}">Approve</a>
+                                        <a href="{{ url_for('attendance.approval', application_id=application['id'], type=application['type']) }}">Approve</a>
                                     {% endif %}
                                         <a href="{{ url_for('attendance.cancel_team', application_id=application['id']) }}">Cancel</a>
                                 </td> 
