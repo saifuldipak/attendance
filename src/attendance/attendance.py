@@ -361,7 +361,7 @@ def query_team(query_type):
             
             return render_template('data.html', type='attn_summary', query='team', form=form, summary=summary)
 
-##Attendance query for self##
+
 @attendance.route('/attendance/query/self', methods=['GET', 'POST'])
 @login_required
 def query_self():
@@ -370,23 +370,40 @@ def query_self():
     if form.validate_on_submit():
         
         if form.query.data == 'Details':
-            attendance = Attendance.query.join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, Attendance.in_time, 
-                            Attendance.out_time, ApprLeaveAttn.approved).filter(Attendance.empid==session['empid'], 
-                            extract('month', Attendance.date)==int(form.month.data)).order_by(Attendance.date).all()
+            attendances = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.date==ApplicationsHolidays.date, Attendance.empid==ApplicationsHolidays.empid)).filter(Attendance.empid==session['empid'], extract('month', Attendance.date)==form.month.data).order_by(Attendance.date).all()
             
-            if not attendance:
+            if attendances:
+                attendances_list = []
+
+                for attendance in attendances:
+                    attendance_list = list(attendance)
+                    
+                    if  attendance_list[3]:
+                        application = Applications.query.filter_by(id=attendance_list[3]).first()
+                        attendance_list.append(application.type)
+                    else:
+                        attendance_list.append(None)
+
+                    if  attendance_list[4]:
+                        holiday = Holidays.query.filter_by(id=attendance_list[4]).first()
+                        attendance_list.append(holiday.name)
+                    else:
+                        attendance_list.append(None) 
+                    
+                    attendances_list.append(attendance_list)
+
+                attendances = attendances_list
+            else:
                 flash('No record found', category='warning')
                 return redirect(url_for('forms.attnquery_self'))
             
-            return render_template('data.html', type='attn_details_self', attendance=attendance)
+            return render_template('data.html', type='attn_details_self', attendances=attendances)
 
         if form.query.data == 'Summary':
             month_obj = datetime.strptime(str(form.month.data), '%m')
             month_name = month_obj.strftime('%B')
             
-            summary = AttnSummary.query.filter(AttnSummary.year==form.year.data, 
-                        AttnSummary.month==month_name).first()
+            summary = AttnSummary.query.filter(AttnSummary.year==form.year.data, AttnSummary.month==month_name).first()
 
             if not summary:
                 flash('No record found', category='warning')

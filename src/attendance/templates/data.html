@@ -341,15 +341,35 @@
             <th>Date</th>
             <th>In Time</th>
             <th>Out Time</th>
-            <th>Approved</th>
-            {% for row in attendance %}
+            <th>Application</th>
+            <th>Holiday</th>
+            <th>Weekend</th>
+            {% for attendance in attendances %}
                 <tr>
-                    <td>{{ row['date'] }}</td>
-                    <td>{{ row['in_time'] }}</td>
-                    <td>{{ row['out_time'] }}</td>
-                    <td>{{ row['approved'] }}</td> 
+                    <td>{{ attendance[0] }}</td>
+                    <td>{{ attendance[1] }}</td>
+                    <td>{{ attendance[2] }}</td>
+                    {% if attendance[3] is none %}
+                        <td></td>
+                    {% else %}
+                        <td><a href={{ url_for('leave.details', application_id=attendance[3]) }}>{{ attendance[6] }}</a></td>
+                    {% endif %}
+                    
+                    {% if attendance[4] is none %}
+                        <td></td>
+                    {% else %}
+                        <td>{{ attendance[7] }}</td>
+                    {% endif %}
+                    
+                    {% if attendance[5] is none %}
+                        <td></td>
+                    {% elif attendance[5] == 7 %}
+                        <td>Friday</td>
+                    {% elif attendance[5] == 1 %}   
+                        <td>Saturday</td>
+                    {% endif %}
                 </tr>
-             {% endfor %}
+            {% endfor %}
         </table>
     {% endif %}
 
