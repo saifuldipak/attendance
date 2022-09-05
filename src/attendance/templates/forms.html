@@ -197,7 +197,7 @@
     {% if type == 'attnquery_self' %}
         <div class="form-style-2">
             <div class="form-style-2-heading">Query attendance record</div>
-                <form method="post" action="{{ url_for('attendance.query_self') }}">
+                <form method="post" action="{{ url_for('attendance.query', query_type='username') }}">
                     {{ form.csrf_token }}
                     <label for="month">
                         <span>{{ form.month.label }}</span>
@@ -217,41 +217,6 @@
                     </label>
 
                 </form>
-    {% endif %}
-    
-    {# --attendance query form for all-- #}
-    {% if type == 'attnquery' %}
-            <div class="form-style-2">
-                {% if user == 'all' %}
-                    <form method="post" action="{{ url_for('attendance.query_all') }}">
-                {% elif user == 'team' %}
-                    <form method="post" action="{{ url_for('attendance.query_team') }}">
-                {% else %}
-                    <form method="post" action="{{ url_for('attendance.query_self') }}">
-                {% endif %}   
-                   
-                {{ form.csrf_token }}
-                <div class="form-style-2-heading">Query attedance record</div>
-                    <label for="month">
-                        <span>{{ form.month.label }}</span>
-                            {{ form.month }}
-                    </label>
-                    {% if user == 'all' or user == 'team' %}
-                    <label for="type">
-                        <span>{{ form.type.label }}</span>
-                            {{ form.type }}
-                    </label>
-                    <label for="empid">
-                        <span>{{ form.username.label }}</span>
-                            {{ form.username }}
-                    </label>
-                    {% endif %}
-                        
-                        <label>
-                            <span> </span>
-                            <input type="submit" value="Query" /></label>
-                        </label>
-                        </form>
     {% endif %}
 
     {# --attendance application form-- #}
@@ -487,6 +452,35 @@
             <span> </span>
             <input type="submit" value="Add" /></label>
         </label>
+    {% endif %}
+
+    {% if type == 'attnquery' %}
+        <div class="form-style-2">
+            {% if query_type == 'username' %}
+                <div class="form-style-2-heading">Query attendance record</div>
+                    <form method="post" action="{{ url_for('attendance.query', query_type='username') }}">
+                        {{ form.csrf_token }}
+                        {% if session['role'] != 'Team' %}
+                            <label for="username">
+                                <span>{{ form.username.label }}</span>
+                                    {{ form.username }}
+                            </label>
+                        {% endif %}
+                        <label for="month">
+                            <span>{{ form.month.label }}</span>
+                                {{ form.month }}
+                        </label>
+                        <label for="year">
+                            <span>{{ form.year.label }}</span>
+                                {{ form.year }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Query" /></label>
+                        </label>
+                    </form>
+            {% endif %}
+        </div>
     {% endif %}
 
 {% endblock %}

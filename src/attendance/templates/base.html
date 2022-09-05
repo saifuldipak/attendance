@@ -36,7 +36,7 @@
                 <a href="{{ url_for('attendance.appl_status_self') }}" class="navbar-item">
                     Application Status
                 </a>
-                <a href="{{ url_for('forms.attnquery_self') }}" class="navbar-item">
+                <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
                     Query
                 </a>
             </div>
@@ -122,7 +122,7 @@
                     <a href="{{ url_for('forms.duty_schedule', team='fiber', action='create') }}" class="navbar-item">
                         -- Create duty schedule
                     </a>
-                    <a href="{{ url_for('attendance.query_menu') }}" class="navbar-item">
+                    <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
                         -- Query
                     </a>
                 </div>
@@ -152,7 +152,7 @@
                     <a href="{{ url_for('attendance.appl_status_all') }}" class="navbar-item">
                         -- Application Status
                     </a>
-                    <a href="{{ url_for('attendance.query_menu') }}" class="navbar-item">
+                    <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
                         -- Query
                     </a>
                     <a href="{{ url_for('forms.upload') }}" class="navbar-item">
