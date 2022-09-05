@@ -8,7 +8,7 @@ from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
 from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
+                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, employee)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from .functions import convert_team_name
@@ -846,24 +846,28 @@ def approval_department():
     
     #Send mail to all concerned
     error = False
+
+    if not session['email']:
+        current_app.logger.warning('approval_department(): Head email not found for employee id: %s', application.employee.id)
+        error = True
+
     admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
     if not admin:
         current_app.logger.warning('approval_department(): Admin email not found for employee id: %s', application.employee.id)
         error = True
     
-    if application.employee.role == 'Team':
+    if application.employee.role == 'Team' or application.employee.role == 'Supervisor':
         team = Team.query.filter_by(empid=application.empid).first()
         manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
-        if not manager:
-            current_app.logger.warning('approval_department(): manager email not found for employee %s', application.employee.username)
-            error = True
+    
+    if not manager:
+        manager_email = ''
+    else:
+        manager_email = manager.email
 
     if error:
         flash('Failed to send mail', category='warning')
         return redirect(url_for('attendance.appl_status_department'))
-
-    if application.employee.role != 'Team':
-        manager_email = None 
     
     rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], 
             receiver=admin.email, cc1=application.employee.email, cc2=manager_email, application=application, type='attendance', 
