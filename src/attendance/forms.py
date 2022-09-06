@@ -218,7 +218,7 @@ class Leavecasual(Dates):
             if leave_duration != holiday_duty_duration:
                 raise ValidationError('Leave duration and holiday duty duration must be same')
 
-class LeaveMedical(Dates):
+class Leavemedical(Dates):
     remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'}, validators=[InputRequired()])
     file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
                                 FileRequired(), file_length_check])
@@ -234,15 +234,18 @@ def leave(type):
     if type == 'Casual':
         form = Leavecasual()
     elif type == 'Medical':
-        form = LeaveMedical()
+        form = Leavemedical()
     
     return render_template('forms.html', type='leave', leave=type, form=form)
 
 #Leave application - Fiber
-class Leavefibercasual(Leavecasual):
+class Fiberteam(FlaskForm):
     empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
 
-class Leavefibermedical(LeaveMedical, Leavefibercasual):
+class Leavefibercasual(Fiberteam, Leavecasual):
+    pass
+
+class Leavefibermedical(Fiberteam, Leavemedical):
     pass
 
 @forms.route('/forms/leave/fiber/<type>', methods=['GET', 'POST'])
