@@ -578,4 +578,49 @@
         </div>
     {% endif %}
 
+    {% if type == 'attendance_query' %}
+        <div class="form-style-2-heading">Attendance Details</div>
+        {% if query_type == 'username' %}
+            {% if session['role'] != 'Team' %}
+                <p>Username: {{ fullname }}<br>
+            {% endif %}
+            Month: {{ form.month.data }}
+            Year: {{ form.year.data }}</p>
+        {% endif %}
+        <table class="query-result">
+            <th>Date</th>
+            <th>In Time</th>
+            <th>Out Time</th>
+            <th>Application</th>
+            <th>Holiday</th>
+            <th>Weekend</th>
+            {% for attendance in attendances %}
+                <tr>
+                    <td>{{ attendance[0] }}</td>
+                    <td>{{ attendance[1] }}</td>
+                    <td>{{ attendance[2] }}</td>
+                    {% if attendance[3] is none %}
+                        <td></td>
+                    {% else %}
+                        <td><a href={{ url_for('leave.details', application_id=attendance[3]) }}>{{ attendance[6] }}</a></td>
+                    {% endif %}
+                    
+                    {% if attendance[4] is none %}
+                        <td></td>
+                    {% else %}
+                        <td>{{ attendance[7] }}</td>
+                    {% endif %}
+                    
+                    {% if attendance[5] is none %}
+                        <td></td>
+                    {% elif attendance[5] == 7 %}
+                        <td>Friday</td>
+                    {% elif attendance[5] == 1 %}   
+                        <td>Saturday</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
 {% endblock %}
