@@ -860,10 +860,12 @@ def approval_department():
         team = Team.query.filter_by(empid=application.empid).first()
         manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
     
-    if not manager:
-        manager_email = ''
+        if not manager:
+            manager_email = ''
+        else:
+            manager_email = manager.email
     else:
-        manager_email = manager.email
+        manager_email = ''
 
     if error:
         flash('Failed to send mail', category='warning')
