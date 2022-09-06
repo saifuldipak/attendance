@@ -352,7 +352,7 @@ def attendance_query(query_type):
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
 
-    return render_template('forms.html', type='attnquery', query_type=query_type, form=form)
+    return render_template('forms.html', type='attendance_query', query_type=query_type, form=form)
 
 #Attendance summary prepare
 @forms.route('/forms/attendance/prepare_summary')
