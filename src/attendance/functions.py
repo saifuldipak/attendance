@@ -39,16 +39,15 @@ def check_holidays(name, start_date, end_date=None):
             if any_date_exists:
                 return 'Holiday start and/or end dates overlaps with other holidays'
 
-def update_applications_holidays(empid, start_date, end_date, application_id):
+def update_applications_holidays(empid, start_date, end_date, application_id=None):
     while start_date <= end_date:
         attendance = ApplicationsHolidays.query.filter(ApplicationsHolidays.date==start_date, ApplicationsHolidays.empid==empid).first()
+        
         if attendance:
             attendance.application_id = application_id
         
         start_date += datetime.timedelta(days=1)
     
-    db.session.commit()
-
 #check whether session user is the team leader of the employee of the supplied application_id 
 def check_team_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
