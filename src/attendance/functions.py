@@ -95,3 +95,82 @@ def check_edit_permission(application_id):
             return True
 
     return False
+
+def get_concern_emails(empid):
+    employee = Employee.query.filter_by(id=empid).first()
+    emails = {}
+
+    if employee.email:
+        employee_email = employee.email
+    else:
+        employee_email = ''
+
+    emails['employee'] = employee_email
+
+    supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name).first()
+    if supervisor:
+        if supervisor.email:
+            supervisor_email = supervisor.email
+        else:
+            supervisor_email = ''
+    else:
+        supervisor_email = ''
+    
+    emails['supervisor'] = supervisor_email
+
+    manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name).first()
+    if manager:
+        if manager.email:
+            manager_email = manager.email
+        else:
+            manager_email = ''
+    else:
+        manager_email = ''
+    
+    emails['manager'] = manager_email
+
+    head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
+    if head:
+        if head.email:
+            head_email = head.email
+        else:
+            head_email = ''
+    else:
+        head_email = ''
+    
+    emails['head'] = head_email
+    
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if admin:
+        if admin.email:
+            admin_email = admin.email
+        else:
+            admin_email = ''
+    else:
+        admin_email = ''
+    
+    emails['admin'] = admin_email
+    
+    return emails 
+
+
+def find_team_leader_email(emails):
+    
+    if session['role'] == 'Team' and emails['supervisor_email'] != '':
+        team_leader_email = emails['supervisor_email']
+    elif session['role'] == 'Team' and emails['manager_email'] != '':
+        team_leader_email = emails['manager_email']
+    elif session['role'] == 'Team' and emails['head_email'] != '':
+        team_leader_email = emails['head_email']
+    elif session['role'] == 'Supervisor' and emails['manager_email'] != '':
+        team_leader_email = emails['manager_email']
+    elif session['role'] == 'Supervisor' and emails['head_email'] != '':
+        team_leader_email = emails['head_email']
+    elif session['role'] == 'Manager' and emails['head_email'] != '':
+        team_leader_email = emails['head_email']
+    elif session['role'] == 'Head':
+        team_leader_email = emails['manager_email']
+    else:
+        team_leader_email = False
+        
+    return team_leader_email
