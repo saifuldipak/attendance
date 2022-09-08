@@ -11,7 +11,7 @@ from .mail import send_mail
 from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_holidays, convert_team_name, update_applications_holidays, check_team_access
+from .functions import check_edit_permission, check_holidays, convert_team_name, update_applications_holidays, check_team_access
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -198,255 +198,6 @@ def application():
     
     return redirect(request.url)
 
-## Attendance application cancel function ##
-@attendance.route('/attendance/cancel/<id>')
-@login_required
-def cancel(id):
-    application = Applications.query.filter_by(id=id).first()
-
-    if not application:
-        flash('Application not found', category='error')
-    elif application.status == 'Approved':
-        flash('Cancel request sent to Team Manager', category='message')
-    else:  
-        db.session.delete(application)
-        db.session.commit()
-        flash('Application cancelled', category='message')
-
-        #Send mail to all concerned
-        if session['role'] == 'Team':
-            manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
-            
-            if not manager:
-                current_app.logger.warning('Team Manager email not found')
-            else:            
-                receiver_email = manager.email
-
-        if session['role'] == 'Manager' or not manager:
-            head = Employee.query.join(Team).filter(Employee.department==session['department'], Employee.role=='Head').first()
-            
-            if not head:
-                current_app.logger.warning('Dept. Head email not found')
-                rv = 'failed'
-            else:
-                receiver_email = head.email
-
-        if 'rv' in locals():
-            flash('Failed to send mail', category='warning')
-            return redirect(request.url)
-
-        employee = Employee.query.filter_by(id=session['empid']).first()
-        
-        host = current_app.config['SMTP_HOST']
-        port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, type='attendance', 
-                        application=application, action='cancelled')
-        
-        if rv:
-            current_app.logger.warning(rv)
-            flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_self'))
-
-
-@attendance.route('/attendance/application/cancel/team/fiber/<id>')
-@login_required
-@supervisor_required
-def cancel_team_fiber(id):
-    application = Applications.query.filter_by(id=id).first()
-
-    if not application:
-        flash('Application not found', category='error')
-        return redirect(url_for(attendance.appl_status_team))
-
-    update_apprleaveattn(application.empid, application.start_date, application.end_date, '')
-    
-    db.session.delete(application)
-    db.session.commit()
-    
-    flash('Application cancelled', category='message')
-
-    #Send mail to all concerned
-    manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
-    head = Employee.query.filter(Employee.department==session['department'], Employee.role=='Head').first()
-    
-    if not manager and not head:
-        current_app.logger.error(' cancel_team_fiber() - Neither Manager and Head record found for team %s', session['team'])
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.appl_status_team'))
-
-    if not manager:
-        receiver_email = head.email
-    else:            
-        receiver_email = manager.email
-
-    supervisor = Employee.query.filter_by(id=session['empid']).first()
-    
-    host = current_app.config['SMTP_HOST']
-    port = current_app.config['SMTP_PORT']
-    rv = send_mail(host=host, port=port, sender=supervisor.email, receiver=receiver_email, type='attendance', 
-                    application=application, action='cancelled')
-    
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_team'))
-
-
-@attendance.route('/attendance/cancel/team/<application_id>')
-@login_required
-@manager_required
-def cancel_team(application_id):
-    application = Applications.query.filter_by(id=application_id).first()
-    if not application:
-        flash('Attendance application not found', category='error')
-        return redirect(url_for('attendance.status_team'))
-    
-    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
-    if not employee:
-        current_app.logger.warning(' cancel_team(): employee details not found for application:%s', application_id)
-        flash('Employee details not found for this application', category='error')
-        return redirect(url_for('attendance.status_team'))
-    
-    team = Team.query.filter_by(empid=application.empid).first()
-    if not team:
-        flash('Employee team not found for this application', category='error')
-        current_app.logger.warning(' cancel_team(): team not found for %s', application.empid)
-        return redirect(url_for('attendance.status_team'))
-
-    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Employee.role=='Manager', 
-                Team.name==team.name).first()
-    if not manager:
-        flash('You are not authorized', category='error')
-        current_app.logger.warning(' cancel_team(): not the manager of %s', team.name)
-        return redirect(url_for('attendance.status_team'))
-    
-    if application.status == 'Approved':
-        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-        if summary:
-            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-            flash(msg, category='error')
-            return redirect(url_for('attendance.status_team'))
-    
-    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
-    db.session.delete(application)
-    db.session.commit()
-    flash('Application cancelled', category='message')
-
-    #Send mail to all concerned
-    email_found = True
-    
-    if not manager.email:
-        current_app.logger.warning(' cancel_team(): Team Manager email not found for %s', employee.username)
-        email_found = False
-
-    if application.status == 'Approved':
-        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-        if not admin:
-            current_app.logger.warning(' cancel_team(): Admin email not found')
-            email_found = False
-
-        head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
-        if not head:
-            current_app.logger.warning('Dept. Head email not found')
-            email_found = False
-    
-    if not email_found:
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.status_team'))
-    
-    if application.status == 'Approved':
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
-                    receiver=admin.email, cc1=head.email, cc2=employee.email, type='attendance', application=application, 
-                    action='cancelled')
-    
-    if application.status == 'Approval Pending':
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
-                    receiver=employee.email, type='attendance', application=application, action='cancelled')
-
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_team'))
-
-@attendance.route('/attendance/cancel/department/<application_id>')
-@login_required
-@head_required
-def cancel_department(application_id):
-    application = Applications.query.filter_by(id=application_id).first()
-    if not application:
-        flash('Attendance application not found', category='error')
-        return redirect(url_for('attendance.appl_status_department'))
-    
-    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
-    if not employee:
-        current_app.logger.warning(' cancel_department(): employee details not found for application:%s', application_id)
-        flash('Employee details not found for this application', category='error')
-        return redirect(url_for('attendance.appl_status_department'))
-
-    head = Employee.query.filter_by(department=employee.department, id=session['empid'], role='Head').first()
-    if not head:
-        flash('You are not authorized', category='error')
-        current_app.logger.warning(' cancel_department(): not the head of %s', employee.department)
-        return redirect(url_for('attendance.appl_status_department'))
-    
-    if application.status == 'Approved':
-        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-        if summary:
-            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-            flash(msg, category='error')
-            return redirect(url_for('attendance.appl_status_department'))
-
-    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
-    db.session.delete(application)
-    db.session.commit()
-    flash('Application cancelled', category='message')
-
-    #Send mail to all concerned
-    email_found = True
-
-    if employee.role == 'Team':
-        manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
-        if not manager.email:
-            current_app.logger.warning(' cancel_department(): Team Manager email not found for %s', employee.username)
-            email_found = False
-
-    if application.status == 'Approved':
-        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-        if not admin:
-            current_app.logger.warning(' cancel_department(): Admin email not found')
-            email_found = False
-
-        head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
-        if not head:
-            current_app.logger.warning('Dept. Head email not found')
-            email_found = False
-    
-    if not email_found:
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_department'))
-    
-    if employee.role != 'Team':
-            manager.email = None
-
-    if application.status == 'Approved': 
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=admin.email, cc1=employee.email, cc2=manager.email, type='attendance', application=application, 
-                    action='cancelled')
-    
-    if application.status == 'Approval Pending':
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=employee.email, cc2=manager.email, type='attendance', application=application, action='cancelled')
-
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_department'))
 
 ##Attendance application details##
 @attendance.route('/attendance/application/details/<application_id>')
@@ -1027,3 +778,125 @@ def query(query_type):
             else:
                 flash('Username not found', category='error')
                 return redirect(url_for('attendance.query_menu'))
+
+
+@attendance.route('/attendance/application/cancel/<application_id>')
+@login_required
+def cancel(application_id):
+    application = Applications.query.filter_by(id=application_id).first()
+    if not application:
+        flash('Attendance application not found', category='error')
+        return redirect(url_for('attendance.status_team'))
+    
+    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
+    if not employee:
+        current_app.logger.warning(' cancel_team(): employee details not found for application:%s', application_id)
+        flash('Employee details not found for this application', category='error')
+        return redirect(url_for('attendance.status_team'))
+    
+    can_edit = check_edit_permission(application_id)
+    if not can_edit:
+        flash('Current user does not have access to cancel this application')
+        return redirect(url_for('attendance.appl_status_team'))
+        
+    if application.status == 'Approved':
+        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
+        
+        if summary:
+            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+            flash(msg, category='error')
+            return redirect(url_for('attendance.status_team'))
+        else:
+            update_applications_holidays(employee.id, application.start_date, application.end_date)
+    
+    db.session.delete(application)
+    db.session.commit()
+    flash('Application cancelled', category='message')
+
+    #Send mail to all concerned
+    if employee.email:
+        employee_email = employee.email
+    else:
+        employee_email = ''
+
+    supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name).first()
+    if supervisor:
+        if supervisor.email:
+            supervisor_email = supervisor.email
+        else:
+            supervisor_email = ''
+    else:
+        supervisor_email = ''
+
+    manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name).first()
+    if manager:
+        if manager.email:
+            manager_email = manager.email
+        else:
+            manager_email = ''
+    else:
+        manager_email = ''
+
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if admin:
+        if admin.email:
+            admin_email = admin.email
+        else:
+            admin_email = ''
+    else:
+        admin_email = ''
+
+    head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
+    if head:
+        if head.email:
+            head_email = head.email
+        else:
+            head_email = ''
+    else:
+        head_email = ''
+        
+    if application.status == 'Approval Pending':
+        if session['username'] != employee.username:
+            receiver_email = employee_email
+        else:
+            receiver_email = session['email']
+
+        if session['role'] == 'Team' and supervisor_email != '':
+            cc1_email = supervisor_email
+        elif session['role'] == 'Team' and manager_email != '':
+            cc1_email = manager_email
+        elif session['role'] == 'Team' and head_email != '':
+            cc1_email = head_email
+        elif session['role'] == 'Supervisor' and manager_email != '':
+            cc1_email = manager_email
+        elif session['role'] == 'Supervisor' and head_email != '':
+            cc1_email = head_email
+        elif session['role'] == 'Manager' and head_email != '':
+            cc1_email = head_email
+        elif session['role'] == 'Head':
+            cc1_email = manager_email
+        else:
+            current_app.logger.error('Team leader email not found for application: %s', application_id)
+            flash('Failed to send email', category='warning')
+            return redirect(url_for('attendance.appl_status_team'))                
+
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=receiver_email, cc1=cc1_email, type='attendance', application=application, action='cancelled')
+        
+    if application.status == 'Approved':
+        if session['role'] == 'Manager':
+            cc2_email = ''
+        else:
+            cc2_email = manager_email
+
+        if session['role'] == 'Head':
+            cc3_email = ''
+        else:
+            cc3_email = head_email
+        
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=admin_email, cc1=employee_email, cc2=cc2_email, cc3=cc3_email, cc4=session['email'], type='attendance', application=application, action='cancelled')
+
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+    
+    return redirect(url_for('attendance.appl_status_team'))
