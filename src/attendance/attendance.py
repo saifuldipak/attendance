@@ -798,29 +798,29 @@ def cancel(application_id):
     return redirect(url_for('attendance.application_status'))
 
 
-@attendance.route('/attendance/application/status/<status_for>')
+@attendance.route('/attendance/application/status/<application_for>')
 @login_required
-def application_status(status_for):
+def application_status(application_for):
 
-    if status_for not in ('self', 'team', 'all'):
-        current_app.logger.error(' application_status(): Wrong status_for value "%s"', status_for)
+    if application_for not in ('self', 'team', 'all'):
+        current_app.logger.error(' application_status(): Wrong application_for value "%s"', application_for)
         flash('Function not found', category='error')
         return render_template('base.html')
     
-    if status_for == 'team' and session['role'] not in ('Supervisor', 'Manager', 'Head'):
-        current_app.logger.error(' application_status(): session role "%s" does not have access to status_for="team"', session['role'])
+    if application_for == 'team' and session['role'] not in ('Supervisor', 'Manager', 'Head'):
+        current_app.logger.error(' application_status(): session role "%s" does not have access to application_for="team"', session['role'])
         flash('You are not authorized to see team application status', category='error')
         return render_template('base.html')
 
-    if status_for == 'all' and session['access'] != 'Admin':
-        current_app.logger.error(' application_status(): session access "%s" does not have access to status_for="all"', session['access'])
+    if application_for == 'all' and session['access'] != 'Admin':
+        current_app.logger.error(' application_status(): session access "%s" does not have access to application_for="all"', session['access'])
         flash('You are not authorized to see all application status', category='error')
         return render_template('base.html')
 
-    if status_for == 'self':
+    if application_for == 'self':
         applications = Applications.query.join(Employee).filter(Employee.username == session['username'], (and_(Applications.type!='Casual', Applications.type!='Medical'))).order_by(Applications.submission_date.desc()).all()
     
-    if status_for == 'team':
+    if application_for == 'team':
 
         if session['role'] == 'Supervisor' or 'Manager': 
             teams = Team.query.join(Employee).filter(Employee.username==session['username']).all()
@@ -837,7 +837,7 @@ def application_status(status_for):
             applications = Applications.query.join(Employee).filter(Employee.department==session['department'], and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
             current_app.logger.error('Query returns %s', applications)
 
-    if status_for  == 'all':
+    if application_for  == 'all':
         applications = Applications.query.filter(and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status).all()
 
-    return render_template('data.html', type='attendance_application_status', status_for=status_for, applications=applications)
+    return render_template('data.html', type='attendance_application_status', application_for=application_for, applications=applications)
