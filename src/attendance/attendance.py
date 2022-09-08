@@ -11,7 +11,7 @@ from .mail import send_mail
 from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, update_applications_holidays, check_team_access
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -262,7 +262,7 @@ def approval():
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
     
-    return redirect(url_for('attendance.appl_status_team'))
+    return redirect(url_for('attendance.application_status'))
 
 ##Attendance application approval for Department##
 @attendance.route('/attendance/application/approval/department')
@@ -734,18 +734,18 @@ def cancel(application_id):
     application = Applications.query.filter_by(id=application_id).first()
     if not application:
         flash('Attendance application not found', category='error')
-        return redirect(url_for('attendance.status_team'))
+        return redirect(url_for('attendance.application_status'))
     
     employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
     if not employee:
         current_app.logger.warning(' cancel_team(): employee details not found for application:%s', application_id)
         flash('Employee details not found for this application', category='error')
-        return redirect(url_for('attendance.status_team'))
+        return redirect(url_for('attendance.application_status'))
     
     can_edit = check_edit_permission(application_id)
     if not can_edit:
         flash('Current user does not have access to cancel this application')
-        return redirect(url_for('attendance.appl_status_team'))
+        return redirect(url_for('attendance.application_status'))
         
     if application.status == 'Approved':
         summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
@@ -753,7 +753,7 @@ def cancel(application_id):
         if summary:
             msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
             flash(msg, category='error')
-            return redirect(url_for('attendance.status_team'))
+            return redirect(url_for('attendance.application_status'))
         else:
             update_applications_holidays(employee.id, application.start_date, application.end_date)
     
@@ -762,92 +762,40 @@ def cancel(application_id):
     flash('Application cancelled', category='message')
 
     #Send mail to all concerned
-    if employee.email:
-        employee_email = employee.email
-    else:
-        employee_email = ''
-
-    supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name).first()
-    if supervisor:
-        if supervisor.email:
-            supervisor_email = supervisor.email
-        else:
-            supervisor_email = ''
-    else:
-        supervisor_email = ''
-
-    manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name).first()
-    if manager:
-        if manager.email:
-            manager_email = manager.email
-        else:
-            manager_email = ''
-    else:
-        manager_email = ''
-
-    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-    if admin:
-        if admin.email:
-            admin_email = admin.email
-        else:
-            admin_email = ''
-    else:
-        admin_email = ''
-
-    head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
-    if head:
-        if head.email:
-            head_email = head.email
-        else:
-            head_email = ''
-    else:
-        head_email = ''
+    emails = get_concern_emails(employee.id)
         
     if application.status == 'Approval Pending':
         if session['username'] != employee.username:
-            receiver_email = employee_email
+            receiver_email = employee.email
         else:
             receiver_email = session['email']
 
-        if session['role'] == 'Team' and supervisor_email != '':
-            cc1_email = supervisor_email
-        elif session['role'] == 'Team' and manager_email != '':
-            cc1_email = manager_email
-        elif session['role'] == 'Team' and head_email != '':
-            cc1_email = head_email
-        elif session['role'] == 'Supervisor' and manager_email != '':
-            cc1_email = manager_email
-        elif session['role'] == 'Supervisor' and head_email != '':
-            cc1_email = head_email
-        elif session['role'] == 'Manager' and head_email != '':
-            cc1_email = head_email
-        elif session['role'] == 'Head':
-            cc1_email = manager_email
-        else:
+        team_leader_email = find_team_leader_email(emails)
+        if not team_leader_email:
             current_app.logger.error('Team leader email not found for application: %s', application_id)
             flash('Failed to send email', category='warning')
-            return redirect(url_for('attendance.appl_status_team'))                
+            return redirect(url_for('attendance.application_status'))                
 
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=receiver_email, cc1=cc1_email, type='attendance', application=application, action='cancelled')
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=receiver_email, cc1=team_leader_email, type='attendance', application=application, action='cancelled')
         
     if application.status == 'Approved':
         if session['role'] == 'Manager':
             cc2_email = ''
         else:
-            cc2_email = manager_email
+            cc2_email = emails['manager_email']
 
         if session['role'] == 'Head':
             cc3_email = ''
         else:
-            cc3_email = head_email
+            cc3_email = emails['head_email']
         
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=admin_email, cc1=employee_email, cc2=cc2_email, cc3=cc3_email, cc4=session['email'], type='attendance', application=application, action='cancelled')
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=emails['admin_email'], cc1=emails['employee_email'], cc2=cc2_email, cc3=cc3_email, cc4=session['email'], type='attendance', application=application, action='cancelled')
 
     if rv:
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
     
-    return redirect(url_for('attendance.appl_status_team'))
+    return redirect(url_for('attendance.application_status'))
 
 
 @attendance.route('/attendance/application/status/<status_for>')
