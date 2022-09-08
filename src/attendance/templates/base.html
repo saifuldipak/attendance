@@ -33,7 +33,7 @@
                 <a href="{{ url_for('forms.attn_application') }}" class="navbar-item">
                     Application
                 </a>
-                <a href="{{ url_for('attendance.appl_status_self') }}" class="navbar-item">
+                <a href="{{ url_for('attendance.application_status', status_for='self') }}" class="navbar-item">
                     Application Status
                 </a>
                 <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
@@ -104,12 +104,8 @@
                             -- Application
                             </a>
                     {% endif %}
-                    {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('attendance.appl_status_department') }}" class="navbar-item">
-                            -- Appl Status
-                        </a>
-                    {% elif session['role'] == 'Manager' or session['role'] == 'Supervisor' %}
-                        <a href="{{ url_for('attendance.appl_status_team') }}" class="navbar-item">
+                    {% if session['role'] == 'Manager' or session['role'] == 'Supervisor' or session['role'] == 'Head' %}
+                        <a href="{{ url_for('attendance.application_status', status_for='team') }}" class="navbar-item">
                             -- Appl Status
                         </a>
                     {% endif %}
@@ -149,7 +145,7 @@
                     </a>
                     </p>
                     Attendance
-                    <a href="{{ url_for('attendance.appl_status_all') }}" class="navbar-item">
+                    <a href="{{ url_for('attendance.application_status', status_for='all') }}" class="navbar-item">
                         -- Application Status
                     </a>
                     <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">

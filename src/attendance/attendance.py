@@ -213,58 +213,6 @@ def application_details(application_id):
     return render_template('data.html', type='attn_appl_details', details=details)
 
 
-## Attendance application status for individual ##
-@attendance.route('/attendance/application/status/self')
-@login_required
-def appl_status_self():
-    applications = Applications.query.join(Employee).\
-                    filter(Employee.username == session['username']).\
-                    filter(and_(Applications.type!='Casual', Applications.type!='Medical')).\
-                    order_by(Applications.submission_date.desc()).all()
-    
-    return render_template('data.html', type='attn_appl_status', data='self', applications=applications)
-    
-#Attendance application status for team 
-@attendance.route('/attendance/application/status/team')
-@login_required
-@team_leader_required
-def appl_status_team():
-    teams = Team.query.join(Employee).filter(Employee.username==session['username']).all()
-    applications = []
-        
-    for team in teams:
-        applist = Applications.query.select_from(Applications).\
-                    join(Team, Applications.empid==Team.empid).filter(Team.name == team.name).\
-                    filter(Applications.empid!=session['empid'], and_(Applications.type!='Casual', 
-                    Applications.type!='Medical')).order_by(Applications.status).all()
-        applications += applist
-
-    return render_template('data.html', type='attn_appl_status', data='team', applications=applications)
-
-#Attendance application status for department
-@attendance.route('/attendance/application/status/department')
-@login_required
-@head_required
-def appl_status_department():
-    applications = Applications.query.join(Employee).filter(Employee.department==session['department'], 
-                    and_(Applications.type!='Casual', Applications.type!='Medical')).\
-                    order_by(Applications.status, Applications.submission_date.desc()).all()
-
-    return render_template('data.html', type='attn_appl_status', data='department', applications=applications)
-
-#Attendance application status for all 
-@attendance.route('/attendance/application/status/all')
-@login_required
-@admin_required
-def appl_status_all():
-    applications = Applications.query.filter(and_(Applications.type!='Casual', 
-                                                Applications.type!='Medical')).\
-                                        order_by(Applications.status).all()
-    
-    return render_template('data.html', type='attn_appl_status', user='all', 
-                        applications=applications)
-
-
 @attendance.route('/attendance/application/approval')
 @login_required
 @team_leader_required
@@ -900,3 +848,48 @@ def cancel(application_id):
         flash('Failed to send mail', category='warning')
     
     return redirect(url_for('attendance.appl_status_team'))
+
+
+@attendance.route('/attendance/application/status/<status_for>')
+@login_required
+def application_status(status_for):
+
+    if status_for not in ('self', 'team', 'all'):
+        current_app.logger.error(' application_status(): Wrong status_for value "%s"', status_for)
+        flash('Function not found', category='error')
+        return render_template('base.html')
+    
+    if status_for == 'team' and session['role'] not in ('Supervisor', 'Manager', 'Head'):
+        current_app.logger.error(' application_status(): session role "%s" does not have access to status_for="team"', session['role'])
+        flash('You are not authorized to see team application status', category='error')
+        return render_template('base.html')
+
+    if status_for == 'all' and session['access'] != 'Admin':
+        current_app.logger.error(' application_status(): session access "%s" does not have access to status_for="all"', session['access'])
+        flash('You are not authorized to see all application status', category='error')
+        return render_template('base.html')
+
+    if status_for == 'self':
+        applications = Applications.query.join(Employee).filter(Employee.username == session['username'], (and_(Applications.type!='Casual', Applications.type!='Medical'))).order_by(Applications.submission_date.desc()).all()
+    
+    if status_for == 'team':
+
+        if session['role'] == 'Supervisor' or 'Manager': 
+            teams = Team.query.join(Employee).filter(Employee.username==session['username']).all()
+            
+            all_teams_applications = []
+            for team in teams:
+                team_applications = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).filter(Team.name == team.name, Applications.empid!=session['empid'], and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+            
+                all_teams_applications += team_applications
+            
+            applications = all_teams_applications
+        
+        if session['role'] == 'Head':
+            applications = Applications.query.join(Employee).filter(Employee.department==session['department'], and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+            current_app.logger.error('Query returns %s', applications)
+
+    if status_for  == 'all':
+        applications = Applications.query.filter(and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status).all()
+
+    return render_template('data.html', type='attendance_application_status', status_for=status_for, applications=applications)
