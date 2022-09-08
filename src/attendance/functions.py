@@ -47,7 +47,7 @@ def update_applications_holidays(empid, start_date, end_date, application_id=Non
             attendance.application_id = application_id
         
         start_date += datetime.timedelta(days=1)
-    
+
 #check whether session user is the team leader of the employee of the supplied application_id 
 def check_team_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
@@ -63,5 +63,35 @@ def check_team_access(application_id):
     head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
     if head:
         return True
+
+    return False
+
+def check_edit_permission(application_id):
+    employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
+    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+    head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
+    
+    if employee.applications[0].status == 'Approval Pending':
+        if session['username'] == employee.username:
+            return True
+    
+    if employee.role == 'Team':
+        if session['role'] == 'Supervisor' and supervisor:
+            return True
+        elif session['role'] == 'Manager' and manager:
+            return True
+        elif session['role'] == 'Head' and head:
+            return True
+    
+    if employee.role == 'Supervisor':
+        if session['role'] == 'Manager' and manager:
+            return True
+        elif session['role'] == 'Head' and head:
+            return True
+
+    if employee.role == 'Manager':
+        if session['role'] == 'Head' and head:
+            return True
 
     return False
