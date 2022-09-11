@@ -474,7 +474,7 @@
                         <td>{{ application['status'] }}</td>
                         {% if application_for == 'self' %}
                             {% if application['status'] == "Approval Pending" %}
-                                <td><a href="{{ url_for('attendance.cancel', application_id=application['id']) }}">Cancel</a></td>
+                                <td><a href="{{ url_for('attendance.cancel_application', application_for=application_for, application_id=application['id']) }}">Cancel</a></td>
                             {% endif %}
                         {% endif %}
                         {% if application_for == 'team' %}
@@ -482,7 +482,7 @@
                                 {% if application['status'] == "Approval Pending" %}
                                     <a href="{{ url_for('attendance.approval', application_id=application['id'], type=application['type']) }}">Approve</a>
                                 {% endif %}
-                                    <a href="{{ url_for('attendance.cancel', application_id=application['id']) }}">Cancel</a>
+                                    <a href="{{ url_for('attendance.cancel_application', application_for=application_for, application_id=application['id']) }}">Cancel</a>
                             </td> 
                         {% endif %}                        
                     {% endif %}
