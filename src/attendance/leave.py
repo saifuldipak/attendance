@@ -76,7 +76,7 @@ def check_available_leave(empid, start_date, duration, type, update=None):
         else:
             total = leave.medical + leave.casual
             
-            if total > leave.duration:
+            if total > duration:
                 if update:
                     casual = total - duration
                     leave.medical = 0
