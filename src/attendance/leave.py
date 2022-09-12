@@ -1,8 +1,9 @@
+from attendance.functions import check_edit_permission2, find_team_leader_email, get_concern_emails, update_applications_holidays
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, session, flash, url_for)
 from sqlalchemy import and_, or_, extract
 from .check import check_access, check_holiday_dates, check_application_dates
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttnSummary)
-from .mail import send_mail
+from .mail import send_mail, send_mail2
 from .auth import *
 from werkzeug.utils import secure_filename
 import os
@@ -843,140 +844,6 @@ def summary_all():
 def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
-##Leave approval for Teams##
-@leave.route('/leave/approval/team')
-@login_required
-@manager_required
-def approval_team():
-    application_id = request.args.get('application_id')
-    
-    application = Applications.query.filter_by(id=application_id).one()
-    team = Team.query.filter_by(empid=application.empid).first()
-    
-    manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').one()
-    if manager.username != session['username']:
-        flash('You are not authorized', category='error')
-        return redirect(url_for('leave.applicatio_status_team'))
-
-    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-    if summary:
-        msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-        flash(msg, category='error')
-        return redirect(url_for('leave.application_status_team'))
-
-    if application.type == 'Casual' or application.type == 'Medical':
-        available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
-            return redirect(url_for('leave.applicaion_status_team'))
-    
-    if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
-        update_apprleaveattn(application.empid, application.holiday_duty_start_date, application.holiday_duty_end_date, '')
-
-    application = Applications.query.filter_by(id=application_id).first()
-    application.status = 'Approved'
-
-    update_apprleaveattn(application.empid, application.start_date, application.end_date, application.type)
-    flash('Leave approved', category='message')
-    
-    #Send mail to all concerned
-    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-    if not admin:
-        current_app.logger.warning('approval(): Admin email not found for employee id: %s', application.employee.id)
-        rv = 'failed'
-    
-    head = Employee.query.filter(Employee.department==manager.department, Employee.role=='Head').first()
-    if not head:
-        current_app.logger.warning('approval(): Dept. head email not found for employee id: %s', application.employee.id)
-        rv = 'failed'
-    
-    if 'rv' in locals():
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.application_status_team'))
-
-    host = current_app.config['SMTP_HOST']
-    port = current_app.config['SMTP_PORT'] 
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, 
-            cc2=head.email, cc3=manager.email, application=application, type='leave', action='approved')
-    
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('leave.application_status_team'))
-
-##Leave approval for Department by Head##
-@leave.route('/leave/approval/department')
-@login_required
-@head_required
-def approval_department():
-    application_id = request.args.get('application_id')
-
-    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
-   
-    head = Employee.query.filter(Employee.id==session['empid'], Employee.department==application.employee.department, 
-                        Employee.role=='Head').one()
-    if not head:
-        flash('You are not authorized', category='error')
-        return redirect(url_for('leave.application_status_department'))
-    
-    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-    if summary:
-        msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-        flash(msg, category='error')
-        return redirect(url_for('leave.application_status_department'))
-
-    if application.type == 'Casual' or application.type == 'Medical':
-        available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
-            return redirect(request.url)
-
-    if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
-        update_apprleaveattn(application.empid, application.holiday_duty_start_date, application.holiday_duty_end_date, '')
-    
-    application.status = 'Approved'
-    update_apprleaveattn(application.empid, application.start_date, application.end_date, application.type)
-    flash('Application approved', category='message')
-    
-    #Send mail to all concerned
-    error = False
-    
-    if not head.email:
-        current_app.logger.warning('approval_department(): Head email not found for employee id: %s', application.employee.username)
-        error = True
-
-    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-    if not admin:
-        current_app.logger.warning('approval_department(): Admin email not found for employee id: %s', application.employee.username)
-        error = True
-    
-    if application.employee.role == 'Team' or application.employee.role == 'Supervisor':
-        team = Team.query.filter_by(empid=application.empid).first()
-        manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
-        if manager:
-            manager_email = manager.email
-        else:
-            manager_email = ''
-    
-    if application.employee.role == 'Manager':
-        manager_email = ''
-
-    if error:
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.application_status_department'))
-
-    rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-            receiver=admin.email, cc1=application.employee.email, cc2=manager_email, cc3=head.email, 
-            application=application, type='leave', action='approved')
-    
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('leave.application_status_department'))
 
 ## Leave deduction function ##
 @leave.route('/leave/deduction', methods=['GET', 'POST'])
@@ -1074,6 +941,11 @@ def create_leave():
 @leave.route('/leave/application/search/<application_for>', methods=['GET', 'POST'])
 @login_required
 def search_application(application_for):
+    if application_for not in ('self', 'team', 'all'):
+        current_app.logger.error(' search_application(): Unknown function argument "%s", user: %s', application_for, session['username'])
+        flash('Failed to get search result')
+        return render_template('base.html')
+    
     form = Searchapplication()
 
     if form.validate_on_submit():
@@ -1099,3 +971,56 @@ def search_application(application_for):
             applications = Applications.query.filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).all()
 
         return render_template('data.html', type='leave_application_search', application_for=application_for, applications=applications)
+    else:
+        return render_template('forms.html', type='search_application', application_for=application_for, form=form)
+
+@leave.route('/leave/approval')
+@login_required
+@team_leader_required
+def approval():
+    application_id = request.args.get('application_id')
+    application = Applications.query.filter_by(id=application_id).one()
+    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
+    
+    can_edit = check_edit_permission2('approval', application, employee)
+    if not can_edit:
+        flash('You do not have permission to perform this action')
+        return render_template(url_for('leave.search_application', application_for='team'))
+
+    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
+    if summary:
+        msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+        flash(msg, category='error')
+        return render_template(url_for('leave.search_application', application_for='team'))
+
+    if application.type == 'Casual' or application.type == 'Medical':
+        available = check_available_leave(application.empid, application.start_date, application.duration, application.type, 'update')
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return render_template(url_for('leave.search_application', application_for='team'))
+    
+    if application.type == 'Casual adjust' and application.holiday_duty_type == 'On site':
+        update_applications_holidays(application.empid, application.holiday_duty_start_date, application.holiday_duty_end_date)
+
+    application.status = 'Approved'
+    update_applications_holidays(application.empid, application.start_date, application.end_date, application.id)
+    db.session.commit()
+    flash('Leave approved', category='message')
+    
+    #Send mail to all concerned
+    emails = get_concern_emails(employee.id)
+    cc = [employee.email, session['email']]
+
+    if session['email'] != emails['manager'] and employee.email != emails['manager']:
+        cc.append(emails['manager'])
+
+    if session['email'] != emails['head']:
+        cc.append(emails['head'])
+ 
+    rv = send_mail2(sender=session['email'], receiver=emails['admin'], cc=cc, application=application, type='leave', action='approved')
+    
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+    
+    return redirect(url_for('leave.search_application', application_for='team'))
