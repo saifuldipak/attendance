@@ -1,12 +1,12 @@
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, session, flash, url_for)
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, extract
 from .check import check_access, check_holiday_dates, check_application_dates
 from .db import (ApprLeaveAttn, AttnSummary, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttnSummary)
 from .mail import send_mail
 from .auth import *
 from werkzeug.utils import secure_filename
 import os
-from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical)
+from .forms import (Createleave, LeaveMedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical, Searchapplication)
 import datetime
 
 
@@ -1135,3 +1135,33 @@ def create_leave():
         return render_template('base.html')
     else:
         return render_template('forms.html', type='create_leave', form=form)
+    
+
+@leave.route('/leave/application/search/<application_for>', methods=['GET', 'POST'])
+@login_required
+def search_application(application_for):
+    form = Searchapplication()
+
+    if form.validate_on_submit():
+
+        if application_for == 'self':
+            applications = Applications.query.filter(Applications.empid==session['empid'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like('Casual%'), Applications.type=='Medical')).all()
+        
+        if application_for == 'team':
+            if session['role']=='Supervisor' or session['role']=='Manager':
+
+                teams = Team.query.join(Employee).filter_by(id=session['empid']).all()
+                applications = []
+    
+                for team in teams:
+                    team_applications = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+
+                applications += team_applications
+
+            if session['role']=='Head':
+                applications = Applications.query.join(Employee).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+
+        if application_for == 'all':
+            applications = Applications.query.filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).all()
+            
+        return render_template('data.html', type='leave_application_status', data='team', applications=applications)
