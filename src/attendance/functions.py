@@ -173,3 +173,34 @@ def find_team_leader_email(emails):
         team_leader_email = False
 
     return team_leader_email
+
+
+def check_edit_permission2(action, application, employee):
+    team = Team.query.filter_by(empid=employee.id).first()
+    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Supervisor').first()
+    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Manager').first()
+    head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
+    
+    if action == 'cancel' and application.status == 'Approval Pending':
+        if session['username'] == employee.username:
+            return True
+    
+    if employee.role == 'Team':
+        if session['role'] == 'Supervisor' and supervisor:
+            return True
+        elif session['role'] == 'Manager' and manager:
+            return True
+        elif session['role'] == 'Head' and head:
+            return True
+    
+    if employee.role == 'Supervisor':
+        if session['role'] == 'Manager' and manager:
+            return True
+        elif session['role'] == 'Head' and head:
+            return True
+
+    if employee.role == 'Manager':
+        if session['role'] == 'Head' and head:
+            return True
+
+    return False
