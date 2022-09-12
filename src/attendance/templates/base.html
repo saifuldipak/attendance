@@ -51,8 +51,8 @@
                 <a href="{{ url_for('forms.leave', type='Medical') }}" class="navbar-item">
                     Application-Medical
                 </a>
-                <a href="{{ url_for('leave.application_status_self') }}" class="navbar-item">
-                    Application Status
+                <a href="{{ url_for('forms.search_application', application_for='self') }}" class="navbar-item">
+                    Search Application
                 </a>
                 <a href="{{ url_for('leave.summary_self') }}" class="navbar-item">
                     Summary
@@ -74,24 +74,18 @@
                             -- Appl Medical
                         </a>
                     {% endif %}
+                    <a href="{{ url_for('forms.search_application', application_for='team') }}" class="navbar-item">
+                        -- Search Application
+                    </a>
                     {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('leave.application_status_department') }}" class="navbar-item">
-                            -- Appl Status
-                        </a>
                         <a href="{{ url_for('leave.summary_department', type='department') }}" class="navbar-item">
                             -- Summary
                         </a>
                     {% elif session['role'] == 'Manager' %}
-                        <a href="{{ url_for('leave.application_status_team') }}" class="navbar-item">
-                            -- Appl Status
-                        </a>
                         <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">
                             -- Summary
                         </a>
                     {% elif session['role'] == 'Supervisor' %}
-                        <a href="{{ url_for('leave.application_status_team_fiber') }}" class="navbar-item">
-                            -- Appl Status
-                        </a>
                         <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">
                             -- Summary
                         </a>
@@ -131,8 +125,8 @@
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
                     <p>Leave
-                    <a href="{{ url_for('leave.application_status_all', type='all') }}" class="navbar-item">
-                        -- Application Status
+                    <a href="{{ url_for('forms.search_application', application_for='all') }}" class="navbar-item">
+                        -- Search Application
                     </a>
                     <a href="{{ url_for('leave.summary_all', type='all') }}" class="navbar-item">
                         -- Summary

@@ -549,4 +549,14 @@ def duty_shift_create():
     form = Dutyshiftcreate()
     return render_template('forms.html', type='duty_shift_create', form=form)
     
-    
+#Search applications
+class Searchapplication(FlaskForm):
+    month = IntegerField('Month', render_kw={'class': 'input-field'}, default=datetime.now().month, validators=[InputRequired(), NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
+    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
+
+
+@forms.route('/forms/application/search/<application_for>', methods=['GET', 'POST'])
+@login_required
+def search_application(application_for):
+    form = Searchapplication()
+    return render_template('forms.html', type='search_application', application_for=application_for, form=form)
