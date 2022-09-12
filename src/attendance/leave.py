@@ -1163,5 +1163,5 @@ def search_application(application_for):
 
         if application_for == 'all':
             applications = Applications.query.filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).all()
-            
-        return render_template('data.html', type='leave_application_status', data='team', applications=applications)
+
+        return render_template('data.html', type='leave_application_search', application_for=application_for, applications=applications)
