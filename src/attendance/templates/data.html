@@ -2,8 +2,8 @@
 
 {% block content %}
 
-    {% if type == 'leave_application_status' %}
-        <div class="form-style-2-heading">Leave application status</div>
+    {% if type == 'leave_application_search' %}
+        <div class="form-style-2-heading">Leave applications</div>
         <table class="query-result">
             <th>Name</th>
             <th>Type</th>
@@ -11,7 +11,7 @@
             <th>Duration(days)</th>
             <th>Status</th>
             
-            {% if data %}
+            {% if application_for != 'all' %}
                 <th>Action</th>
             {% endif %}
 
@@ -23,31 +23,15 @@
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
                         <td>{{ application['status'] }}</td>
-                        {% if data == 'team' %}
+                        {% if application_for == 'team' %}
                             <td>
                                 {% if application['status'] == "Approval Pending" %}
-                                    <a href="{{ url_for('leave.approval_team', application_id=application['id']) }}">Approve</a>
+                                    <a href="{{ url_for('leave.approval', application_id=application['id']) }}">Approve</a>
                                 {% endif %}
-                                <a href="{{ url_for('leave.cancel_team', application_id=application['id']) }}">Cancel</a>
+                                <a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a>
                             </td>
                         {% endif %}
-                        {% if data == 'team_fiber' %}
-                            <td>
-                                {% if application['status'] == "Approval Pending" %}
-                                    <a href="{{ url_for('leave.approval_team', application_id=application['id']) }}">Approve</a>
-                                {% endif %}
-                                <a href="{{ url_for('leave.cancel_team_fiber', application_id=application['id']) }}">Cancel</a>
-                            </td>
-                        {% endif %}
-                        {% if data == 'department' %}
-                            <td>
-                                {% if application['status'] == "Approval Pending" %}
-                                    <a href="{{ url_for('leave.approval_department', application_id=application['id']) }}">Approve</a>
-                                {% endif %}
-                                    <a href="{{ url_for('leave.cancel_department', application_id=application['id']) }}">Cancel</a>
-                            </td>
-                        {% endif %}
-                        {% if data == 'self' %}
+                        {% if application_for == 'self' %}
                             {% if application['status'] == "Approval Pending" %}
                                 <td><a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a></td> 
                             {% endif %}
@@ -341,15 +325,35 @@
             <th>Date</th>
             <th>In Time</th>
             <th>Out Time</th>
-            <th>Approved</th>
-            {% for row in attendance %}
+            <th>Application</th>
+            <th>Holiday</th>
+            <th>Weekend</th>
+            {% for attendance in attendances %}
                 <tr>
-                    <td>{{ row['date'] }}</td>
-                    <td>{{ row['in_time'] }}</td>
-                    <td>{{ row['out_time'] }}</td>
-                    <td>{{ row['approved'] }}</td> 
+                    <td>{{ attendance[0] }}</td>
+                    <td>{{ attendance[1] }}</td>
+                    <td>{{ attendance[2] }}</td>
+                    {% if attendance[3] is none %}
+                        <td></td>
+                    {% else %}
+                        <td><a href={{ url_for('leave.details', application_id=attendance[3]) }}>{{ attendance[6] }}</a></td>
+                    {% endif %}
+                    
+                    {% if attendance[4] is none %}
+                        <td></td>
+                    {% else %}
+                        <td>{{ attendance[7] }}</td>
+                    {% endif %}
+                    
+                    {% if attendance[5] is none %}
+                        <td></td>
+                    {% elif attendance[5] == 7 %}
+                        <td>Friday</td>
+                    {% elif attendance[5] == 1 %}   
+                        <td>Saturday</td>
+                    {% endif %}
                 </tr>
-             {% endfor %}
+            {% endfor %}
         </table>
     {% endif %}
 
@@ -395,23 +399,43 @@
             <th>Date</th>
             <th>In Time</th>
             <th>Out Time</th>
-            <th>Approved</th>
-            {% for row in attendance %}
+            <th>Application</th>
+            <th>Holiday</th>
+            <th>Weekend</th>
+            {% for attendance in attendances %}
                 <tr>
                     {% if query_type == 'date' %}
-                        <td>{{ row['fullname'] }}</td>
-                        <td>{{ row['name'] }}</td>
+                        <td>{{ attendance['fullname'] }}</td>
+                        <td>{{ attendance['name'] }}</td>
                     {% endif %}
-                    <td>{{ row['date'] }}</td>
-                    <td>{{ row['in_time'] }}</td>
-                    <td>{{ row['out_time'] }}</td>
-                    <td>{{ row['approved'] }}</td>
+                    <td>{{ attendance[0] }}</td>
+                    <td>{{ attendance[1] }}</td>
+                    <td>{{ attendance[2] }}</td>
+                    {% if attendance[3] is none %}
+                        <td></td>
+                    {% else %}
+                        <td><a href={{ url_for('leave.details', application_id=attendance[3]) }}>{{ attendance[6] }}</a></td>
+                    {% endif %}
+                    
+                    {% if attendance[4] is none %}
+                        <td></td>
+                    {% else %}
+                        <td>{{ attendance[7] }}</td>
+                    {% endif %}
+                    
+                    {% if attendance[5] is none %}
+                        <td></td>
+                    {% elif attendance[5] == 7 %}
+                        <td>Friday</td>
+                    {% elif attendance[5] == 1 %}   
+                        <td>Saturday</td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </table>
     {% endif %}
 
-    {% if type == 'attn_appl_status' %}
+    {% if type == 'attendance_application_status' %}
         <div class="form-style-2-heading">Attendance Application Status</div>
         <table class="query-result">
             <th>Name</th>
@@ -420,7 +444,7 @@
             <th>Duration(days)</th>
             <th>Status</th>
             
-            {% if user!='all' %}
+            {% if status_for!='all' %}
                 <th>Action</th>
             {% endif %}
 
@@ -432,25 +456,19 @@
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
                         <td>{{ application['status'] }}</td>
-                            {% if data == 'team' %}
-                                <td>
-                                    {% if application['status'] == "Approval Pending" %}
-                                        <a href="{{ url_for('attendance.approval_team', application_id=application['id'], type=application['type']) }}">Approve</a>
-                                    {% endif %}
-                                        <a href="{{ url_for('attendance.cancel_team', application_id=application['id']) }}">Cancel</a>
-                                </td> 
-                            {% elif data == 'department' %}
-                                <td>
-                                    {% if application['status'] == "Approval Pending" %}
-                                        <a href="{{ url_for('attendance.approval_department', application_id=application['id'], type=application['type']) }}">Approve</a>
-                                    {% endif %}
-                                        <a href="{{ url_for('attendance.cancel_department', application_id=application['id']) }}">Cancel</a>
-                                </td>
-                            {% elif data == 'self' %}
-                                {% if application['status'] == "Approval Pending" %}
-                                    <td><a href="{{ url_for('attendance.cancel', id=application['id']) }}">Cancel</a></td>
-                                {% endif %}
+                        {% if application_for == 'self' %}
+                            {% if application['status'] == "Approval Pending" %}
+                                <td><a href="{{ url_for('attendance.cancel_application', application_for=application_for, application_id=application['id']) }}">Cancel</a></td>
                             {% endif %}
+                        {% endif %}
+                        {% if application_for == 'team' %}
+                            <td>
+                                {% if application['status'] == "Approval Pending" %}
+                                    <a href="{{ url_for('attendance.approval', application_id=application['id'], type=application['type']) }}">Approve</a>
+                                {% endif %}
+                                    <a href="{{ url_for('attendance.cancel_application', application_for=application_for, application_id=application['id']) }}">Cancel</a>
+                            </td> 
+                        {% endif %}                        
                     {% endif %}
                 </tr>
             {% endfor %}
@@ -463,15 +481,19 @@
         <div class="form-style-2-heading">Holidays</div>
             <table class="query-result">
                 <th>Id</th>
-                <th>Date</th>
                 <th>Name</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Duration(days)</th>
                 <th>Action</th>
                 {% for holiday in holidays %}
                     <tr>
                         <td>{{ holiday['id'] }}</td>
-                        <td>{{ holiday['date'] }}</td>
                         <td>{{ holiday['name'] }}</td>
-                        <td><a href={{ url_for('attendance.holidays', action='delete', holiday_name=holiday['name']) }}>Delete</a></td>
+                        <td>{{ holiday['start_date'] }}</td>
+                        <td>{{ holiday['end_date'] }}</td>
+                        <td>{{ holiday['duration'] }}</td>
+                        <td><a href={{ url_for('attendance.holidays', action='delete', holiday_id=holiday['id']) }}>Delete</a></td>
                     </tr>
                 {% endfor %}
                 <tr><td><a href={{ url_for('attendance.holidays', action='add') }}>Add</a></td></tr>
@@ -532,6 +554,51 @@
             </table>
             <p><a href={{ url_for('forms.duty_shift_create') }}>Add shift</a></p>
         </div>
+    {% endif %}
+
+    {% if type == 'attendance_query' %}
+        <div class="form-style-2-heading">Attendance Details</div>
+        {% if query_type == 'username' %}
+            {% if session['role'] != 'Team' %}
+                <p>Username: {{ fullname }}<br>
+            {% endif %}
+            Month: {{ form.month.data }}
+            Year: {{ form.year.data }}</p>
+        {% endif %}
+        <table class="query-result">
+            <th>Date</th>
+            <th>In Time</th>
+            <th>Out Time</th>
+            <th>Application</th>
+            <th>Holiday</th>
+            <th>Weekend</th>
+            {% for attendance in attendances %}
+                <tr>
+                    <td>{{ attendance[0] }}</td>
+                    <td>{{ attendance[1] }}</td>
+                    <td>{{ attendance[2] }}</td>
+                    {% if attendance[3] is none %}
+                        <td></td>
+                    {% else %}
+                        <td><a href={{ url_for('leave.details', application_id=attendance[3]) }}>{{ attendance[6] }}</a></td>
+                    {% endif %}
+                    
+                    {% if attendance[4] is none %}
+                        <td></td>
+                    {% else %}
+                        <td>{{ attendance[7] }}</td>
+                    {% endif %}
+                    
+                    {% if attendance[5] is none %}
+                        <td></td>
+                    {% elif attendance[5] == 7 %}
+                        <td>Friday</td>
+                    {% elif attendance[5] == 1 %}   
+                        <td>Saturday</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
     {% endif %}
 
 {% endblock %}

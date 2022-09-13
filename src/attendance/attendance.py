@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
 from re import search
@@ -7,11 +8,10 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
-from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attnqueryself, Attndataupload, 
-                    Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, employee)
+from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummary, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import convert_team_name
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -66,11 +66,10 @@ def upload():
                     error = f"Employee ID '{str(empid)}' & date '{date}' record already exists in database or duplicate data in uploaded file"
                     flash(error, category='error')
                     return redirect(request.url)
-
-                application = Applications.query.filter(Applications.empid==empid, Applications.start_date >= date, 
-                                Applications.end_date <= date, Applications.status=='Approved').first()
                 
-                weekday = date.strftime("%A")
+                application = Applications.query.filter(Applications.empid==empid, Applications.start_date<=date, 
+                                Applications.end_date>=date, Applications.status=='Approved').first()
+                
                 team = Team.query.filter_by(empid=employee.id).first()
                 if not team:
                     msg = f'Team name not found for {employee.fullname}'
@@ -78,22 +77,31 @@ def upload():
                     return redirect(url_for('forms.upload'))
 
                 match = search(r'^Fiber', team.name)
-                holiday = Holidays.query.filter_by(date=date).first()
+                holiday = Holidays.query.filter(Holidays.start_date<=date, Holidays.end_date>=date).first()
 
                 if application:
-                    approved = application.type
-                elif holiday or weekday == 'Friday':
-                    approved = 'Holiday'
-                elif weekday == 'Saturday':
-                    if match:
-                        approved = ''
-                    else:
-                        approved = 'Holiday'     
+                    application_id = application.id
                 else:
-                    approved = ''    
+                    application_id = None
 
-                apprleaveattn = ApprLeaveAttn(empid=empid, date=date, approved=approved)
-                db.session.add(apprleaveattn)
+                if holiday:
+                    holiday_id = holiday.id
+                else:
+                    holiday_id = None
+
+                day_name = date.strftime("%A")
+                if  day_name == 'Friday':
+                    weekend_id = 7
+                elif day_name == 'Saturday':
+                    if not match:
+                        weekend_id = 1
+                    else:
+                        weekend_id = None
+                else:
+                    weekend_id = None     
+
+                applications_holidays = ApplicationsHolidays(empid=empid, date=date, application_id=application_id, holiday_id=holiday_id, weekend_id=weekend_id)
+                db.session.add(applications_holidays)
 
                 attendance = Attendance(empid=empid, date=date, in_time=in_time, out_time=out_time)
                 db.session.add(attendance)
@@ -110,85 +118,6 @@ def upload():
 def query_menu():
     return render_template('attn_query.html')
 
-##Attendance data for all by Admin##
-@attendance.route('/attendance/query/all/<query_type>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def query_all(query_type):
-
-    #creating form object using appropriate class based on type
-    if query_type == 'date':
-        form = Attnquerydate()
-    elif query_type == 'username':
-        form = Attnqueryusername()
-    elif query_type == 'month':
-        form = Attnsummaryshow()
-
-    if form.validate_on_submit():
-        
-        if query_type == 'date':
-            attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, 
-                            and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).\
-                            with_entities(Employee.fullname, Attendance.date, Attendance.in_time, 
-                            Attendance.out_time, ApprLeaveAttn.approved).\
-                            filter(Attendance.date==form.date.data).all()
-            
-            if not attendance:
-                flash('No record found', category='warning')
-                      
-            return render_template('data.html', type='attn_details', query='all', 
-                                    query_type=query_type, attendance=attendance)          
-        
-        if query_type == 'username':
-            employee = Employee.query.filter_by(username=form.username.data).first()
-            
-            if employee:
-                month = datetime.strptime(form.month.data, "%B").month
-
-                attendance = db.session.query(Attendance.date, Attendance.in_time, 
-                                                Attendance.out_time, ApprLeaveAttn.approved).\
-                            join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                                                    Attendance.empid==ApprLeaveAttn.empid)).\
-                            filter(Attendance.empid==employee.id).\
-                            filter(extract('month', Attendance.date)==month).\
-                            order_by(Attendance.date).all()
-                
-                if not attendance:
-                    flash('No record found', category='warning')
-
-                return render_template('data.html', type='attn_details', query='all', 
-                                            fullname=employee.fullname, query_type=query_type, 
-                                            form=form, attendance=attendance)
-            else:
-                flash('Username not found', category='error')
-                return redirect(url_for('attendance.query_menu'))
-        
-        if query_type == 'month':
-
-            if form.result.data == 'Show':
-                summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, 
-                            AttnSummary.late, AttnSummary.early, AttnSummary.extra_absent, AttnSummary.leave_deducted).\
-                            filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
-        
-                if not summary:
-                    flash('No record found', category='warning')                  
-            
-                return render_template('data.html', type='attn_summary', form=form, summary=summary)
-
-            if form.result.data == 'Download':
-                file_name = f'Attendance-summary-{form.month.data}-{form.year.data}.csv'
-                
-                stmt = select(Employee.fullname, AttnSummary.absent, AttnSummary.late, AttnSummary.early, 
-                        AttnSummary.extra_absent, AttnSummary.leave_deducted).join(Employee).\
-                        where(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data)
-                df = pd.read_sql(stmt, db.engine)
-                
-                df.to_csv(os.path.join(current_app.config['UPLOAD_FOLDER'], file_name))
-                
-                return render_template('attn_query.html', download='yes', file_name=file_name)
-
-    return render_template('attn_query.html')
 
 @attendance.route('/attendance/files/<name>')
 @login_required
@@ -196,191 +125,6 @@ def query_all(query_type):
 def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
-@attendance.route('/attendance/query/department/<query_type>', methods=['GET', 'POST'])
-@login_required
-@head_required
-def query_department(query_type):
-    if query_type == 'date':
-        form = Attnquerydate()
-    elif query_type == 'username':
-        form = Attnqueryusername()
-    elif query_type == 'month':
-        form = Attnsummary()
-
-    if form.validate_on_submit():
-        
-        if query_type == 'date':
-            attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Employee.fullname, Attendance.date, 
-                            Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
-                            filter(Attendance.date==form.date.data, Employee.department==session['department'], 
-                            Employee.id!=session['empid']).all()
-            
-            if not attendance:
-                flash('No record found', category='warning')
-                      
-            return render_template('data.html', type='attn_details', query_type=query_type, attendance=attendance)          
-        
-        if query_type == 'username':
-            
-            employee = Employee.query.filter_by(username=form.username.data).first()
-            if not employee:
-                flash('Username not found', category='error')
-                return redirect(url_for('attendance.query_menu'))
-
-            head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head').first()
-            if not head:
-                current_app.logger.warning('query_department(): Trying to query attendance of another department by %s', 
-                                            session['username'])
-                flash('Username not found', category='error')
-                return redirect(url_for('forms.attendance_query', query_type='username'))
-            
-            month = datetime.strptime(form.month.data, "%B").month
-
-            attendance = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApprLeaveAttn.approved).\
-                        join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, Attendance.empid==ApprLeaveAttn.empid)).\
-                        filter(Attendance.empid==employee.id, extract('month', Attendance.date)==month).order_by(Attendance.date).all()
-            
-            if not attendance:
-                flash('No record found', category='warning')
-
-            return render_template('data.html', type='attn_details', query_type=query_type, form=form, attendance=attendance)
-        
-        if query_type == 'month':
-            summary = AttnSummary.query.join(Employee).with_entities(Employee.fullname, AttnSummary.absent, 
-                        AttnSummary.late, AttnSummary.early, AttnSummary.extra_absent, AttnSummary.leave_deducted).\
-                        filter(Employee.id!=session['empid'], Employee.department==session['department'], 
-                        AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
-
-            if len(summary) == 0:
-                flash('No record found', category='warning')                  
-            
-            return render_template('data.html', type='attn_summary', form=form, summary=summary)
-   
-    return render_template('attn_query.html')
-
-##Query attendance data for team by managers##
-@attendance.route('/attendance/query/team/<query_type>', methods=['GET', 'POST'])
-@login_required
-@team_leader_required
-def query_team(query_type):
-    
-    if query_type == 'date':
-        form = Attnquerydate()
-    elif query_type == 'username':
-        form = Attnqueryusername()
-    elif query_type == 'month':
-        form = Attnsummary()
-    else:
-        current_app.logger.error('query_team(): Unknown query_type')
-        flash('Query failed', category='error')
-        return render_template('attn_query.html')
-
-    if form.validate_on_submit():
-        teams = Team.query.filter_by(empid=session['empid']).all()
-        
-        if not teams:
-            current_app.logger.error('query_team(): No team found in Team table for %s', session['username'])
-            flash('Query failed', category='error')
-            return render_template('base.html')
-
-        if query_type == 'date':
-            allteams_attendance = []
-            
-            for team in teams:
-                team_attendance = Attendance.query.join(Employee).join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).join(Team, Attendance.empid==Team.empid).\
-                            with_entities(Employee.fullname, Team.name, Attendance.date, Attendance.in_time, Attendance.out_time, 
-                            ApprLeaveAttn.approved).filter(Attendance.date==form.date.data, Team.name==team.name, 
-                            Attendance.empid!=session['empid']).all()
-
-                allteams_attendance += team_attendance
-
-            attendance = allteams_attendance
-        
-            if len(attendance) == 0:
-                flash('No record found', category='warning')
-                      
-            return render_template('data.html', type='attn_details', query_type='date', attendance=attendance)
-        
-
-        if query_type == 'username':
-            team = Team.query.join(Employee).filter(Employee.username==form.username.data).first()
-
-            team_leader = Employee.query.join(Team).filter(Team.name==team.name, or_(Employee.role=='Manager', 
-                        Employee.role=='Supervisor', Employee.id==session['empid'])).first()
-            if not team_leader:
-                current_app.logger.warning('query_team(): Trying to query attendance of another team by %s', session['username'])
-                flash('Username not found', category='error')
-                return render_template('attn_query.html')
-
-            employee = Employee.query.filter_by(username=form.username.data).first()
-
-            month = datetime.strptime(form.month.data, "%B").month
-
-            attendance = Attendance.query.join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, Attendance.in_time, 
-                            Attendance.out_time, ApprLeaveAttn.approved).filter(Attendance.empid==employee.id, 
-                            extract('month', Attendance.date)==month).all()
-                
-            if not attendance:
-                    flash('No record found', category='warning')
-
-            return render_template('data.html', type='attn_details', query_type='username', form=form, attendance=attendance)
-
-        if query_type == 'month':
-            allteams_summary = []
-
-            for team in teams:
-                team_summary = AttnSummary.query.join(Employee).join(Team, AttnSummary.empid==Team.empid).\
-                                with_entities(Employee.fullname, AttnSummary.absent, AttnSummary.late, AttnSummary.early, 
-                                AttnSummary.extra_absent, AttnSummary.leave_deducted).filter(Employee.id!=session['empid'], 
-                                Team.name==team.name, AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
-                
-                allteams_summary += team_summary
-            
-            summary = allteams_summary
-            
-            if not summary:
-                flash('No record found', category='warning')                  
-            
-            return render_template('data.html', type='attn_summary', query='team', form=form, summary=summary)
-
-##Attendance query for self##
-@attendance.route('/attendance/query/self', methods=['GET', 'POST'])
-@login_required
-def query_self():
-    form = Attnqueryself()
-    
-    if form.validate_on_submit():
-        
-        if form.query.data == 'Details':
-            attendance = Attendance.query.join(ApprLeaveAttn, and_(Attendance.date==ApprLeaveAttn.date, 
-                            Attendance.empid==ApprLeaveAttn.empid)).with_entities(Attendance.date, Attendance.in_time, 
-                            Attendance.out_time, ApprLeaveAttn.approved).filter(Attendance.empid==session['empid'], 
-                            extract('month', Attendance.date)==int(form.month.data)).order_by(Attendance.date).all()
-            
-            if not attendance:
-                flash('No record found', category='warning')
-                return redirect(url_for('forms.attnquery_self'))
-            
-            return render_template('data.html', type='attn_details_self', attendance=attendance)
-
-        if form.query.data == 'Summary':
-            month_obj = datetime.strptime(str(form.month.data), '%m')
-            month_name = month_obj.strftime('%B')
-            
-            summary = AttnSummary.query.filter(AttnSummary.year==form.year.data, 
-                        AttnSummary.month==month_name).first()
-
-            if not summary:
-                flash('No record found', category='warning')
-                return redirect(url_for('forms.attnquery_self'))
-            
-            return render_template('data.html', type='attn_summary_self', summary=summary)
-
-    else:    
-        return render_template('forms.html', type='attnquery_self', form=form)
 
 ##Attendance application##
 @attendance.route('/attendance/application', methods=['GET', 'POST'])
@@ -454,255 +198,6 @@ def application():
     
     return redirect(request.url)
 
-## Attendance application cancel function ##
-@attendance.route('/attendance/cancel/<id>')
-@login_required
-def cancel(id):
-    application = Applications.query.filter_by(id=id).first()
-
-    if not application:
-        flash('Application not found', category='error')
-    elif application.status == 'Approved':
-        flash('Cancel request sent to Team Manager', category='message')
-    else:  
-        db.session.delete(application)
-        db.session.commit()
-        flash('Application cancelled', category='message')
-
-        #Send mail to all concerned
-        if session['role'] == 'Team':
-            manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
-            
-            if not manager:
-                current_app.logger.warning('Team Manager email not found')
-            else:            
-                receiver_email = manager.email
-
-        if session['role'] == 'Manager' or not manager:
-            head = Employee.query.join(Team).filter(Employee.department==session['department'], Employee.role=='Head').first()
-            
-            if not head:
-                current_app.logger.warning('Dept. Head email not found')
-                rv = 'failed'
-            else:
-                receiver_email = head.email
-
-        if 'rv' in locals():
-            flash('Failed to send mail', category='warning')
-            return redirect(request.url)
-
-        employee = Employee.query.filter_by(id=session['empid']).first()
-        
-        host = current_app.config['SMTP_HOST']
-        port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, type='attendance', 
-                        application=application, action='cancelled')
-        
-        if rv:
-            current_app.logger.warning(rv)
-            flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_self'))
-
-
-@attendance.route('/attendance/application/cancel/team/fiber/<id>')
-@login_required
-@supervisor_required
-def cancel_team_fiber(id):
-    application = Applications.query.filter_by(id=id).first()
-
-    if not application:
-        flash('Application not found', category='error')
-        return redirect(url_for(attendance.appl_status_team))
-
-    update_apprleaveattn(application.empid, application.start_date, application.end_date, '')
-    
-    db.session.delete(application)
-    db.session.commit()
-    
-    flash('Application cancelled', category='message')
-
-    #Send mail to all concerned
-    manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
-    head = Employee.query.filter(Employee.department==session['department'], Employee.role=='Head').first()
-    
-    if not manager and not head:
-        current_app.logger.error(' cancel_team_fiber() - Neither Manager and Head record found for team %s', session['team'])
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.appl_status_team'))
-
-    if not manager:
-        receiver_email = head.email
-    else:            
-        receiver_email = manager.email
-
-    supervisor = Employee.query.filter_by(id=session['empid']).first()
-    
-    host = current_app.config['SMTP_HOST']
-    port = current_app.config['SMTP_PORT']
-    rv = send_mail(host=host, port=port, sender=supervisor.email, receiver=receiver_email, type='attendance', 
-                    application=application, action='cancelled')
-    
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_team'))
-
-
-@attendance.route('/attendance/cancel/team/<application_id>')
-@login_required
-@manager_required
-def cancel_team(application_id):
-    application = Applications.query.filter_by(id=application_id).first()
-    if not application:
-        flash('Attendance application not found', category='error')
-        return redirect(url_for('attendance.status_team'))
-    
-    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
-    if not employee:
-        current_app.logger.warning(' cancel_team(): employee details not found for application:%s', application_id)
-        flash('Employee details not found for this application', category='error')
-        return redirect(url_for('attendance.status_team'))
-    
-    team = Team.query.filter_by(empid=application.empid).first()
-    if not team:
-        flash('Employee team not found for this application', category='error')
-        current_app.logger.warning(' cancel_team(): team not found for %s', application.empid)
-        return redirect(url_for('attendance.status_team'))
-
-    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Employee.role=='Manager', 
-                Team.name==team.name).first()
-    if not manager:
-        flash('You are not authorized', category='error')
-        current_app.logger.warning(' cancel_team(): not the manager of %s', team.name)
-        return redirect(url_for('attendance.status_team'))
-    
-    if application.status == 'Approved':
-        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-        if summary:
-            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-            flash(msg, category='error')
-            return redirect(url_for('attendance.status_team'))
-    
-    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
-    db.session.delete(application)
-    db.session.commit()
-    flash('Application cancelled', category='message')
-
-    #Send mail to all concerned
-    email_found = True
-    
-    if not manager.email:
-        current_app.logger.warning(' cancel_team(): Team Manager email not found for %s', employee.username)
-        email_found = False
-
-    if application.status == 'Approved':
-        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-        if not admin:
-            current_app.logger.warning(' cancel_team(): Admin email not found')
-            email_found = False
-
-        head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
-        if not head:
-            current_app.logger.warning('Dept. Head email not found')
-            email_found = False
-    
-    if not email_found:
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.status_team'))
-    
-    if application.status == 'Approved':
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
-                    receiver=admin.email, cc1=head.email, cc2=employee.email, type='attendance', application=application, 
-                    action='cancelled')
-    
-    if application.status == 'Approval Pending':
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=manager.email, 
-                    receiver=employee.email, type='attendance', application=application, action='cancelled')
-
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_team'))
-
-@attendance.route('/attendance/cancel/department/<application_id>')
-@login_required
-@head_required
-def cancel_department(application_id):
-    application = Applications.query.filter_by(id=application_id).first()
-    if not application:
-        flash('Attendance application not found', category='error')
-        return redirect(url_for('attendance.appl_status_department'))
-    
-    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
-    if not employee:
-        current_app.logger.warning(' cancel_department(): employee details not found for application:%s', application_id)
-        flash('Employee details not found for this application', category='error')
-        return redirect(url_for('attendance.appl_status_department'))
-
-    head = Employee.query.filter_by(department=employee.department, id=session['empid'], role='Head').first()
-    if not head:
-        flash('You are not authorized', category='error')
-        current_app.logger.warning(' cancel_department(): not the head of %s', employee.department)
-        return redirect(url_for('attendance.appl_status_department'))
-    
-    if application.status == 'Approved':
-        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
-                empid=application.empid).first()
-        if summary:
-            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
-            flash(msg, category='error')
-            return redirect(url_for('attendance.appl_status_department'))
-
-    update_apprleaveattn(employee.id, application.start_date, application.end_date, '')
-    db.session.delete(application)
-    db.session.commit()
-    flash('Application cancelled', category='message')
-
-    #Send mail to all concerned
-    email_found = True
-
-    if employee.role == 'Team':
-        manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
-        if not manager.email:
-            current_app.logger.warning(' cancel_department(): Team Manager email not found for %s', employee.username)
-            email_found = False
-
-    if application.status == 'Approved':
-        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-        if not admin:
-            current_app.logger.warning(' cancel_department(): Admin email not found')
-            email_found = False
-
-        head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
-        if not head:
-            current_app.logger.warning('Dept. Head email not found')
-            email_found = False
-    
-    if not email_found:
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('leave.status_department'))
-    
-    if employee.role != 'Team':
-            manager.email = None
-
-    if application.status == 'Approved': 
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=admin.email, cc1=employee.email, cc2=manager.email, type='attendance', application=application, 
-                    action='cancelled')
-    
-    if application.status == 'Approval Pending':
-        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=head.email, 
-                    receiver=employee.email, cc2=manager.email, type='attendance', application=application, action='cancelled')
-
-    if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-    
-    return redirect(url_for('attendance.appl_status_department'))
 
 ##Attendance application details##
 @attendance.route('/attendance/application/details/<application_id>')
@@ -718,75 +213,21 @@ def application_details(application_id):
     return render_template('data.html', type='attn_appl_details', details=details)
 
 
-## Attendance application status for individual ##
-@attendance.route('/attendance/application/status/self')
-@login_required
-def appl_status_self():
-    applications = Applications.query.join(Employee).\
-                    filter(Employee.username == session['username']).\
-                    filter(and_(Applications.type!='Casual', Applications.type!='Medical')).\
-                    order_by(Applications.submission_date.desc()).all()
-    
-    return render_template('data.html', type='attn_appl_status', data='self', applications=applications)
-    
-#Attendance application status for team 
-@attendance.route('/attendance/application/status/team')
+@attendance.route('/attendance/application/approval')
 @login_required
 @team_leader_required
-def appl_status_team():
-    teams = Team.query.join(Employee).filter(Employee.username==session['username']).all()
-    applications = []
-        
-    for team in teams:
-        applist = Applications.query.select_from(Applications).\
-                    join(Team, Applications.empid==Team.empid).filter(Team.name == team.name).\
-                    filter(Applications.empid!=session['empid'], and_(Applications.type!='Casual', 
-                    Applications.type!='Medical')).order_by(Applications.status).all()
-        applications += applist
-
-    return render_template('data.html', type='attn_appl_status', data='team', applications=applications)
-
-#Attendance application status for department
-@attendance.route('/attendance/application/status/department')
-@login_required
-@head_required
-def appl_status_department():
-    applications = Applications.query.join(Employee).filter(Employee.department==session['department'], 
-                    and_(Applications.type!='Casual', Applications.type!='Medical')).\
-                    order_by(Applications.status, Applications.submission_date.desc()).all()
-
-    return render_template('data.html', type='attn_appl_status', data='department', applications=applications)
-
-#Attendance application status for all 
-@attendance.route('/attendance/application/status/all')
-@login_required
-@admin_required
-def appl_status_all():
-    applications = Applications.query.filter(and_(Applications.type!='Casual', 
-                                                Applications.type!='Medical')).\
-                                        order_by(Applications.status).all()
-    
-    return render_template('data.html', type='attn_appl_status', user='all', 
-                        applications=applications)
-
-##Attendance application approval for Team##
-@attendance.route('/attendance/application/approval/team')
-@login_required
-@manager_required
-def approval_team():
+def approval():
     application_id = request.args.get('application_id')
     
-    if not check_access(application_id):
-        flash('You are not authorizes to perform this action', category='error')
+    if not check_team_access(application_id):
+        flash('You are not authorized to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
-    #Approve application and update appr_leave_attn table
     application = Applications.query.filter_by(id=application_id).first()
     start_date = application.start_date
     end_date = application.end_date
-    type = request.args.get('type')
     
-    update_apprleaveattn(application.empid, start_date, end_date, type)
+    update_applications_holidays(application.empid, start_date, end_date, application_id)
     
     application.status = 'Approved'
     application.approval_date = datetime.now()
@@ -804,27 +245,24 @@ def approval_team():
         current_app.logger.warning('Team Manager email not found')
         msg = 'warning'
 
-    head = Employee.query.filter(Employee.department==application.employee.department, 
-                                    Employee.role=='Head').first()
+    head = Employee.query.filter(Employee.department==application.employee.department, Employee.role=='Head').first()
     if not head:
         current_app.logger.warning('Dept. Head email not found')
         msg = 'warning'
     
     if 'msg' in locals():
         flash('Failed to send mail', category='warning')
-        return redirect(request.url)
+        return redirect(url_for('attendance.appl_status_team'))
 
     host = current_app.config['SMTP_HOST']
     port = current_app.config['SMTP_PORT'] 
     
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-                    cc1=application.employee.email, cc2=head.email, type='attendance', 
-                    action='approved', application=application)
+    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, cc2=head.email, type='attendance', action='approved', application=application)
     if rv:
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
     
-    return redirect(url_for('attendance.appl_status_team'))
+    return redirect(url_for('attendance.application_status'))
 
 ##Attendance application approval for Department##
 @attendance.route('/attendance/application/approval/department')
@@ -970,23 +408,34 @@ def application_fiber():
 
         duration = (form.end_date.data - form.start_date.data).days + 1
 
-        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, 
-                        duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), 
-                        status='Approved')
+        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), status='Approved')
         db.session.add(application)
         db.session.commit()
         flash('Attendance application approved', category='message')
         
-        update_apprleaveattn(employee.id, form.start_date.data, form.end_date.data, form.type.data)
+        application = Applications.query.filter_by(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, type=form.type.data).first()
+        if not application:
+            current_app.logger.error('Application employee: %s, type: %s, start_date: %s, end_date: %s not found', employee.id, form.start_date.data, form.end_date.data, form.type.data)
+            return redirect(url_for('forms.attn_fiber'))
+
+        update_applications_holidays(employee.id, form.start_date.data, form.end_date.data, application.id)
         db.session.commit()
         
-        #Send mail to all concerned 
-        application = Applications.query.filter_by(empid=employee.id, 
-                                                start_date=form.start_date.data, 
-                                                end_date=form.end_date.data, type=form.type.data).first()
-       
-        manager = Employee.query.join(Team).filter(Team.name==session['team'], 
-                                                    Employee.role=='Manager').first()
+        #Send mail to all concerned
+        supervisor = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Supervisor').first()
+        if supervisor:
+            if not supervisor.email:
+                current_app.logger.warning('application_fiber(): Supervisor email not found for %s', session['username'])
+                rv = 'failed'
+        else:
+            current_app.logger.warning('application_fiber(): Supervisor email not found for %s', session['username'])
+            rv = 'failed'
+
+        manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
+        if not manager:
+            manager_email = ''
+        else:
+            manager_email = manager.email
 
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
         if not admin:
@@ -1000,17 +449,16 @@ def application_fiber():
         
         if 'rv' in locals():
             flash('Failed to send mail', category='warning')
-            return redirect(request.url)
+            return redirect(url_for('forms.attn_fiber'))
         
         host = current_app.config['SMTP_HOST']
         port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, 
-                        cc1=head.email, application=application, type='attendance', action='approved')
+        rv = send_mail(host=host, port=port, sender=supervisor.email, receiver=admin.email, cc1=manager_email, cc2=head.email, application=application, type='attendance', action='approved')
         
         if rv:
             current_app.logger.warning(rv)
             flash('Failed to send mail', category='warning')
-            return redirect(request.url)
+            return redirect(url_for('forms.attn_fiber'))
 
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
@@ -1154,7 +602,7 @@ def duty_shift(action):
 def holidays(action):
     
     if action == 'show':
-        holidays = Holidays.query.filter(extract('year', Holidays.date)==datetime.now().year).all()
+        holidays = Holidays.query.filter(extract('year', Holidays.start_date)==datetime.now().year, extract('year', Holidays.end_date)==datetime.now().year).all()
         return render_template('data.html', type='holidays', holidays=holidays)
     elif action == 'add':
         form = Addholidays()
@@ -1167,43 +615,58 @@ def holidays(action):
             if rv:
                 flash(rv, category='error')
                 return redirect(url_for('attendance.holidays', action='show'))
-
-            holiday = Holidays.query.filter(Holidays.date>=form.start_date.data, Holidays.date<=form.end_date.data).first()
-            if holiday:
-                    flash('Date exists in holidays', category='error')
-                    return redirect(url_for('attendance.holidays', action='show'))
-
-            while form.start_date.data <= form.end_date.data:
-                holiday = Holidays(date=form.start_date.data, name=form.name.data)
-                db.session.add(holiday)
-                
-                attendances = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==form.start_date.data).all()
-                if attendances:
-                    for attendance in attendances:
-                        attendance.approved = form.name.data 
-                
-                form.start_date.data += timedelta(days=1)
             
+            holiday_exists = check_holidays(form.name.data, form.start_date.data, form.end_date.data)
+            if holiday_exists:
+                    flash(holiday_exists, category='error')
+                    return redirect(url_for('attendance.holidays', action='show'))
+            
+            duration = (form.end_date.data - form.start_date.data).days + 1
+
+            holiday = Holidays(name=form.name.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration)
+            db.session.add(holiday)
             db.session.commit()
+
+            holiday = Holidays.query.filter_by(name=form.name.data, start_date=form.start_date.data, end_date=form.end_date.data).first()
+            if holiday:
+                dates = ApplicationsHolidays.query.filter(ApplicationsHolidays.date>=form.start_date.data, ApplicationsHolidays.date<=form.end_date.data).all()
+                
+                for date in dates:
+                    date.holiday_id = holiday.id
+                
+                db.session.commit()
+            else:
+                current_app.logger.error("Holiday '%s' not found", form.name.data)
+                msg = f'No holiday named {form.name.data}'
+                flash(msg, category='error')
+
             return redirect(url_for('attendance.holidays', action='show'))
 
         return render_template('forms.html', type='add_holiday', form=form)
     elif action == 'delete':
-        holiday_name = request.args.get('holiday_name')
-        holidays = Holidays.query.filter_by(name=holiday_name).all()
-        for holiday in holidays:
-            rv = check_attnsummary(holiday.date)
-            if rv:
-                flash(rv, category='error')
-                return redirect(url_for('attendance.holidays', action='show'))
+        holiday_id = request.args.get('holiday_id')
+        holiday = Holidays.query.filter_by(id=holiday_id).first()
         
-        for holiday in holidays:
-            attendances = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==holiday.date).all()
-            if attendances:
-                for attendance in attendances:
-                    attendance.approved = ''
-            
-            db.session.delete(holiday)
+        if not holiday:
+            current_app.logger.error('Holiday id: %s not found in holidays table', holiday_id)
+            flash('Holiday not found', category='error')
+            return redirect(url_for('attendance.holidays', action='show'))
+
+        rv = check_attnsummary(holiday.start_date, holiday.end_date)
+        if rv:
+            flash(rv, category='error')
+            return redirect(url_for('attendance.holidays', action='show'))
+        
+        dates = ApplicationsHolidays.query.filter(ApplicationsHolidays.holiday_id==holiday_id).all()
+        if dates:
+            for date in dates:
+                date.holiday_id = None
+        else:
+            current_app.logger.error('Holiday "%s" not found in applications_holidays table', holiday.name)
+            flash('Holiday id not found', category='error')
+            return redirect(url_for('attendance.holidays', action='show'))
+
+        db.session.delete(holiday)
         
         db.session.commit()
     else:
@@ -1211,3 +674,178 @@ def holidays(action):
         flash('Unknown action', category='error')
     
     return redirect(url_for('attendance.holidays', action='show'))
+
+
+@attendance.route('/attendance/query/<query_type>', methods=['GET', 'POST'])
+@login_required
+def query(query_type):
+
+    if query_type == 'date':
+        form = Attnquerydate()
+    elif query_type == 'username':
+        if session['role'] == 'Team':
+            form = Attnquery()
+        else:
+            form = Attnqueryusername()
+    elif query_type == 'month':
+        form = Attnsummaryshow()
+
+    if form.validate_on_submit():
+                
+        if query_type == 'username':
+            
+            if session['role'] == 'Team':
+                user_name = session['username']
+            else:
+                user_name = form.username.data
+
+            employee = Employee.query.filter_by(username=user_name).first()
+            
+            if employee:
+                attendances = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.date==ApplicationsHolidays.date, Attendance.empid==ApplicationsHolidays.empid)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).order_by(Attendance.date).all()
+                
+                if attendances:
+                    attendances_list = []
+
+                    for attendance in attendances:
+                        attendance_list = list(attendance)
+                        
+                        if  attendance_list[3]:
+                            application = Applications.query.filter_by(id=attendance_list[3]).first()
+                            attendance_list.append(application.type)
+                        else:
+                            attendance_list.append(None)
+
+                        if  attendance_list[4]:
+                            holiday = Holidays.query.filter_by(id=attendance_list[4]).first()
+                            attendance_list.append(holiday.name)
+                        else:
+                            attendance_list.append(None) 
+                        
+                        attendances_list.append(attendance_list)
+
+                    attendances = attendances_list
+                else:
+                    flash('No record found', category='warning')
+
+                return render_template('data.html', type='attendance_query', query='all', fullname=employee.fullname, query_type=query_type, form=form, attendances=attendances)
+            else:
+                flash('Username not found', category='error')
+                return redirect(url_for('attendance.query_menu'))
+
+
+@attendance.route('/attendance/application/cancel/<application_for>,<application_id>')
+@login_required
+def cancel_application(application_for, application_id):
+    application = Applications.query.filter_by(id=application_id).first()
+    if not application:
+        flash('Attendance application not found', category='error')
+        return redirect(url_for('attendance.application_status', application_for=application_for))
+    
+    employee = Employee.query.join(Applications).filter(Applications.id==application_id).first()
+    if not employee:
+        current_app.logger.error(' cancel(): employee details not found for application:%s', application_id)
+        flash('Employee details not found for this application', category='error')
+        return redirect(url_for('attendance.application_status', application_for=application_for))
+    
+    can_edit = check_edit_permission(application, employee)
+    if not can_edit:
+        current_app.logger.error(' cancel(): User does not have permission to edit application, application_id: %s, username: %s, application_status: %s', application_id, employee.username, employee.applications[0].status)
+        flash('You do not have permission to cancel this application', category='error')
+        return redirect(url_for('attendance.application_status', application_for=application_for))
+        
+    if application.status == 'Approved':
+        summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
+        
+        if summary:
+            msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
+            flash(msg, category='error')
+            return redirect(url_for('attendance.application_status', application_for=application_for))
+        else:
+            update_applications_holidays(employee.id, application.start_date, application.end_date)
+    
+    db.session.delete(application)
+    db.session.commit()
+    flash('Application cancelled', category='message')
+
+    #Send mail to all concerned
+    emails = get_concern_emails(employee.id)
+    current_app.logger.error('%s', emails)
+    
+    if application.status == 'Approval Pending':
+        if session['username'] != employee.username:
+            receiver_email = employee.email
+        else:
+            receiver_email = session['email']
+
+        team_leader_email = find_team_leader_email(emails)
+        if not team_leader_email:
+            current_app.logger.error('Team leader email not found for application: %s', application_id)
+            flash('Failed to send email', category='warning')
+            return redirect(url_for('attendance.application_status', application_for=application_for))                
+
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=receiver_email, cc1=team_leader_email, type='attendance', application=application, action='cancelled')
+        
+    if application.status == 'Approved':
+        if session['role'] == 'Manager':
+            cc2_email = ''
+        else:
+            cc2_email = emails['manager']
+
+        if session['role'] == 'Head':
+            cc3_email = ''
+        else:
+            cc3_email = emails['head']
+        
+        rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], receiver=emails['admin_email'], cc1=emails['employee_email'], cc2=cc2_email, cc3=cc3_email, cc4=session['email'], type='attendance', application=application, action='cancelled')
+
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+    
+    return redirect(url_for('attendance.application_status', application_for=application_for))
+
+
+@attendance.route('/attendance/application/status/<application_for>')
+@login_required
+def application_status(application_for):
+
+    if application_for not in ('self', 'team', 'all'):
+        current_app.logger.error(' application_status(): Wrong application_for value "%s"', application_for)
+        flash('Function not found', category='error')
+        return render_template('base.html')
+    
+    if application_for == 'team' and session['role'] not in ('Supervisor', 'Manager', 'Head'):
+        current_app.logger.error(' application_status(): session role "%s" does not have access to application_for="team"', session['role'])
+        flash('You are not authorized to see team application status', category='error')
+        return render_template('base.html')
+
+    if application_for == 'all' and session['access'] != 'Admin':
+        current_app.logger.error(' application_status(): session access "%s" does not have access to application_for="all"', session['access'])
+        flash('You are not authorized to see all application status', category='error')
+        return render_template('base.html')
+
+    if application_for == 'self':
+        applications = Applications.query.join(Employee).filter(Employee.username == session['username'], (and_(Applications.type!='Casual', Applications.type!='Medical'))).order_by(Applications.submission_date.desc()).all()
+    
+    if application_for == 'team':
+
+        if session['role'] == 'Supervisor' or 'Manager': 
+            teams = Team.query.join(Employee).filter(Employee.username==session['username']).all()
+            
+            all_teams_applications = []
+            for team in teams:
+                team_applications = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).filter(Team.name == team.name, Applications.empid!=session['empid'], and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+            
+                all_teams_applications += team_applications
+            
+            applications = all_teams_applications
+        
+        if session['role'] == 'Head':
+            applications = Applications.query.join(Employee).filter(Employee.department==session['department'], and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+            current_app.logger.error('Query returns %s', applications)
+
+    if application_for  == 'all':
+        applications = Applications.query.filter(and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status).all()
+
+    return render_template('data.html', type='attendance_application_status', application_for=application_for, applications=applications)

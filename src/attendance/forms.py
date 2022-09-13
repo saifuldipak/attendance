@@ -74,20 +74,6 @@ class Attnqueryall(FlaskForm):
 #Attendance query by admin datewise
 class Attnquerydate(FlaskForm):
     date = DateField('Date', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    
-#Attendance query by admin userwise 
-class Attnqueryusername(FlaskForm):
-    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
-
-#Attendance query for self
-class Attnqueryself(FlaskForm):
-    month = IntegerField('Month', render_kw={'class': 'input-field'}, 
-            default=datetime.now().month, validators=[InputRequired(), 
-            NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
-    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, 
-            validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
-    query = SelectField('Query', render_kw={'class': 'input-field'}, choices=queries)
 
 #Attendance summary create
 class Attnsummary(FlaskForm):
@@ -346,51 +332,30 @@ def upload():
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
 #Attendance query
+class Attnquery(FlaskForm):
+    month = IntegerField('Month', render_kw={'class': 'input-field'}, default=datetime.now().month, validators=[InputRequired(), NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
+    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
+
+class Attnqueryusername(Attnquery):
+    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+
 @forms.route('/forms/attendance/query/<query_type>', methods=['GET', 'POST'])
 @login_required
 def attendance_query(query_type):
-    
-    if session['role'] == 'User' and session['access'] != 'Admin':
-        flash('You are not authorized to access this page', category='error')
-        return render_template('base.html')
-
     if query_type == 'date':
         form = Attnquerydate()
     elif query_type == 'username':
-        form = Attnqueryusername()
+        if session['role'] == 'Team':
+            form = Attnquery()
+        else:
+            form = Attnqueryusername()
     elif query_type == 'month':
         form = Attnsummaryshow()
     else:
         current_app.logger.error('attnquery_all(): unknown form type')
         flash('Could not create form', category='error')
-    
-    if session['access'] == 'Admin':
-        query_for = 'All'
-    elif session['role'] == 'Head':
-        query_for = 'Department'
-    elif session['role'] == 'Manager' or session['role'] == 'Supervisor':
-        query_for = 'Team'
-    else:
-        current_app.logger.error('attendance_query(): Unknow user type %s, %s', session['role'], session['access'])
-        flash('Failed to create form', category='error')
-        return render_template('base.html')
 
-    return render_template('attn_query.html', query_for=query_for, query_type=query_type, form=form)
-
-#Attendance query - Team
-@forms.route('/forms/attendance/query/team', methods=['GET', 'POST'])
-@login_required
-@manager_required
-def attnquery_team():
-    form = Attnqueryall()
-    return render_template('forms.html', type='attnquery', user='team', form=form)
-
-#Attendance query - Self
-@forms.route('/forms/attendance/query/self', methods=['GET', 'POST'])
-@login_required
-def attnquery_self():
-    form = Attnqueryself()
-    return render_template('forms.html', type='attnquery_self', form=form)
+    return render_template('forms.html', type='attendance_query', query_type=query_type, form=form)
 
 #Attendance summary prepare
 @forms.route('/forms/attendance/prepare_summary')
@@ -587,4 +552,14 @@ def duty_shift_create():
     form = Dutyshiftcreate()
     return render_template('forms.html', type='duty_shift_create', form=form)
     
-    
+#Search applications
+class Searchapplication(FlaskForm):
+    month = IntegerField('Month', render_kw={'class': 'input-field'}, default=datetime.now().month, validators=[InputRequired(), NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
+    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
+
+
+@forms.route('/forms/application/search/<application_for>', methods=['GET', 'POST'])
+@login_required
+def search_application(application_for):
+    form = Searchapplication()
+    return render_template('forms.html', type='search_application', application_for=application_for, form=form)
