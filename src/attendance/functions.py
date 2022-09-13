@@ -181,8 +181,8 @@ def check_edit_permission2(action, application, employee):
     manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Manager').first()
     head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
     
-    if action == 'cancel' and application.status == 'Approval Pending':
-        if session['username'] == employee.username:
+    if session['username'] == employee.username:
+        if action == 'cancel' and application.status == 'Approval Pending': 
             return True
     
     if employee.role == 'Team':
