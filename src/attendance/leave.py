@@ -734,3 +734,27 @@ def cancel(application_id):
     flash('Leave cancelled', category='message')
 
     return redirect(url_for('leave.search_application', application_for=application_for))
+
+@leave.route('/leave/approval/batch')
+@login_required
+@admin_required
+def approval_batch():
+    employees = Employee.query.all()
+    for employee in employees:
+        current_app.logger.error('%s', employee.username)
+        leave_available = LeaveAvailable.query.filter_by(empid=employee.id).first()
+        casual = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Casual').first() 
+        medical = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Medical').first() 
+        
+        if casual.days:
+            current_app.logger.error('%s', casual)
+            leave_available.casual = leave_available.casual - casual.days
+        
+        if medical.days:
+            current_app.logger.error('%s', casual)
+            leave_available.medical = leave_available.medical - medical.days
+
+
+    db.session.commit()
+    flash('Leave approved in batch', category='message')
+    return render_template('base.html')
