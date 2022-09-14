@@ -741,7 +741,6 @@ def cancel(application_id):
 def approval_batch():
     employees = Employee.query.all()
     for employee in employees:
-        current_app.logger.error('%s', employee.username)
         leave_available = LeaveAvailable.query.filter_by(empid=employee.id).first()
         casual = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Casual').first() 
         medical = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Medical').first() 
