@@ -361,8 +361,8 @@ def attendance_query(query_type):
 @forms.route('/forms/attendance/prepare_summary')
 @login_required
 @admin_required
-def attn_prepare_summary():
-    form = Attnsummary()
+def prepare_attendance_summary():
+    form = Attnquery()
     return render_template('forms.html', type='attn_prepare_summary', form=form)
 
 #Leave deduction
