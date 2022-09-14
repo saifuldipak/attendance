@@ -324,14 +324,13 @@ def approval_department():
 @login_required
 @admin_required
 def prepare_summary():
-    form = Attnsummary()
+    form = Attnquery()
 
     if form.validate_on_submit():
-        month_num = datetime.strptime(form.month.data, '%B').month
-        cur_month_num = datetime.now().month
-        cur_year = datetime.now().year
+        current_month = datetime.now().month
+        current_year = datetime.now().year
 
-        if month_num >= cur_month_num and cur_year >= int(form.year.data):
+        if form.month.data >= current_month and current_year >= form.year.data:
             flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
             return redirect(url_for('forms.attn_prepare_summary'))
             
@@ -344,15 +343,30 @@ def prepare_summary():
 
         count = 0
         for employee in employees:
-            attendances = Attendance.query.join(ApprLeaveAttn, and_(Attendance.empid==ApprLeaveAttn.empid, 
-                            Attendance.date==ApprLeaveAttn.date)).filter(Attendance.empid==employee.id, 
-                            extract('month', Attendance.date)==month_num, ApprLeaveAttn.approved=='').all()
+            attendances = Attendance.query.with_entities(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.empid==ApplicationsHolidays.empid, Attendance.date==ApplicationsHolidays.date)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).all()
+            
             absent_count = 0
             late_count = 0
             early_count = 0
+            
             for attendance in attendances:
-                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, 
-                                    DutySchedule.date==attendance.date).first()
+                if attendance.holiday_id:
+                    continue
+                
+                if attendance.weekend_id:
+                    continue
+
+                if attendance.application_id:
+                    application = Applications.query.filter_by(id=attendance.application_id).first()
+                    if application.type in ('Casual', 'Medical', 'Both'):
+                        continue
+                    else:
+                        application_type = application.type
+                else:
+                    application_type = ''
+
+                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, DutySchedule.date==attendance.date).first()
+                
                 if duty_schedule:
                     standard_in_time = duty_schedule.dutyshift.in_time
                     standard_out_time = duty_schedule.dutyshift.out_time
@@ -360,18 +374,19 @@ def prepare_summary():
                     standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
                     standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
 
-                if attendance.in_time == datetime.strptime('00:00:00', '%H:%M:%S').time():
+                no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
+                if attendance.in_time == no_attendance:
                     absent_count += 1
 
-                if attendance.in_time > standard_in_time:
+                if attendance.in_time > standard_in_time and application_type != 'In':
                     late_count += 1
 
-                if attendance.out_time < standard_out_time:
-                    early_count += 1
+                if attendance.out_time < standard_out_time or attendance.out_time == no_attendance:
+                    if application_type != 'Out':
+                        early_count += 1
 
             if absent_count > 0 or late_count > 0 or early_count > 0:
-                attnsummary = AttnSummary(empid=employee.id, year=form.year.data, month=form.month.data, 
-                                absent=absent_count, late=late_count, early=early_count)
+                attnsummary = AttnSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=absent_count, late=late_count, early=early_count)
                 db.session.add(attnsummary)
                 count += 1
             
