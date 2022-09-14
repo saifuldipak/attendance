@@ -38,13 +38,13 @@ class Applications(db.Model):
     end_date = db.Column(db.Date)
     duration = db.Column(db.Integer, nullable=False)
     remark = db.Column(db.String(100))
-    holiday_duty_type = db.Column(db.String(20))
-    holiday_duty_start_date = db.Column(db.Date)
-    holiday_duty_end_date = db.Column(db.Date)
     submission_date = db.Column(db.DateTime, nullable=False)
     approval_date = db.Column(db.DateTime)
     file_url = db.Column(db.String)
     status = db.Column(db.String(16))
+    holiday_duty_type = db.Column(db.String(20))
+    holiday_duty_start_date = db.Column(db.Date)
+    holiday_duty_end_date = db.Column(db.Date)
 
 #Leave summary of each employee for a particular year
 class LeaveAvailable(db.Model):
