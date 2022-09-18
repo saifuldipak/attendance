@@ -71,18 +71,6 @@ class ApprLeaveAttn(db.Model):
     date = db.Column(db.Date, nullable=False)
     approved = db.Column(db.String)
 
-#Attendance summary
-class AttnSummary(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
-    month = db.Column(db.String, nullable=False)
-    absent = db.Column(db.Integer)
-    late = db.Column(db.Integer)
-    early = db.Column(db.Integer)
-    extra_absent = db.Column(db.Integer)
-    leave_deducted = db.Column(db.Integer)
-
 #Leave deduction log
 class LeaveDeduction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -132,3 +120,15 @@ class ApplicationsHolidays(db.Model):
     application_id = db.Column(db.Integer, db.ForeignKey('applications.id'))
     holiday_id = db.Column(db.Integer, db.ForeignKey('holidays.id'))
     weekend_id = db.Column(db.Integer)
+
+#Monthly attendance summary 
+class AttendanceSummary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    absent = db.Column(db.Integer)
+    late = db.Column(db.Integer)
+    early = db.Column(db.Integer)
+    extra_absent = db.Column(db.Integer)
+    leave_deducted = db.Column(db.Integer)
