@@ -2,7 +2,7 @@ import secrets
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 
 from attendance.check import check_attnsummary
-from .db import AttnSummary, Holidays, db, Employee, Team, LeaveAvailable
+from .db import db, Employee, Team, LeaveAvailable
 from .forms import (Addholidays, Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, 
                     Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
