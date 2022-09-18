@@ -601,4 +601,28 @@
         </table>
     {% endif %}
 
+    {% if type == 'show_attendance_summary' %}
+        <div class="form-style-2-heading">Attendance Summary</div>
+            Month: {{ form.month.data }}
+            Year: {{ form.year.data }}</p>
+        <table class="query-result">
+            <th>Name</th>
+            <th>Abset</th>
+            <th>Late</th>
+            <th>Early</th>
+            <th>Extra absent</th>
+            <th>Leave deducted</th>
+            {% for row in attendance_summary %}
+                <tr>
+                    <td>{{ row['fullname'] }}</td>
+                    <td>{{ row['absent'] }}</td>
+                    <td>{{ row['late'] }}</td>
+                    <td>{{ row['early'] }}</td>
+                    <td>{{ row['extra_absent']</td>
+                    <td>{{ row['leave_deducted'] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
 {% endblock %}
