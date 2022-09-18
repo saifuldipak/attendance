@@ -2,7 +2,7 @@ from attendance.functions import check_edit_permission2, find_team_leader_email,
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, session, flash, url_for)
 from sqlalchemy import and_, or_, extract
 from .check import check_access, check_holiday_dates, check_application_dates
-from .db import (ApprLeaveAttn, AttnSummary, Holidays, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttnSummary)
+from .db import (ApprLeaveAttn, Holidays, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary)
 from .mail import send_mail, send_mail2
 from .auth import *
 from werkzeug.utils import secure_filename
@@ -106,7 +106,7 @@ def update_apprleaveattn(empid, start_date, end_date, approved):
 
 #return leave when leave is cancelled
 def return_available_leave(empid, start_date, duration):
-    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
+    summary = AttendanceSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
                     empid=application.empid).first()
     if summary:
         return f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
@@ -148,7 +148,7 @@ def application(type):
                     flash(holiday_dates_exist, category='error')
                     return render_template('forms.html', type='leave', leave=type, form=form)
 
-        summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), 
+        summary = AttendanceSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), 
                     empid=session['empid']).first()
         if summary:
             msg = f'You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
@@ -271,7 +271,7 @@ def application_fiber(type):
             flash(leave_dates_exist, category='error')
             return redirect(url_for('forms.leave', type=type))
         
-        summary = AttnSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), empid=form.empid.data).first()
+        summary = AttendanceSummary.query.filter_by(year=form.start_date.data.year, month=form.start_date.data.strftime("%B"), empid=form.empid.data).first()
         if summary:
             msg = f'Attendance summary already prepared for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
             flash(msg, category='error')
@@ -472,11 +472,11 @@ def deduction():
         flash('You have already deducted leave for this month', category='error')
         return redirect(url_for('forms.leave_deduction'))
 
-    summary = AttnSummary.query.filter(AttnSummary.year==form.year.data, AttnSummary.month==form.month.data).all()
+    summary = AttendanceSummary.query.filter(AttendanceSummary.year==form.year.data, AttendanceSummary.month==form.month.data).all()
     if summary:
         for employee in summary:
             if employee.late >= 3 or employee.early >= 3:
-                summary = AttnSummary.query.filter_by(empid=employee.empid, year=form.year.data, 
+                summary = AttendanceSummary.query.filter_by(empid=employee.empid, year=form.year.data, 
                             month=form.month.data).first()
                 leave = LeaveAvailable.query.filter(LeaveAvailable.empid==employee.empid).first()
                 total_leave = leave.casual + leave.earned
@@ -594,7 +594,7 @@ def approval():
         flash('You do not have permission to perform this action')
         return render_template(url_for('leave.search_application', application_for='team'))
 
-    summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
+    summary = AttendanceSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
     if summary:
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
@@ -651,7 +651,7 @@ def cancel(application_id):
 
     if application.status == 'Approved':
         if application.type == 'Casual' or application.type == 'Medical':
-            summary = AttnSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
+            summary = AttendanceSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), empid=application.empid).first()
             if summary:
                 msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
                 flash(msg, category='error')
