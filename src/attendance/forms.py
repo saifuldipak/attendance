@@ -30,6 +30,11 @@ designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'As
 types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
 queries = ['Details', 'Summary']
 
+#Common classes
+class Monthyear(FlaskForm):
+    month = IntegerField('Month', render_kw={'class': 'input-field'}, default=datetime.now().month, validators=[InputRequired(), NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
+    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
+
 #validator function to check file size
 def file_length_check(form, field):
     max_bytes = 1 * 1024 * 1024
@@ -364,6 +369,29 @@ def attendance_query(query_type):
 def prepare_attendance_summary():
     form = Attnquery()
     return render_template('forms.html', type='attn_prepare_summary', form=form)
+
+
+#Attendance summary show and prepare
+class Attendancesummaryshow(Monthyear):
+    action = SelectField('Action', render_kw={'class': 'input-field'}, choices=['show', 'download'], validators=[InputRequired()])
+
+class Attendancesummaryprepare(Monthyear):
+    pass
+
+@forms.route('/forms/attendance/summary/<action>')
+@login_required
+@admin_required
+def summary(action):
+    if action == 'show':
+        form = Attendancesummaryshow()
+        return render_template('forms.html', type='show_attendance_summary', form=form)
+    elif action == 'prepare':
+        form = Attendancesummaryprepare()
+        return render_template('forms.html', type='prepare_attendance_summary', form=form)
+    else:
+        current_app.logger.error(' summary(): Failed to create forms with argument %s', action)
+        return render_template('base.html')
+    
 
 #Leave deduction
 @forms.route('/forms/leave/deduction')
