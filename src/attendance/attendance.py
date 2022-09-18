@@ -1,3 +1,4 @@
+from crypt import methods
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
@@ -262,7 +263,7 @@ def approval():
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
     
-    return redirect(url_for('attendance.application_status'))
+    return redirect(url_for('attendance.application_status', application_for='team'))
 
 ##Attendance application approval for Department##
 @attendance.route('/attendance/application/approval/department')
