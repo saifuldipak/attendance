@@ -746,12 +746,31 @@ def approval_batch():
         medical = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Medical').first() 
         
         if casual.days:
-            current_app.logger.error('%s', casual)
-            leave_available.casual = leave_available.casual - casual.days
-        
+            if casual.days < leave_available.casual:
+                leave_available.casual = leave_available.casual - casual.days
+            elif casual.days > leave_available.casual:
+                leave_available.earned = (leave_available.casual + leave_available.earned) - casual.days
+                leave_available.casual = 0
+            else:
+                current_app.logger.error('Failed to update leave_available table for %s (casual)', employee.username)
+                msg = f'Batch approval failed for {employee.fullname}'
+                flash(msg, category='warning')
+
         if medical.days:
-            current_app.logger.error('%s', casual)
-            leave_available.medical = leave_available.medical - medical.days
+            if medical.days < leave_available.medical:
+                leave_available.medical = leave_available.medical - medical.days
+            elif medical.days > leave_available.medical and medical.days < (leave_available.casual + leave_available.medical):
+                leave_available.medical = 0
+                leave_available.casual = (leave_available.casual + leave_available.medical) - medical.days
+            elif medical.days > (leave_available.casual + leave_available.medical):
+                leave_available.earned = (leave_available.casual + leave_available.medical + leave_available.earned) - medical.days
+                leave_available.medical = 0
+                leave_available.casual = 0
+            else:
+                current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
+                msg = f'Batch approval failed for {employee.fullname}'
+                flash(msg, category='warning')
+
 
 
     db.session.commit()
