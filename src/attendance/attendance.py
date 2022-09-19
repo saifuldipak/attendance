@@ -962,8 +962,7 @@ def summary(action):
                 db.session.commit()
                 flash('Attendance summary created', category='message')
     
-    
     else:
         flash('Form data not correct', category='error')
     
-    return redirect(url_for('forms.attn_prepare_summary'))
+    return redirect(url_for('forms.attendance_summary', action='prepare'))
