@@ -381,7 +381,7 @@ class Attendancesummaryprepare(Monthyear):
 @forms.route('/forms/attendance/summary/<action>')
 @login_required
 @admin_required
-def summary(action):
+def attendance_summary(action):
     if action == 'show':
         form = Attendancesummaryshow()
         return render_template('forms.html', type='show_attendance_summary', form=form)
