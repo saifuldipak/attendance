@@ -910,7 +910,7 @@ def summary(action):
                     
                     attendance_summary_list = []
                     for team in teams:
-                        attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Team.name==team, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+                        attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
 
                         attendance_summary_list.append(attendance_summary)
                     
