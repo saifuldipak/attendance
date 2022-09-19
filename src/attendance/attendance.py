@@ -943,6 +943,7 @@ def summary(action):
                     no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
                     if attendance.in_time == no_attendance:
                         absent_count += 1
+                        continue
 
                     if attendance.in_time > standard_in_time and application_type != 'In':
                         late_count += 1
