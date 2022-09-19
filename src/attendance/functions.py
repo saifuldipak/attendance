@@ -206,3 +206,16 @@ def check_edit_permission2(action, application, employee):
             return True
 
     return False
+
+def check_view_permission(show_type):
+    if show_type == 'all' and session['access'] == 'Admin':
+        return True
+    
+    if show_type == 'team' and session['role'] in ('Supervisor', 'Manager'):
+        return True
+
+    if show_type == 'department' and session['role'] == 'Head':
+        return True
+    
+    return False
+
