@@ -883,7 +883,7 @@ def summary(action):
                 flash('You are not authorized to run this function', category='error')
                 return redirect(url_for('forms.attendance_summary', action='show'))
 
-    if action == 'prepare' and session['role'] != 'Admin':    
+    if action == 'prepare' and session['access'] != 'Admin':    
         flash('You are not authorized to run this function', category='error')
         return redirect(url_for('forms.attendance_summary', action='show'))
 
