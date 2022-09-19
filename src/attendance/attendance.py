@@ -859,7 +859,6 @@ def application_status(application_for):
         
         if session['role'] == 'Head':
             applications = Applications.query.join(Employee).filter(Employee.department==session['department'], and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
-            current_app.logger.error('Query returns %s', applications)
 
     if application_for  == 'all':
         applications = Applications.query.filter(and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status).all()
