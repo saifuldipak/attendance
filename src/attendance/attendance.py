@@ -933,12 +933,12 @@ def summary(action):
 
             if form.month.data >= current_month and current_year >= form.year.data:
                 flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
-                return redirect(url_for('forms.attn_prepare_summary'))
+                return redirect(url_for('forms.attendance_summary', action='prepare'))
                 
             summary = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
             if summary:
                 flash('Summary data already exists for the year and month you submitted', category='error')
-                return redirect(url_for('forms.attn_prepare_summary'))
+                return redirect(url_for('forms.attendance_summary', action='prepare'))
         
             employees = Employee.query.all()
 
