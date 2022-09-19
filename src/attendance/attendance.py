@@ -11,7 +11,7 @@ from .mail import send_mail
 from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -868,8 +868,25 @@ def application_status(application_for):
 
 @attendance.route('/attendance/summary/<action>', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def summary(action):
+
+    if action == 'show':
+        summary_for = request.args.get('summary_for')
+        
+        if summary_for not in ('self', 'team', 'department', 'all'):
+            current_app.logger.error(' summary(): Unknown summary_for %s', summary_for)
+            flash('Failed to run this function', category='error')
+        
+        if summary_for != 'self':
+            has_permission = check_view_permission(summary_for)
+            if not has_permission:
+                flash('You are not authorized to run this function', category='error')
+                return redirect(url_for('forms.attendance_summary', action='show'))
+
+    if action == 'prepare' and session['role'] != 'Admin':    
+        flash('You are not authorized to run this function', category='error')
+        return redirect(url_for('forms.attendance_summary', action='show'))
+
     if action == 'show':
         form = Attendancesummaryshow()
     elif action == 'prepare':
@@ -884,13 +901,31 @@ def summary(action):
     if form.validate_on_submit():
 
         if action == 'show':
-            attendance_summary = AttendanceSummary.query.join(Employee).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+            if summary_for == 'self':
+                attendance_summary = AttendanceSummary.query.join(Employee).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+            
+            if summary_for == 'team':
+                if session['role'] in ('Supervisor', 'Manager'):
+                    teams = Team.query.filter_by(empid=session['empid']).all()
+                    
+                    attendance_summary_list = []
+                    for team in teams:
+                        attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Team.name==team, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+
+                        attendance_summary_list.append(attendance_summary)
+                    
+                    attendance_summary = attendance_summary_list
+                
+            if summary_for == 'department':
+                attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+
+            if summary_for == 'all':
+                attendance_summary = AttendanceSummary.query.join(Employee).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
 
             if not attendance_summary:
                 flash('No record found')
 
             return render_template('data.html', type='show_attendance_summary', form=form, attendance_summary=attendance_summary)
-
 
         if action == 'prepare':
             current_month = datetime.now().month

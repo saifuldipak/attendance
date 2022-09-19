@@ -1,7 +1,8 @@
 from datetime import datetime
 import re
+from urllib import request
 from attendance.functions import convert_team_name
-from flask import Blueprint, Flask, current_app, flash, render_template, session
+from flask import Blueprint, Flask, current_app, flash, render_template, session, request
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators, widgets
@@ -380,11 +381,12 @@ class Attendancesummaryprepare(Monthyear):
 
 @forms.route('/forms/attendance/summary/<action>')
 @login_required
-@admin_required
 def attendance_summary(action):
+    summary_for = request.args.get('summary_for')
+    
     if action == 'show':
         form = Attendancesummaryshow()
-        return render_template('forms.html', type='show_attendance_summary', form=form)
+        return render_template('forms.html', type='show_attendance_summary', summary_for=summary_for, form=form)
     elif action == 'prepare':
         form = Attendancesummaryprepare()
         return render_template('forms.html', type='prepare_attendance_summary', form=form)

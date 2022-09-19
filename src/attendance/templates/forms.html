@@ -535,7 +535,7 @@
 
     {% if type == 'show_attendance_summary' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.summary', action='show') }}">
+                <form method="post" action="{{ url_for('attendance.summary', action='show', summary_for=summary_for) }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Show Attendance Summary</div>
                     <label for="month">
@@ -552,7 +552,7 @@
                     </label>
                     <label>
                         <span> </span>
-                        <input type="submit" value="Prepare" /></label>
+                        <input type="submit" value="Show" /></label>
                     </label>
     {% endif %}
 

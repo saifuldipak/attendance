@@ -39,6 +39,9 @@
                 <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
                     Query
                 </a>
+                <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='self') }}" class="navbar-item">
+                    Summary
+                </a>
             </div>
     </div>
 
@@ -115,6 +118,16 @@
                     <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
                         -- Query
                     </a>
+                    {% if session['role'] == 'Manager' or session['role'] == 'Supervisor'%}
+                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='team') }}" class="navbar-item">
+                            -- Show Summary
+                        </a>
+                    {% endif %}
+                    {% if session['role'] == 'Head' %}
+                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='department') }}" class="navbar-item">
+                            -- Show Summary
+                        </a>
+                    {% endif %}
                 </div>
             </div>
     {% endif %}
@@ -148,7 +161,7 @@
                     <a href="{{ url_for('forms.upload') }}" class="navbar-item">
                         -- Upload
                     </a>
-                    <a href="{{ url_for('forms.attendance_summary', action='show') }}" class="navbar-item">
+                    <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='all') }}" class="navbar-item">
                         -- Show Summary
                     </a>
                     <a href="{{ url_for('forms.attendance_summary', action='prepare') }}" class="navbar-item">
