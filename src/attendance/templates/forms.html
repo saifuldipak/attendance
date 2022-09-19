@@ -514,4 +514,46 @@
         </div>
     {% endif %}
 
+    {% if type == 'prepare_attendance_summary' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.summary', action='prepare') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Prepare Attendance Summary</div>
+                    <label for="month">
+                        <span>{{ form.month.label }}</span>
+                            {{ form.month }}
+                    </label>
+                    <label for="year">
+                        <span>{{ form.year.label }} </span>
+                        {{ form.year }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Prepare" /></label>
+                    </label>
+    {% endif %}
+
+    {% if type == 'show_attendance_summary' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.summary', action='show', summary_for=summary_for) }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Show Attendance Summary</div>
+                    <label for="month">
+                        <span>{{ form.month.label }}</span>
+                            {{ form.month }}
+                    </label>
+                    <label for="year">
+                        <span>{{ form.year.label }} </span>
+                        {{ form.year }}
+                    </label>
+                    <label for="action">
+                        <span>{{ form.action.label }} </span>
+                        {{ form.action }}
+                    </label>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Show" /></label>
+                    </label>
+    {% endif %}
+
 {% endblock %}

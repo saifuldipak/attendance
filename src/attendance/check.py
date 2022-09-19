@@ -1,4 +1,4 @@
-from .db import Applications, ApprLeaveAttn, Employee, Team, AttnSummary, Attendance, Holidays
+from .db import Applications, ApprLeaveAttn, Employee, Team, AttendanceSummary, Attendance, Holidays
 from flask import current_app, session
 from sqlalchemy import func, or_
 
@@ -94,8 +94,8 @@ def check_access(application_id):
 
 
 def check_attnsummary(start_date, end_date=None):
-    start_date_in_summary = AttnSummary.query.filter(AttnSummary.year==start_date.year, 
-                                AttnSummary.month==start_date.strftime("%B")).first()
+    start_date_in_summary = AttendanceSummary.query.filter(AttendanceSummary.year==start_date.year, 
+                                AttendanceSummary.month==start_date.strftime("%B")).first()
     
     found = False
     if start_date_in_summary:
@@ -104,8 +104,8 @@ def check_attnsummary(start_date, end_date=None):
         found = True
         
     if end_date:
-        end_date_in_summary = AttnSummary.query.filter(AttnSummary.year==end_date.year, 
-                                AttnSummary.month==end_date.strftime("%B")).first()
+        end_date_in_summary = AttendanceSummary.query.filter(AttendanceSummary.year==end_date.year, 
+                                AttendanceSummary.month==end_date.strftime("%B")).first()
         if end_date_in_summary:
             month = end_date.strftime("%B")
             year = end_date.year
