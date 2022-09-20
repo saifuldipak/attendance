@@ -6,6 +6,7 @@
         <div class="form-style-2-heading">Leave applications</div>
         <table class="query-result">
             <th>Name</th>
+            <th>Team</th>
             <th>Type</th>
             <th>Star Date</th>
             <th>Duration(days)</th>
@@ -18,7 +19,8 @@
             {% for application in applications %}
                 <tr>
                     {% if application %}
-                        <td>{{ application['employee']['fullname'] }}</td>
+                        <td>{{ application['fullname'] }}</td>
+                        <td>{{ application['team'] }}</td>
                         <td><a href="{{ url_for('leave.details', application_id=application['id']) }}"> {{ application['type'] }}</a></td>
                         <td>{{ application['start_date'] }}</td>
                         <td>{{ application['duration'] }}</td>
