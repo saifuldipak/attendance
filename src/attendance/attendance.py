@@ -896,8 +896,6 @@ def summary(action):
         flash('Failed to execute function', category='error')
         return render_template('base.html')
 
-    form = Attnquery()
-
     if form.validate_on_submit():
 
         if action == 'show':
