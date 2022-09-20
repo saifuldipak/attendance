@@ -506,11 +506,9 @@ def duty_schedule(action):
             month = datetime.now().month
             year = datetime.now().year
 
-        schedule = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).\
-                        filter(DutySchedule.team==team_name, extract('month', DutySchedule.date)==month,
-                        extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
+        schedules = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).with_entities(DutySchedule.id, DutySchedule.date, Employee.fullname, Team.name.label('team'), DutyShift.name.label('shift')).filter(DutySchedule.team==team_name, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(Team.name, Employee.fullname).all()
         
-        return render_template('data.html', type='duty_schedule', schedule=schedule, form=form)
+        return render_template('data.html', type='duty_schedule', schedules=schedules, form=form)
 
     if action == 'create':
         attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)

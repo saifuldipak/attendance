@@ -521,15 +521,17 @@
                     <th>Id</th>
                     <th>Date</th>
                     <th>Fullname</th>
+                    <th>Team</th>
                     <th>Shift</th>
                     <th>Action</th>
-                    {% for row in schedule %}
+                    {% for schedule in schedules %}
                         <tr>
-                            <td>{{ row['id'] }}</td>
-                            <td>{{ row['date'] }}</td>
-                            <td>{{ row['employee']['fullname'] }}</td>
-                            <td>{{ row['dutyshift']['name'] }}</td>
-                            <td><a href={{ url_for('attendance.duty_schedule', action='delete', id=row['id']) }}>Delete</a></td>
+                            <td>{{ schedule['id'] }}</td>
+                            <td>{{ schedule['date'] }}</td>
+                            <td>{{ schedule['fullname'] }}</td>
+                            <td>{{ schedule['team'] }}</td>
+                            <td>{{ schedule['shift'] }}</td>
+                            <td><a href={{ url_for('attendance.duty_schedule', action='delete', id=schedule['id']) }}>Delete</a></td>
                         </tr>
                     {% endfor %}
                 </table>
