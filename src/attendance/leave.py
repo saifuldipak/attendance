@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 import os
 from .forms import (Createleave, Leavemedical, Leavecasual, Leavededuction, Leavefibercasual, Leavefibermedical, Searchapplication)
 import datetime
+from .functions import check_view_permission
 
 
 # renaming original uploaded files and saving to disk, also creating a string 
@@ -553,6 +554,13 @@ def search_application(application_for):
         flash('Failed to get search result')
         return render_template('base.html')
     
+    if application_for != 'self':
+        has_access = check_view_permission(application_for)
+        if not has_access:
+            current_app.logger.waring(' search_application(): %s trying to access %s data', session['username'], application_for)
+            flash('You are not authorized to run this function')
+            return render_template('forms.html', type='search_application', application_for=application_for)
+
     form = Searchapplication()
 
     if form.validate_on_submit():
@@ -563,15 +571,15 @@ def search_application(application_for):
         if application_for == 'team':
             if session['role']=='Supervisor' or session['role']=='Manager':
 
-                teams = Team.query.join(Employee).filter_by(id=session['empid']).all()
+                teams = Team.query.filter_by(empid=session['empid']).all()
                 applications = []
     
                 for team in teams:
                     team_applications = Applications.query.select_from(Applications).join(Team, Applications.empid==Team.empid).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
 
-                applications += team_applications
+                    applications.append(team_applications)
 
-            if session['role']=='Head':
+            if session['role'] == 'Head':
                 applications = Applications.query.join(Employee).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
 
         if application_for == 'all':
