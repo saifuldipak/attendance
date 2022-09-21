@@ -492,6 +492,9 @@
                 {% if application_for=='team' %}
                     <form method="post" action="{{ url_for('leave.search_application', application_for='team') }}">
                 {% endif %}
+                {% if application_for=='department' %}
+                    <form method="post" action="{{ url_for('leave.search_application', application_for='department') }}">
+                {% endif %}
                 {% if application_for=='all' %}
                     <form method="post" action="{{ url_for('leave.search_application', application_for='all') }}">
                 {% endif %} 
