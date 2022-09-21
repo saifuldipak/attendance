@@ -640,7 +640,7 @@ def approval():
     if session['role'] == 'Head':
         application_for = 'department'
     elif session['role'] in ('Supervisor', 'Manager'):
-        application_for == 'team'
+        application_for = 'team'
 
     return redirect(url_for('leave.search_application', application_for=application_for))
 
