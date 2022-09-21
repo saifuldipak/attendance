@@ -579,7 +579,7 @@ def search_application(application_for):
                     applications.append(team_application)
 
         if application_for == 'department':
-            applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
+            applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
 
         if application_for == 'all':
             applications = Applications.query.filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).all()
