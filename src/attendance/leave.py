@@ -637,7 +637,12 @@ def approval():
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
     
-    return redirect(url_for('leave.search_application', application_for='team'))
+    if session['role'] == 'Head':
+        application_for = 'department'
+    elif session['role'] in ('Supervisor', 'Manager'):
+        application_for == 'team'
+
+    return redirect(url_for('leave.search_application', application_for=application_for))
 
 
 @leave.route('/leave/cancel/<application_id>')
