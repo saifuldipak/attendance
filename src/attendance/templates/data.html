@@ -579,8 +579,42 @@
             {% for attendance in attendances %}
                 <tr>
                     <td>{{ attendance[0] }}</td>
-                    <td>{{ attendance[1] }}</td>
-                    <td>{{ attendance[2] }}</td>
+                    {% if attendance[8] == 'NI' %}
+                        {% if attendance[5] or attendance[4] or attendance[3] %}
+                            <td>
+                        {% else %}
+                            <td class="data-red">
+                        {% endif %}
+                    {% elif attendance[8] == 'L' %}
+                        {% if attendance[3] %}
+                            <td>
+                        {% else %}
+                            <td class="data-yellow">
+                        {% endif %}
+                    {% else %}
+                        <td>
+                    {% endif %}
+                        {{ attendance[1] }}
+                        </td>
+
+                    {% if attendance[9] == 'NO' %}
+                        {% if attendance[5] or attendance[4] or attendance[3] %}
+                            <td>
+                        {% else %}
+                            <td class="data-red">
+                        {% endif %}
+                    {% elif attendance[9] == 'E' %}
+                        {% if attendance[3] %}
+                            <td>
+                        {% else %}
+                            <td class="data-yellow">
+                        {% endif %}
+                    {% else %}
+                        <td>
+                    {% endif %}
+                            {{ attendance[2] }}
+                        </td>
+
                     {% if attendance[3] is none %}
                         <td></td>
                     {% else %}
