@@ -308,3 +308,11 @@ a:visited.navbar2 {
 .query-result tr:hover {
     background-color: rgb(108, 234, 137);
 }
+
+td.data-red {
+    color: red;
+}
+
+td.data-yellow {
+    color: orange;
+}
