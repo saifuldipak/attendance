@@ -77,24 +77,23 @@
                             -- Appl Medical
                         </a>
                     {% endif %}
-                    <a href="{{ url_for('forms.search_application', application_for='team') }}" class="navbar-item">
-                        -- Search Application
-                    </a>
-                    {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('leave.summary_department', type='department') }}" class="navbar-item">
-                            -- Summary
+                    {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
+                        <a href="{{ url_for('forms.search_application', application_for='team') }}" class="navbar-item">
+                            -- Search Application
                         </a>
-                    {% elif session['role'] == 'Manager' %}
-                        <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">
-                            -- Summary
-                        </a>
-                    {% elif session['role'] == 'Supervisor' %}
                         <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">
                             -- Summary
                         </a>
                     {% endif %}
+                    {% if session['role'] == 'Head' %}
+                        <a href="{{ url_for('forms.search_application', application_for='department') }}" class="navbar-item">
+                            -- Search Application
+                        </a>
+                        <a href="{{ url_for('leave.summary_department') }}" class="navbar-item">
+                            -- Summary
+                        </a>
+                    {% endif %}
                     
-                    </p>
                     Attendance
                     {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
                         <a href="{{ url_for('forms.attn_fiber') }}" class="navbar-item">
