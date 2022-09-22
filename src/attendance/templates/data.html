@@ -503,7 +503,7 @@
         </div>
     {% endif %}
 
-    {% if type == 'duty_schedule' %}
+    {#- {% if type == 'duty_schedule_old' %}
         <div class="form-style-2-heading">Duty schedule</div>
             <form method="post" action="{{ url_for('attendance.duty_schedule', action='query') }}">
                 {{ form.csrf_token }}
@@ -536,7 +536,7 @@
                     {% endfor %}
                 </table>
         </div>
-    {% endif %}
+    {% endif %} -#}
 
     {% if type == 'duty_shift' %}
         <div class="form-style-2-heading">Duty Shift</div>
@@ -628,5 +628,45 @@
             {% endfor %}
         </table>
     {% endif %}
+
+    {% if type == 'duty_schedule' %}
+        <div class="form-style-2-heading">Duty schedule</div>
+            <form method="post" action="{{ url_for('attendance.duty_schedule', action='query') }}">
+                {{ form.csrf_token }}
+                <table>
+                    <tr>
+                        <td>{{ form.month.label }}</td>
+                        <td>{{ form.month}}</td>
+                        <td>{{ form.year.label }}</td>
+                        <td>{{ form.year }}</td>
+                        <td></td><td><input type="submit" value="Show" /></td>
+                    </tr>
+                </table>
+                <p><a href={{ url_for('forms.duty_schedule', action='create') }}>Add schedule</a></p>
+                Month: {{ form.month.data}}
+                Year: {{ form.year.data }}
+                <table class="query-result">
+                    <tr>
+                        <td></td>
+                        {% for i in range(month_days) %}
+                            <td>{{ i + 1 }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% for schedule in schedules %}
+                        <tr>
+
+                            {% for i in schedule %}
+                                {% if i == 'Morning' %}
+                                    <td>M</td>
+                                {% else %}
+                                    <td> {{ i }}</td>
+                                {% endif %}       
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </table>
+        </div>
+    {% endif %}
+
 
 {% endblock %}

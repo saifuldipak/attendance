@@ -1,3 +1,4 @@
+from calendar import monthrange
 from crypt import methods
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -505,10 +506,24 @@ def duty_schedule(action):
         else:
             month = datetime.now().month
             year = datetime.now().year
-
-        schedules = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).with_entities(DutySchedule.id, DutySchedule.date, Employee.fullname, Team.name.label('team'), DutyShift.name.label('shift')).filter(DutySchedule.team==team_name, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(Team.name, Employee.fullname).all()
         
-        return render_template('data.html', type='duty_schedule', schedules=schedules, form=form)
+        team_name_string = f'{team_name}' + '%'
+        employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), and_(Employee.role!='Supervisor', Employee.role!='Manager')).all()
+        
+        schedules = []
+        for employee in employees:
+            dates = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name.label('shift')).filter(DutySchedule.empid==employee.id, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
+            
+            if dates:
+                individual_schedule = [employee.fullname]
+
+                for date in dates:
+                    individual_schedule.append(date.shift)
+
+                schedules.append(individual_schedule)
+
+        month_days = monthrange(form.year.data,form.month.data)[1]
+        return render_template('data.html', type='duty_schedule', month_days=month_days, schedules=schedules, form=form)
 
     if action == 'create':
         attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)
