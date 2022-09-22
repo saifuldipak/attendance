@@ -734,14 +734,28 @@ def query(query_type):
                             holiday = Holidays.query.filter_by(id=attendance_list[4]).first()
                             attendance_list.append(holiday.name)
                         else:
-                            attendance_list.append(None) 
+                            attendance_list.append(None)
                         
+                        if attendance_list[1] == datetime.strptime('00:00:00', "%H:%M:%S").time():
+                            attendance_list.append('NI')
+                        elif attendance_list[1] > datetime.strptime(current_app.config['LATE'], "%H:%M:%S").time():
+                            attendance_list.append('L')
+                        else:
+                            attendance_list.append(None)
+                        
+                        if attendance_list[2] == datetime.strptime('00:00:00', "%H:%M:%S").time():
+                            attendance_list.append('NO')
+                        elif attendance_list[2] < datetime.strptime(current_app.config['EARLY'], "%H:%M:%S").time():
+                            attendance_list.append('E')
+                        else:
+                            attendance_list.append(None)
+
                         attendances_list.append(attendance_list)
 
                     attendances = attendances_list
                 else:
                     flash('No record found', category='warning')
-
+                
                 return render_template('data.html', type='attendance_query', query='all', fullname=employee.fullname, query_type=query_type, form=form, attendances=attendances)
             else:
                 flash('Username not found', category='error')
@@ -973,14 +987,16 @@ def summary(action):
 
                     no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
                     if attendance.in_time == no_attendance:
-                        absent_count += 1
-                        continue
+                        if application_type not in ('In', 'Both'):
+                            absent_count += 1
+                            continue
 
-                    if attendance.in_time > standard_in_time and application_type != 'In':
-                        late_count += 1
+                    if attendance.in_time > standard_in_time: 
+                        if application_type not in ('In', 'Both'):
+                            late_count += 1
 
                     if attendance.out_time < standard_out_time or attendance.out_time == no_attendance:
-                        if application_type != 'Out':
+                        if application_type not in ('Out', 'Both'):
                             early_count += 1
 
                 if absent_count > 0 or late_count > 0 or early_count > 0:
