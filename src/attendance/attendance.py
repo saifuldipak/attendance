@@ -10,7 +10,7 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
-from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Dutyscheduledelete)
+from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Dutyscheduledelete, Monthyear)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission
@@ -487,13 +487,13 @@ def application_fiber():
 @login_required
 @team_leader_required
 def duty_schedule(action):
-    if action != 'query' and action != 'create' and action != 'delete':
+    if action not in ('query', 'create', 'delete', 'initmonth'):
         current_app.logger.error(' duty_shift() - action unknown')
         flash('Unknown action', category='error')
         return render_template('base.html')
    
-    if action == 'query':
-        form = Dutyschedulequery()
+    if action in ('query', 'initmonth'):
+        form = Monthyear()
     elif action == 'create':
         form = Dutyschedulecreate()
     elif action == 'delete':
@@ -579,6 +579,30 @@ def duty_schedule(action):
         
         flash('Duty schedule record deleted', category='message')
         return redirect(url_for('attendance.duty_schedule', action='query'))
+
+    if action == 'initmonth':
+        month_initialized = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data).all()
+
+        if month_initialized:
+            msg = f'Month {form.month.data} for duty schedule already initialized'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='initmonth'))
+        
+        team_name_string = convert_team_name() + '%'
+        employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
+        month_days = monthrange(form.year.data,form.month.data)[1]
+        
+        for employee in employees:
+            for day in range(month_days):
+                date = datetime(form.year.data, form.month.data, day+1)
+                duty_schedule = DutySchedule(empid=employee.id, team=employee.teams[0].name, date=date, duty_shift='')            
+                db.session.add(duty_schedule)
+        
+        db.session.commit()
+
+        msg = f'Duty schedule for {form.month.data}, {form.year.data} initialized'
+        flash(msg)
+        return redirect(url_for('forms.duty_schedule', action='initmonth'))
 
 
 @attendance.route('/attendance/duty_shift/<action>', methods=['GET', 'POST'])
