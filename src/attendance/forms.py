@@ -538,10 +538,6 @@ class Dutyschedule(FlaskForm):
 class Dutyschedulecreate(Dutyschedule):
     duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
 
-class Dutyschedulequery(FlaskForm):
-    month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
-    year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
-
 class Dutyscheduledelete(Dutyschedule):
     pass
 
@@ -561,12 +557,15 @@ def duty_schedule(action):
         form.duty_shift.choices = [(i.id, i.name) for i in shifts]
         return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
     elif action == 'query':
-        form = Dutyschedulequery()
+        form = Monthyear()
         return render_template('forms.html', type='duty_schedule', action='query', form=form)
     elif action == 'delete':
         form = Dutyscheduledelete()
         form.empid.choices = [(i.id, i.fullname) for i in names]
         return render_template('forms.html', type='duty_schedule', action='delete', form=form)
+    elif action == 'initmonth':
+        form = Monthyear()
+        return render_template('forms.html', type='duty_schedule', action='initmonth', form=form)
     else:
         current_app.logger.error(' duty_schedule(): <action> value not correct')
         flash('Cannot create duty schedule form', category='error')
