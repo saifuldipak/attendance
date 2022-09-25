@@ -10,7 +10,7 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail
-from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow)
+from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Dutyscheduledelete)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission
@@ -495,7 +495,9 @@ def duty_schedule(action):
     if action == 'query':
         form = Dutyschedulequery()
     elif action == 'create':
-        form = Dutyschedulecreate()   
+        form = Dutyschedulecreate()
+    elif action == 'delete':
+        form = Dutyscheduledelete()   
     
     team_name = convert_team_name()
 
@@ -554,22 +556,25 @@ def duty_schedule(action):
         return redirect(url_for('attendance.duty_schedule', action='query'))
     
     if action == 'delete':
-        duty_schedule_id = request.args.get('id')
 
-        duty_schedule = DutySchedule.query.filter_by(id=duty_schedule_id).one()
-
-        if not duty_schedule:
-            flash('Duty schdule record not found', category='error')
-            current_app.logger.error('duty_schedule(action="delete"): Duty schedule id %s not found', duty_schedule_id)
-            return redirect(url_for('attendance.duty_schedule', action='query'))
-        
-        attnsummary_prepared = check_attnsummary(duty_schedule.date)
+        attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)
         if attnsummary_prepared:
             msg = 'Cannot delete duty schedule (' + attnsummary_prepared + ')'
             flash(msg, category='error')
             return redirect(url_for('attendance.duty_schedule', action='query'))
         
-        db.session.delete(duty_schedule)
+        for empid in form.empid.data:
+            duty_schedules = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
+            
+            if not duty_schedules:
+                employee = Employee.query.filter_by(id=empid).one()
+                msg = f'Schedule does not exist for {employee.fullname}'
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_schedule', action='delete'))
+        
+            for duty_schedule in duty_schedules:
+                db.session.delete(duty_schedule)
+ 
         db.session.commit()
         
         flash('Duty schedule record deleted', category='message')
@@ -799,7 +804,6 @@ def cancel_application(application_for, application_id):
 
     #Send mail to all concerned
     emails = get_concern_emails(employee.id)
-    current_app.logger.error('%s', emails)
     
     if application.status == 'Approval Pending':
         if session['username'] != employee.username:
