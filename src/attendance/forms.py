@@ -524,40 +524,49 @@ def add_holiday():
 
 
 #Duty schedule - Create, Query
-fiber_teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel']
+fiber_teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'Fiber-Implementation']
 
 class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
-class Dutyschedulecreate(FlaskForm):
+class Dutyschedule(FlaskForm):
     empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-    duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
     start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+
+class Dutyschedulecreate(Dutyschedule):
+    duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
 
 class Dutyschedulequery(FlaskForm):
     month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
     year = IntegerField('Year', render_kw={'class' : 'input-field'}, default=datetime.now().year, validators=[InputRequired()])
 
+class Dutyscheduledelete(Dutyschedule):
+    pass
+
 @forms.route('/forms/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
 def duty_schedule(action):
+
+    if action in ('create', 'delete'):
+        team_name_string = convert_team_name() + '%'
+        names = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
+
     if action == 'create':
         form = Dutyschedulecreate()
-        team_name_string = convert_team_name() + '%'
-
-        names = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
         form.empid.choices = [(i.id, i.fullname) for i in names]
-    
         shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
         form.duty_shift.choices = [(i.id, i.name) for i in shifts]
-
         return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
     elif action == 'query':
         form = Dutyschedulequery()
         return render_template('forms.html', type='duty_schedule', action='query', form=form)
+    elif action == 'delete':
+        form = Dutyscheduledelete()
+        form.empid.choices = [(i.id, i.fullname) for i in names]
+        return render_template('forms.html', type='duty_schedule', action='delete', form=form)
     else:
         current_app.logger.error(' duty_schedule(): <action> value not correct')
         flash('Cannot create duty schedule form', category='error')
@@ -565,7 +574,7 @@ def duty_schedule(action):
     
     
 #Duty shift - create
-shifts = ['Morning', 'Evening', 'Night', 'Regular']
+shifts = ['Morning', 'Evening', 'Night', 'Regular', 'Offday']
 class Dutyshiftcreate(FlaskForm):
     shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
     in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])

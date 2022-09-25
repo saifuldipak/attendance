@@ -369,11 +369,17 @@
 
     {% if type == 'duty_schedule' %}
             <div class="form-style-2">
-                {% if action == 'create' %}
+                {% if action == 'create' or action == 'delete' %}
+                    {% if action == 'create' %}
                         <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='create') }}">
                             {{ form.csrf_token }}
+                            <div class="form-style-2-heading">Create duty schedule</div>
+                    {% elif action == 'delete' %}
+                        <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='delete') }}">
+                            {{ form.csrf_token }}
+                            <div class="form-style-2-heading">Delete duty schedule</div>
+                    {% endif %}
                     
-                        <div class="form-style-2-heading">Create duty schedule</div>
                         <table>
                             {% for subfield in form.empid %}
                                 <tr>
@@ -382,10 +388,12 @@
                                     
                                 </tr>
                             {% endfor %}
-                            <tr>
-                                <td> {{ form.duty_shift.label }}</td>
-                                <td> {{ form.duty_shift}}</td>
-                            </tr>
+                            {% if action == 'create' %}
+                                <tr>
+                                    <td> {{ form.duty_shift.label }}</td>
+                                    <td> {{ form.duty_shift}}</td>
+                                </tr>
+                            {% endif %}
                             
                             <tr>
                                 <td>{{ form.start_date.label }}</td>
