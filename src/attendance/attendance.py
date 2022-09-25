@@ -8,7 +8,7 @@ from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
-from .mail import send_mail
+from .mail import send_mail, send_mail2
 from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
@@ -150,45 +150,25 @@ def application():
         if not form.end_date.data:
             form.end_date.data = form.start_date.data
         
-        application = Applications(empid=employee.id, start_date=form.start_date.data, 
-                                    end_date=form.end_date.data, duration=duration, 
-                                    type=form.type.data, remark=form.remark.data, 
-                                    submission_date=datetime.now(), status='Approval Pending')
+        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), status='Approval Pending')
         db.session.add(application)
         db.session.commit()
         flash('Attendance application submitted')
 
         #Send mail to all concerned
-        application = Applications.query.filter_by(start_date=form.start_date.data, end_date=form.end_date.data, 
-                        type=form.type.data, empid=session['empid']).first()
+        application = Applications.query.filter_by(start_date=form.start_date.data, end_date=form.end_date.data, type=form.type.data, empid=session['empid']).first()
        
-        if session['role'] == 'Team':
-            manager = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Manager').first()
-            
-            if not manager:
-                current_app.logger.warning('Team Manager email not found')
-            else:            
-                receiver_email = manager.email
-
-        if session['role'] == 'Manager' or not manager:
-            head = Employee.query.join(Team).filter(Employee.department==session['department'], Employee.role=='Head').first()
-            
-            if not head:
-                current_app.logger.warning('Dept. Head email not found')
-                rv = 'failed'
-            else:
-                receiver_email = head.email
-
-        if 'rv' in locals():
+        emails = get_concern_emails(application.empid)
+        if emails['employee'] == '':
             flash('Failed to send mail', category='warning')
             return redirect(request.url)
 
-        employee = Employee.query.filter_by(id=session['empid']).first()
+        team_leader_email = find_team_leader_email(emails)
+        if not team_leader_email:
+            flash('Failed to send mail', category='warning')
+            return redirect(request.url)
         
-        host = current_app.config['SMTP_HOST']
-        port = current_app.config['SMTP_PORT']
-        rv = send_mail(host=host, port=port, sender=employee.email, receiver=receiver_email, type='attendance', 
-                        application=application, action='submitted')
+        rv = send_mail2(sender=emails['employee'], receiver=team_leader_email, type='attendance', application=application, action='submitted')
         
         if rv:
             current_app.logger.warning(rv)
@@ -197,7 +177,7 @@ def application():
     else:
         return render_template('forms.html', type='attn_application', form=form)
     
-    return redirect(request.url)
+    return redirect(url_for('forms.attn_application'))
 
 
 ##Attendance application details##
