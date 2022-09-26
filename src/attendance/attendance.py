@@ -537,7 +537,9 @@ def duty_schedule(action):
         for empid in form.empid.data:
             duty_schedules = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
             if not duty_schedules:
-                flash('It seems duty schedule not initialized for {form.start_date.data.month}', category='error')
+                msg = f'It seems duty schedule not initialized for the month {form.start_date.data.month}'
+                flash(msg, category='error')
+                return redirect(url_for('attendance.duty_schedule', action='query'))
 
             for duty_schedule in duty_schedules:
                 if duty_schedule.duty_shift != '':
@@ -572,7 +574,7 @@ def duty_schedule(action):
                 return redirect(url_for('forms.duty_schedule', action='delete'))
         
             for duty_schedule in duty_schedules:
-                db.session.delete(duty_schedule)
+                duty_schedule.duty_shift = ''
  
         db.session.commit()
         
