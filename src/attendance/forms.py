@@ -535,7 +535,7 @@ class Dutyschedule(FlaskForm):
     start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
-class Dutyschedulecreate(Dutyschedule):
+class Dutyscheduleadd(Dutyschedule):
     duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
 
 class Dutyscheduledelete(Dutyschedule):
@@ -546,12 +546,12 @@ class Dutyscheduledelete(Dutyschedule):
 @team_leader_required
 def duty_schedule(action):
 
-    if action in ('create', 'delete'):
+    if action in ('add', 'delete'):
         team_name_string = convert_team_name() + '%'
         names = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
 
-    if action == 'create':
-        form = Dutyschedulecreate()
+    if action == 'add':
+        form = Dutyscheduleadd()
         form.empid.choices = [(i.id, i.fullname) for i in names]
         shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
         form.duty_shift.choices = [(i.id, i.name) for i in shifts]
