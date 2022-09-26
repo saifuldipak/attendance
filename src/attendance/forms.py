@@ -573,7 +573,7 @@ def duty_schedule(action):
     
     
 #Duty shift - create
-shifts = ['Morning', 'Evening', 'Night', 'Regular', 'Offday']
+shifts = [('M', 'Morning'), ('E', 'Evening'), ('N', 'Night'), ('R', 'Regular'), ('O', 'Offday')]
 class Dutyshiftcreate(FlaskForm):
     shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
     in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
