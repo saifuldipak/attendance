@@ -371,7 +371,7 @@
         <div class="form-style-2">
             {% if action == 'create' or action == 'delete' %}
                 {% if action == 'create' %}
-                    <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='create') }}">
+                    <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='add') }}">
                         {{ form.csrf_token }}
                         <div class="form-style-2-heading">Create duty schedule</div>
                 {% elif action == 'delete' %}
