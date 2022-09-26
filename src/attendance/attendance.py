@@ -487,7 +487,7 @@ def application_fiber():
 @login_required
 @team_leader_required
 def duty_schedule(action):
-    if action not in ('query', 'create', 'delete', 'initmonth'):
+    if action not in ('query', 'add', 'delete', 'initmonth'):
         current_app.logger.error(' duty_shift() - action unknown')
         flash('Unknown action', category='error')
         return render_template('base.html')
@@ -527,7 +527,7 @@ def duty_schedule(action):
         month_days = monthrange(form.year.data,form.month.data)[1]
         return render_template('data.html', type='duty_schedule', month_days=month_days, schedules=schedules, form=form)
 
-    if action == 'create':
+    if action == 'add':
         attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)
         if attnsummary_prepared:
             msg = 'Cannot create duty schedule (' + attnsummary_prepared + ')'
@@ -535,20 +535,19 @@ def duty_schedule(action):
             return redirect(url_for('forms.duty_schedule', action='create'))
             
         for empid in form.empid.data:
-            schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
-                                DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
-            if schedule_exist:
-                employee = Employee.query.filter_by(id=empid).one()
-                msg = f'Schedule exists for {employee.fullname}'
-                flash(msg, category='error')
-                return redirect(url_for('forms.duty_schedule', action='create'))
-        
-        while form.start_date.data <= form.end_date.data:
-            for empid in form.empid.data:
-                schedule = DutySchedule(empid=empid, team=team_name, date=form.start_date.data, 
-                            duty_shift=form.duty_shift.data)
-                db.session.add(schedule)
-            form.start_date.data += timedelta(days=1)
+            duty_schedules = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
+            if not duty_schedules:
+                flash('It seems duty schedule not initialized for {form.start_date.data.month}', category='error')
+
+            for duty_schedule in duty_schedules:
+                if duty_schedule.duty_shift != '':
+                    employee = Employee.query.filter_by(id=empid).one()
+                    msg = f'Schedule exists for {employee.fullname}'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='create'))
+            
+            for duty_schedule in duty_schedules:
+                duty_schedule.duty_shift = form.duty_shift.data
 
         db.session.commit()
 
