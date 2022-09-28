@@ -569,4 +569,33 @@
                     </label>
     {% endif %}
 
+    {% if form_type == 'upload_duty_schedule' %}
+            <div class="form-style-2">
+                <table>
+                    <form method="post" action="{{ url_for('attendance.duty_schedule', action='upload') }}" enctype="multipart/form-data">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Upload duty schedule file</div>
+                    <tr>
+                        <td>{{ form.month.label }}</td>
+                        <td>{{ form.month }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.year.label }}</td>
+                        <td>{{ form.year }}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><a href= {{ url_for('attendance.files', name='duty_schedule_sample.xls') }}>Download sample file</a></td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.file.label }}</td>
+                        <td>{{ form.file }}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="submit" value="Upload" /></td>
+                    </tr>
+                </table>
+    {% endif %}
+
 {% endblock %}
