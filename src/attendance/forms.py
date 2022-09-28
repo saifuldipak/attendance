@@ -523,55 +523,30 @@ def add_holiday():
     return render_template('forms.html', type='add_holiday', form=form)
 
 
-#Duty schedule - Create, Query
-fiber_teams = ['Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'Fiber-Implementation']
-
-class MultiCheckboxField(SelectMultipleField):
-    widget = widgets.ListWidget(prefix_label=False)
-    option_widget = widgets.CheckboxInput()
-
-class Dutyschedule(FlaskForm):
-    empid = MultiCheckboxField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-    start_date = DateField('Duty start date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    end_date = DateField('Duty end date', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-
-class Dutyscheduleadd(Dutyschedule):
-    duty_shift = SelectField('Duty', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-
-class Dutyscheduledelete(Dutyschedule):
-    pass
+#Duty schedule 
+class Dutyscheduleupload(Monthyear):
+    file = FileField('Upload File', validators=[FileAllowed(['xls', 'xlsx'], '.xls & .xlsx only!'), FileRequired()])
 
 @forms.route('/forms/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
 def duty_schedule(action):
-
-    if action in ('add', 'delete'):
-        team_name_string = convert_team_name() + '%'
-        names = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
-
-    if action == 'add':
-        form = Dutyscheduleadd()
-        form.empid.choices = [(i.id, i.fullname) for i in names]
-        shifts = DutyShift.query.filter(DutyShift.team=='Fiber').all()
-        form.duty_shift.choices = [(i.id, i.name) for i in shifts]
-        return render_template('forms.html', type='duty_schedule', action='create', team='fiber', form=form)
-    elif action == 'query':
-        form = Monthyear()
-        return render_template('forms.html', type='duty_schedule', action='query', form=form)
-    elif action == 'delete':
-        form = Dutyscheduledelete()
-        form.empid.choices = [(i.id, i.fullname) for i in names]
-        return render_template('forms.html', type='duty_schedule', action='delete', form=form)
-    elif action == 'initmonth':
-        form = Monthyear()
-        return render_template('forms.html', type='duty_schedule', action='initmonth', form=form)
-    else:
+    if action not in ('query', 'upload', 'delete'):
         current_app.logger.error(' duty_schedule(): <action> value not correct')
         flash('Cannot create duty schedule form', category='error')
         return render_template('base.html')
-    
-    
+
+    if action == 'query':
+        form = Monthyear()
+        return render_template('forms.html', type='duty_schedule', action='query', form=form)
+    elif action == 'upload':
+        form = Dutyscheduleupload()
+        return render_template('forms.html', type='duty_schedule', action='upload', form=form)
+    elif action == 'delete':
+        form = Monthyear()
+        return render_template('forms.html', type='duty_schedule', action='delete', form=form)
+        
+
 #Duty shift - create
 shifts = [('M', 'Morning'), ('E', 'Evening'), ('N', 'Night'), ('R', 'Regular'), ('O', 'Offday')]
 class Dutyshiftcreate(FlaskForm):
@@ -601,15 +576,3 @@ class Searchapplication(FlaskForm):
 def search_application(application_for):
     form = Searchapplication()
     return render_template('forms.html', type='search_application', application_for=application_for, form=form)
-
-
-#Upload duty schedule
-class Dutyscheduleupload(Monthyear):
-    file = FileField('Upload File', validators=[FileAllowed(['xls', 'xlsx'], '.xls & .xlsx only!'), FileRequired()])
-
-@forms.route('/forms/duty_schedule/upload', methods=['GET', 'POST'])
-@login_required
-@team_leader_required
-def upload_duty_schedule():
-    form = Dutyscheduleupload()
-    return render_template('forms.html', form_type='upload_duty_schedule', form=form)
