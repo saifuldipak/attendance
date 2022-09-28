@@ -374,11 +374,11 @@
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Query duty schedule</div>
             {% elif action == 'upload' %}
-                    <form method="post" action="{{ url_for('attendance.duty_schedule', action='upload') }}">
+                    <form method="post" action="{{ url_for('attendance.duty_schedule', action='upload') }}" enctype="multipart/form-data">
                         {{ form.csrf_token }}
                         <div class="form-style-2-heading">Upload duty schedule</div>
             {% elif action == 'delete' %}
-                <form method="post" action="{{ url_for('attendance.duty_schedule', action='upload') }}">
+                <form method="post" action="{{ url_for('attendance.duty_schedule', action='delete') }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Delete duty schedule</div>
             {% endif %}
