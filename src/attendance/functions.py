@@ -219,3 +219,14 @@ def check_view_permission(show_type):
     
     return False
 
+#Convert all team names of Fiber & Support to generic name
+def convert_team_name2(team_name):    
+    match = re.search('^Fiber', team_name)
+    if match:
+        team_name = 'Fiber'
+
+    match = re.search('^Support', team_name)
+    if match:
+        team_name = 'Support'
+    
+    return team_name

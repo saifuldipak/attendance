@@ -1,4 +1,6 @@
+from calendar import monthrange
 from crypt import methods
+from curses.ascii import EM
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
@@ -9,10 +11,10 @@ import pandas as pd
 from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail, send_mail2
-from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyschedulecreate, Dutyschedulequery, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow)
+from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -122,7 +124,7 @@ def query_menu():
 
 @attendance.route('/attendance/files/<name>')
 @login_required
-@admin_required
+@team_leader_required
 def files(name):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
 
@@ -466,78 +468,148 @@ def application_fiber():
 @login_required
 @team_leader_required
 def duty_schedule(action):
-    if action != 'query' and action != 'create' and action != 'delete':
-        current_app.logger.error(' duty_shift() - action unknown')
+    if action not in ('query', 'upload', 'delete'):
+        current_app.logger.error(' duty_schedule() - action unknown')
         flash('Unknown action', category='error')
         return render_template('base.html')
-   
-    if action == 'query':
-        form = Dutyschedulequery()
-    elif action == 'create':
-        form = Dutyschedulecreate()   
-    
+       
     team_name = convert_team_name()
 
     if action == 'query':
+        form = Monthyear()
+
         if form.validate_on_submit():
             month = form.month.data
             year = form.year.data
         else:
             month = datetime.now().month
             year = datetime.now().year
-
-        schedules = DutySchedule.query.join(Employee, DutyShift).join(Team, Team.empid==DutySchedule.empid).with_entities(DutySchedule.id, DutySchedule.date, Employee.fullname, Team.name.label('team'), DutyShift.name.label('shift')).filter(DutySchedule.team==team_name, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(Team.name, Employee.fullname).all()
         
-        return render_template('data.html', type='duty_schedule', schedules=schedules, form=form)
-
-    if action == 'create':
-        attnsummary_prepared = check_attnsummary(form.start_date.data, form.end_date.data)
-        if attnsummary_prepared:
-            msg = 'Cannot create duty schedule (' + attnsummary_prepared + ')'
-            flash(msg, category='error')
-            return redirect(url_for('forms.duty_schedule', action='create'))
+        team_name_string = f'{team_name}' + '%'
+        employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), and_(Employee.role!='Supervisor', Employee.role!='Manager')).all()
+        
+        schedules = []
+        for employee in employees:
+            dates = DutySchedule.query.join(DutyShift, isouter=True).with_entities(DutyShift.name.label('shift')).filter(DutySchedule.empid==employee.id, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
             
-        for empid in form.empid.data:
-            schedule_exist = DutySchedule.query.filter(DutySchedule.date>=form.start_date.data, 
-                                DutySchedule.date<=form.end_date.data, DutySchedule.empid==empid).all()
-            if schedule_exist:
-                employee = Employee.query.filter_by(id=empid).one()
-                msg = f'Schedule exists for {employee.fullname}'
-                flash(msg, category='error')
-                return redirect(url_for('forms.duty_schedule', action='create'))
+            if dates:
+                individual_schedule = [employee.fullname]
+
+                count = 0
+                for date in dates:
+                    if date.shift is not None:
+                        count += 1
+                    
+                    individual_schedule.append(date.shift)
+                
+                if count > 0:
+                    schedules.append(individual_schedule)
+
+        month_days = monthrange(form.year.data,form.month.data)[1]
+        return render_template('data.html', type='duty_schedule', month_days=month_days, schedules=schedules, form=form)
+
+    if action == 'upload':
+        form = Dutyscheduleupload()
+
+        if not form.validate_on_submit():
+            return render_template('forms.html', form_type='upload_duty_schedule', form=form)
+
+        attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
+        if attnsummary_prepared:
+            msg = 'Cannot upload duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
+            return redirect(url_for('forms.duty_shcedule_upload'))
         
-        while form.start_date.data <= form.end_date.data:
-            for empid in form.empid.data:
-                schedule = DutySchedule(empid=empid, team=team_name, date=form.start_date.data, 
-                            duty_shift=form.duty_shift.data)
-                db.session.add(schedule)
-            form.start_date.data += timedelta(days=1)
+        if session['role'] in ('Supervisor', 'Manager'):
+            team_leader = Employee.query.join(Team).filter(Employee.id==session['empid']).first()
+            if not team_leader:
+                current_app.logger.error(" duty_schedule(action='upload'): Employee details not found for %s", session['username'])
+                msg = f"Employee details not found for '{session['username']}'"
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_shcedule_upload'))
+
+            team_leader_teams = []
+            for team in team_leader.teams:
+                team_leader_teams.append(convert_team_name2(team.name))
+
+        if session['role'] == 'Head':
+            head = Employee.query.filter_by(id=session['empid']).first()
+
+        df = pd.read_excel(form.file.data, header=None)
+
+        for i in range(len(df.index)):
+            fullname = df.iat[i, 0]
+            
+            employee = Employee.query.join(Team).filter(Employee.fullname==fullname).first()
+            if not employee:
+                msg = f'Employee not found with name: {fullname}'
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_schedule', action='upload'))
+            
+            employee_team_name = convert_team_name2(employee.teams[0].name)
+
+            if session['role'] in ('Supervisor', 'Manager'):
+                if employee_team_name not in team_leader_teams:
+                    msg = f'Employee "{fullname}" is not in your team'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
+
+            if session['role'] == 'Head':
+                if employee.department != head.department:
+                    msg = f'Employee "{fullname}" is not in your department'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
+
+            for j in range(monthrange(form.year.data, form.month.data)[1]):
+                date = datetime(form.year.data, form.month.data, j + 1).date()
+
+                duty_schedule = DutySchedule.query.filter_by(empid=employee.id, date=date, team=team_name).first()
+                if duty_schedule:
+                    msg = f'Duty schedule exist for {fullname} on date {date}'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
+                
+                if pd.isna(df.iat[i, j + 1]):
+                    msg = f'Duty shift missing for {fullname} on date {j + 1}'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
+
+                duty_shift = DutyShift.query.filter_by(name=str(df.iat[i, j+1]).upper(), team=team_name).first()
+                if not duty_shift:
+                    msg = f'Duty shift "{df.iat[i, j+1]}" not found'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
+                
+                duty_schedule = DutySchedule(empid=employee.id, team=team_name, date=date, duty_shift=duty_shift.id)
+                db.session.add(duty_schedule)
 
         db.session.commit()
-
-        flash('Duty schedule created', category='message')
+        flash('Duty schedule uploaded')
         return redirect(url_for('attendance.duty_schedule', action='query'))
     
     if action == 'delete':
-        duty_schedule_id = request.args.get('id')
+        form = Monthyear()
 
-        duty_schedule = DutySchedule.query.filter_by(id=duty_schedule_id).one()
+        if not form.validate_on_submit():
+            return render_template('forms.html', form_type='upload_duty_schedule', form=form)
 
-        if not duty_schedule:
-            flash('Duty schdule record not found', category='error')
-            current_app.logger.error('duty_schedule(action="delete"): Duty schedule id %s not found', duty_schedule_id)
-            return redirect(url_for('attendance.duty_schedule', action='query'))
-        
-        attnsummary_prepared = check_attnsummary(duty_schedule.date)
+        attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
-            msg = 'Cannot delete duty schedule (' + attnsummary_prepared + ')'
-            flash(msg, category='error')
-            return redirect(url_for('attendance.duty_schedule', action='query'))
+            msg = 'Cannot delete duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
+            return redirect(url_for('forms.duty_schedule', action='delete'))
         
-        db.session.delete(duty_schedule)
+        duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team_name).all()
+        
+        if not duty_schedules:
+            msg = f'Schedule does not exist for {form.month.data}, {form.year.data}'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='delete'))
+        
+        for duty_schedule in duty_schedules:
+            db.session.delete(duty_schedule)
+ 
         db.session.commit()
         
-        flash('Duty schedule record deleted', category='message')
+        flash('Duty schedule deleted', category='message')
         return redirect(url_for('attendance.duty_schedule', action='query'))
 
 
@@ -778,7 +850,6 @@ def cancel_application(application_for, application_id):
 
     #Send mail to all concerned
     emails = get_concern_emails(employee.id)
-    current_app.logger.error('%s', emails)
     
     if application.status == 'Approval Pending':
         if session['username'] != employee.username:

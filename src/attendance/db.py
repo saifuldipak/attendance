@@ -100,7 +100,7 @@ class DutySchedule(db.Model):
     team = db.Column(db.String, nullable=False)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
-    duty_shift = db.Column(db.Integer, db.ForeignKey('duty_shift.id'), nullable=False)
+    duty_shift = db.Column(db.Integer, db.ForeignKey('duty_shift.id'))
 
 #Monthly leave deduction of each employee
 class LeaveDeductionSummary(db.Model):

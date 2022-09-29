@@ -368,63 +368,47 @@
     {% endif %}
 
     {% if type == 'duty_schedule' %}
-            <div class="form-style-2">
-                {% if action == 'create' %}
-                        <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='create') }}">
-                            {{ form.csrf_token }}
-                    
-                        <div class="form-style-2-heading">Create duty schedule</div>
-                        <table>
-                            {% for subfield in form.empid %}
-                                <tr>
-                                    <td>{{ subfield }}</td>
-                                    <td>{{ subfield.label }}</td>
-                                    
-                                </tr>
-                            {% endfor %}
+        <div class="form-style-2">
+            {% if action == 'query' %}
+                <form method="post" action="{{ url_for('attendance.duty_schedule', action='query') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Query duty schedule</div>
+            {% elif action == 'upload' %}
+                    <form method="post" action="{{ url_for('attendance.duty_schedule', action='upload') }}" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        <div class="form-style-2-heading">Upload duty schedule</div>
+            {% elif action == 'delete' %}
+                <form method="post" action="{{ url_for('attendance.duty_schedule', action='delete') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Delete duty schedule</div>
+            {% endif %}
+                
+                    <table>
+                        <tr>
+                            <td> {{ form.month.label }}</td>
+                            <td> {{ form.month}}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.year.label }}</td>
+                            <td>{{ form.year }}</td>
+                        </tr>
+                        
+                        {% if action == 'upload' %}
                             <tr>
-                                <td> {{ form.duty_shift.label }}</td>
-                                <td> {{ form.duty_shift}}</td>
-                            </tr>
-                            
-                            <tr>
-                                <td>{{ form.start_date.label }}</td>
-                                <td>{{ form.start_date }}</td>
-                                <td>{{ form.start_time }}</td>
-                            </tr>
-                            <tr>
-                                <td>{{ form.end_date.label }}</td>
-                                <td>{{ form.end_date }}</td>
-                                <td>{{ form.end_time }}</td>
-                            </tr>
-                        </table>
-                        <label>
-                            <span> </span>
-                            <input type="submit" value="Add" /></label>
-                        </label>
-                    {% endif %}
-
-                    {% if action == 'query' %}
-                        <form method="post" action="{{ url_for('attendance.duty_schedule', team=team, action='query') }}">
-                            {{ form.csrf_token }}
-                    
-                        <div class="form-style-2-heading">Show duty schedule</div>
-                        <table>
-                            <tr>
-                                <td> {{ form.month.label }}</td>
-                                <td> {{ form.month}}</td>
+                                <td></td>
+                                <td><a href= {{ url_for('attendance.files', name='duty_schedule_sample.xls') }}>Download sample file</a></td>
                             </tr>
                             <tr>
-                                <td>{{ form.year.label }}</td>
-                                <td>{{ form.year }}</td>
-                              
+                                <td>{{ form.file.label }}</td>
+                                <td>{{ form.file }}</td>
                             </tr>
-                        </table>
-                        <label>
-                            <span> </span>
-                            <input type="submit" value="Show" /></label>
-                        </label>
-                    {% endif %}
+                        {% endif %}
+                        
+                    </table>
+                    <label>
+                        <span> </span>
+                        <input type="submit" value="Submit" /></label>
+                    </label>
     {% endif %}
 
     {% if type == 'duty_shift_create' %}
