@@ -601,30 +601,6 @@ def duty_schedule(action):
         flash('Duty schedule deleted', category='message')
         return redirect(url_for('attendance.duty_schedule', action='query'))
 
-    if action == 'initmonth':
-        month_initialized = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data).all()
-
-        if month_initialized:
-            msg = f'Month {form.month.data} for duty schedule already initialized'
-            flash(msg, category='error')
-            return redirect(url_for('forms.duty_schedule', action='initmonth'))
-        
-        team_name_string = convert_team_name() + '%'
-        employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), Employee.role=='Team').all()
-        month_days = monthrange(form.year.data,form.month.data)[1]
-        
-        for employee in employees:
-            for day in range(month_days):
-                date = datetime(form.year.data, form.month.data, day+1)
-                duty_schedule = DutySchedule(empid=employee.id, team=employee.teams[0].name, date=date, duty_shift='')            
-                db.session.add(duty_schedule)
-        
-        db.session.commit()
-
-        msg = f'Duty schedule for {form.month.data}, {form.year.data} initialized'
-        flash(msg)
-        return redirect(url_for('forms.duty_schedule', action='initmonth'))
-
 
 @attendance.route('/attendance/duty_shift/<action>', methods=['GET', 'POST'])
 @login_required
