@@ -14,7 +14,7 @@ from .mail import send_mail
 from .forms import (Addholidays, Attnapplfiber, Attnquery, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -530,7 +530,7 @@ def duty_schedule(action):
 
     if action == 'upload':
         form = Dutyscheduleupload()
-    
+
         if not form.validate_on_submit():
             return render_template('forms.html', form_type='upload_duty_schedule', form=form)
 
@@ -539,18 +539,49 @@ def duty_schedule(action):
             msg = 'Cannot upload duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
             return redirect(url_for('forms.duty_shcedule_upload'))
         
+        if session['role'] in ('Supervisor', 'Manager'):
+            team_leader = Employee.query.join(Team).filter(Employee.id==session['empid']).first()
+            if not team_leader:
+                current_app.logger.error(" duty_schedule(action='upload'): Employee details not found for %s", session['username'])
+                msg = f"Employee details not found for '{session['username']}'"
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_shcedule_upload'))
+
+            team_leader_teams = []
+            for team in team_leader.teams:
+                team_leader_teams.append(convert_team_name2(team.name))
+
+        if session['role'] == 'Head':
+            head = Employee.query.filter_by(id=session['empid']).first()
+
         df = pd.read_excel(form.file.data, header=None)
 
         for i in range(len(df.index)):
             fullname = df.iat[i, 0]
-            employee = Employee.query.filter_by(fullname=fullname).first()
+            
+            employee = Employee.query.join(Team).filter(Employee.fullname==fullname).first()
             if not employee:
                 msg = f'Employee not found with name: {fullname}'
                 flash(msg, category='error')
-                return redirect(url_for('forms.duty_shcedule', action='upload'))
+                return redirect(url_for('forms.duty_schedule', action='upload'))
+            
+            employee_team_name = convert_team_name2(employee.teams[0].name)
+
+            if session['role'] in ('Supervisor', 'Manager'):
+                if employee_team_name not in team_leader_teams:
+                    msg = f'Employee "{fullname}" is not in your team'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
+
+            if session['role'] == 'Head':
+                if employee.department != head.department:
+                    msg = f'Employee "{fullname}" is not in your department'
+                    flash(msg, category='error')
+                    return redirect(url_for('forms.duty_schedule', action='upload'))
 
             for j in range(monthrange(form.year.data, form.month.data)[1]):
                 date = datetime(form.year.data, form.month.data, j + 1).date()
+
                 duty_schedule = DutySchedule.query.filter_by(empid=employee.id, date=date, team=team_name).first()
                 if duty_schedule:
                     msg = f'Duty schedule exist for {fullname} on date {date}'
