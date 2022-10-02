@@ -517,7 +517,7 @@ def duty_schedule(action):
         attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
             msg = 'Cannot upload duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
-            return redirect(url_for('forms.duty_shcedule_upload'))
+            return redirect(url_for('forms.duty_shcedule', action='upload'))
         
         if session['role'] in ('Supervisor', 'Manager'):
             team_leader = Employee.query.join(Team).filter(Employee.id==session['empid']).first()
@@ -525,7 +525,7 @@ def duty_schedule(action):
                 current_app.logger.error(" duty_schedule(action='upload'): Employee details not found for %s", session['username'])
                 msg = f"Employee details not found for '{session['username']}'"
                 flash(msg, category='error')
-                return redirect(url_for('forms.duty_shcedule_upload'))
+                return redirect(url_for('forms.duty_shcedule', action='upload'))
 
             team_leader_teams = []
             for team in team_leader.teams:
@@ -535,6 +535,12 @@ def duty_schedule(action):
             head = Employee.query.filter_by(id=session['empid']).first()
 
         df = pd.read_excel(form.file.data, header=None)
+        days_of_month = monthrange(form.year.data, form.month.data)[1]
+        
+        if len(df.columns) != days_of_month + 1:
+            msg = f'There should be name and {days_of_month} shifts in the excel file'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='upload'))
 
         for i in range(len(df.index)):
             fullname = df.iat[i, 0]
@@ -559,8 +565,11 @@ def duty_schedule(action):
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
 
-            for j in range(monthrange(form.year.data, form.month.data)[1]):
-                date = datetime(form.year.data, form.month.data, j + 1).date()
+            for j in range(len(df.columns)):
+                if j == 0:
+                    continue
+
+                date = datetime(form.year.data, form.month.data, j).date()
 
                 duty_schedule = DutySchedule.query.filter_by(empid=employee.id, date=date, team=team_name).first()
                 if duty_schedule:
@@ -568,14 +577,14 @@ def duty_schedule(action):
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
                 
-                if pd.isna(df.iat[i, j + 1]):
-                    msg = f'Duty shift missing for {fullname} on date {j + 1}'
+                if pd.isna(df.iat[i, j]):
+                    msg = f'Duty shift missing for {fullname} on date {j}'
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
 
-                duty_shift = DutyShift.query.filter_by(name=str(df.iat[i, j+1]).upper(), team=team_name).first()
+                duty_shift = DutyShift.query.filter_by(name=str(df.iat[i, j]).upper(), team=team_name).first()
                 if not duty_shift:
-                    msg = f'Duty shift "{df.iat[i, j+1]}" not found'
+                    msg = f'Duty shift "{df.iat[i, j]}" not found'
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
                 
