@@ -590,7 +590,7 @@ def duty_schedule(action):
         form = Monthyear()
 
         if not form.validate_on_submit():
-            return render_template('forms.html', form_type='upload_duty_schedule', form=form)
+            return render_template('forms.html', type='duty_schedule', action='delete', form=form)
 
         attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
