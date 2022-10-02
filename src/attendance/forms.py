@@ -532,7 +532,7 @@ class Dutyscheduleupload(Monthyear):
 @team_leader_required
 def duty_schedule(action):
     if action not in ('query', 'upload', 'delete'):
-        current_app.logger.error(' duty_schedule(): <action> value not correct')
+        current_app.logger.error(' duty_schedule(): unknown <action> value "%s"', action)
         flash('Cannot create duty schedule form', category='error')
         return render_template('base.html')
 
