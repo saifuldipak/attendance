@@ -485,9 +485,13 @@ def duty_schedule(action):
             month = datetime.now().month
             year = datetime.now().year
         
-        team_name_string = f'{team_name}' + '%'
-        employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), and_(Employee.role!='Supervisor', Employee.role!='Manager')).all()
+        if session['role'] in ('Supervisor', 'Manager'):
+            team_name_string = f'{team_name}' + '%'
+            employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), and_(Employee.role!='Supervisor', Employee.role!='Manager')).all()
         
+        if session['role'] == 'Head':
+            employees = Employee.query.filter(Employee.department==session['department'], and_(Employee.role!='Supervisor', Employee.role!='Manager')).all()
+
         schedules = []
         for employee in employees:
             dates = DutySchedule.query.join(DutyShift, isouter=True).with_entities(DutyShift.name.label('shift')).filter(DutySchedule.empid==employee.id, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
