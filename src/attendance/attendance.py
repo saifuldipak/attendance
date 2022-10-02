@@ -638,7 +638,12 @@ def duty_shift(action):
     team_name = convert_team_name()
 
     if action == 'query':
-        shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
+        if session['role'] in ('Supervisor', 'Manager'):
+            shifts = DutyShift.query.filter(DutyShift.team==team_name).all()
+
+        if session['role'] == 'Head':
+            shifts = DutyShift.query.all()
+
         return render_template('data.html', type='duty_shift', shifts=shifts)
     
     if action == 'create':
@@ -672,7 +677,7 @@ def duty_shift(action):
         if shift_exist:
             flash('Shift exist in duty schedule', category='error')
             return redirect(url_for('attendance.duty_shift', action='query'))
-            
+
         db.session.delete(shift)
         db.session.commit()
 
