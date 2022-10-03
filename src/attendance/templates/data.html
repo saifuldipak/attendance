@@ -576,21 +576,15 @@
             <th>Application</th>
             <th>Holiday</th>
             <th>Weekend</th>
+            <th>Duty shift</th>
             {% for attendance in attendances %}
                 <tr>
                     <td>{{ attendance[0] }}</td>
+                    
                     {% if attendance[8] == 'NI' %}
-                        {% if attendance[5] or attendance[4] or attendance[3] %}
-                            <td>
-                        {% else %}
-                            <td class="data-red">
-                        {% endif %}
+                        <td class="data-red">
                     {% elif attendance[8] == 'L' %}
-                        {% if attendance[3] %}
-                            <td>
-                        {% else %}
-                            <td class="data-yellow">
-                        {% endif %}
+                        <td class="data-yellow">
                     {% else %}
                         <td>
                     {% endif %}
@@ -598,21 +592,13 @@
                         </td>
 
                     {% if attendance[9] == 'NO' %}
-                        {% if attendance[5] or attendance[4] or attendance[3] %}
-                            <td>
-                        {% else %}
-                            <td class="data-red">
-                        {% endif %}
+                        <td class="data-red">
                     {% elif attendance[9] == 'E' %}
-                        {% if attendance[3] %}
-                            <td>
-                        {% else %}
-                            <td class="data-yellow">
-                        {% endif %}
+                        <td class="data-yellow">
                     {% else %}
                         <td>
                     {% endif %}
-                            {{ attendance[2] }}
+                        {{ attendance[2] }}
                         </td>
 
                     {% if attendance[3] is none %}
@@ -634,6 +620,7 @@
                     {% elif attendance[5] == 1 %}   
                         <td>Saturday</td>
                     {% endif %}
+                    <td> {{ attendance[10] }}</td>
                 </tr>
             {% endfor %}
         </table>
