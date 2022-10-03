@@ -799,8 +799,10 @@ def query(query_type):
                     for attendance in attendances:
                         attendance_list = list(attendance)
                         
+                        application_type = ''
                         if  attendance_list[3]:
                             application = Applications.query.filter_by(id=attendance_list[3]).first()
+                            application_type = application.type
                             attendance_list.append(application.type)
                         else:
                             attendance_list.append(None)
@@ -811,21 +813,44 @@ def query(query_type):
                         else:
                             attendance_list.append(None)
                         
-                        if attendance_list[1] == datetime.strptime('00:00:00', "%H:%M:%S").time():
-                            attendance_list.append('NI')
-                        elif attendance_list[1] > datetime.strptime(current_app.config['LATE'], "%H:%M:%S").time():
-                            attendance_list.append('L')
-                        else:
-                            attendance_list.append(None)
-                        
-                        if attendance_list[2] == datetime.strptime('00:00:00', "%H:%M:%S").time():
-                            attendance_list.append('NO')
-                        elif attendance_list[2] < datetime.strptime(current_app.config['EARLY'], "%H:%M:%S").time():
-                            attendance_list.append('E')
-                        else:
-                            attendance_list.append(None)
+                        in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['GRACE_PERIOD'])
+                        out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['GRACE_PERIOD'])
 
-                        attendances_list.append(attendance_list)
+                        duty_schedule = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name, DutyShift.in_time, DutyShift.out_time, DutySchedule.date).filter(DutySchedule.date==attendance.date, DutySchedule.empid==employee.id).first()
+                        duty_shift = ''
+                        if duty_schedule:
+                            duty_shift = duty_schedule.name
+
+                            if duty_schedule.name not in ('O', 'HO'):
+                                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['GRACE_PERIOD'])
+                                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['GRACE_PERIOD'])
+
+                        no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
+
+                        if application_type in ('Casual', 'Medical', 'Both') or duty_shift in ('O', 'HO'):
+                            attendance_list.append(None)
+                            attendance_list.append(None)
+                        else:
+                            if application_type == 'In':
+                                attendance_list.append(None)
+                            elif attendance_list[1] == no_attendance:
+                                attendance_list.append('NI')
+                            elif attendance_list[1] > in_time.time():
+                                attendance_list.append('L')
+                            else:
+                                attendance_list.append(None)
+
+                            if application_type == 'Out':
+                                attendance_list.append(None)
+                            elif attendance_list[2] == no_attendance:
+                                attendance_list.append('NO')
+                            elif attendance_list[2] < out_time.time():
+                                attendance_list.append('E')
+                            else:
+                                attendance_list.append(None)
+                        
+                        attendance_list.append(duty_schedule.name) 
+                        attendances_list.append(attendance_list)  
 
                     attendances = attendances_list
                 else:
