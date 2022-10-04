@@ -232,7 +232,7 @@ def convert_team_name2(team_name):
     return team_name
 
 #check whether session user is the team leader or department head of the employee
-def find_team_leader(employee_id):
+def check_data_access(employee_id):
     employee = Employee.query.join(Team).filter(Employee.id==employee_id).first()
     
     supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
@@ -245,6 +245,10 @@ def find_team_leader(employee_id):
 
     head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
     if head:
+        return True
+    
+    admin = Employee.query.filter_by(id=session['empid'], access='Admin').first()
+    if admin:
         return True
 
     return False
