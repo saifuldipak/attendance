@@ -338,30 +338,28 @@ def upload():
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
 #Attendance query
-class Attnquery(FlaskForm):
-    month = IntegerField('Month', render_kw={'class': 'input-field'}, default=datetime.now().month, validators=[InputRequired(), NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
-    year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
-
-class Attnqueryusername(Attnquery):
+class Attnqueryusername(Monthyear):
     username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
-@forms.route('/forms/attendance/query/<query_type>', methods=['GET', 'POST'])
+@forms.route('/forms/attendance/query/<query_for>', methods=['GET', 'POST'])
 @login_required
-def attendance_query(query_type):
-    if query_type == 'date':
-        form = Attnquerydate()
-    elif query_type == 'username':
-        if session['role'] == 'Team':
-            form = Attnquery()
-        else:
-            form = Attnqueryusername()
-    elif query_type == 'month':
-        form = Attnsummaryshow()
-    else:
-        current_app.logger.error('attnquery_all(): unknown form type')
-        flash('Could not create form', category='error')
+def attendance_query(query_for):
+    if query_for not in ('self', 'team', 'department'):
+        current_app.logger.error(' attendance_query(): Unknown <query_for> value "%s"', query_for)
+        flash('Failed to create form', category='error')
+        return render_template('base.html')
+    
+    if session['role'] == 'team' and query_for in ('team', 'department'):
+        current_app.logger.warning(' attendance_query(): User "%s" trying to access "team" or "department" form', session['username'])
+        flash('You are not authorized to access this function', category='error')
+        return render_template('base.html')
 
-    return render_template('forms.html', type='attendance_query', query_type=query_type, form=form)
+    if query_for== 'self':
+        form = Monthyear()
+    else:
+        form = Attnqueryusername()
+
+    return render_template('forms.html', type='attendance_query', query_for=query_for, form=form)
 
 #Attendance summary prepare
 @forms.route('/forms/attendance/prepare_summary')

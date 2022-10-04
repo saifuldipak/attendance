@@ -440,11 +440,10 @@
 
     {% if type == 'attendance_query' %}
         <div class="form-style-2">
-            {% if query_type == 'username' %}
-                <div class="form-style-2-heading">Query attendance record</div>
-                    <form method="post" action="{{ url_for('attendance.query', query_type='username') }}">
+                <div class="form-style-2-heading">Attendance query</div>
+                    <form method="post" action="{{ url_for('attendance.query', query_for=query_for) }}">
                         {{ form.csrf_token }}
-                        {% if session['role'] != 'Team' %}
+                        {% if query_for != 'self' %}
                             <label for="username">
                                 <span>{{ form.username.label }}</span>
                                     {{ form.username }}
@@ -463,7 +462,6 @@
                             <input type="submit" value="Query" /></label>
                         </label>
                     </form>
-            {% endif %}
         </div>
     {% endif %}
 
