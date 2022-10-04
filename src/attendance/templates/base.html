@@ -64,7 +64,7 @@
         </div>
 
     
-    {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' or session['role'] == 'Head' %}
+    {% if session['role'] in ('Supervisor', 'Manager', 'Head') %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
@@ -89,12 +89,11 @@
                     <a href="{{ url_for('attendance.application_status', application_for='team') }}" class="navbar-item">-- Appl Status</a>
                     <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
                     <a href="{{ url_for('attendance.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
+                    <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
                     {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
-                        <a href="{{ url_for('forms.attendance_query', query_for='team') }}" class="navbar-item">-- Query</a>
                         <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='team') }}" class="navbar-item">-- Show Summary</a>
                     {% endif %}
                     {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('forms.attendance_query', query_for='department') }}" class="navbar-item">-- Query</a>
                         <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='department') }}" class="navbar-item">-- Show Summary</a>
                     {% endif %}                        
                 </div>
@@ -124,7 +123,7 @@
                     <a href="{{ url_for('attendance.application_status', application_for='all') }}" class="navbar-item">
                         -- Application Status
                     </a>
-                    <a href="{{ url_for('forms.attendance_query', query_type='username') }}" class="navbar-item">
+                    <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">
                         -- Query
                     </a>
                     <a href="{{ url_for('forms.upload') }}" class="navbar-item">

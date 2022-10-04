@@ -344,19 +344,19 @@ class Attnqueryusername(Monthyear):
 @forms.route('/forms/attendance/query/<query_for>', methods=['GET', 'POST'])
 @login_required
 def attendance_query(query_for):
-    if query_for not in ('self', 'team', 'department'):
+    if query_for not in ('self', 'others'):
         current_app.logger.error(' attendance_query(): Unknown <query_for> value "%s"', query_for)
         flash('Failed to create form', category='error')
         return render_template('base.html')
     
-    if session['role'] == 'team' and query_for in ('team', 'department'):
+    if session['role'] == 'team' and query_for == 'others':
         current_app.logger.warning(' attendance_query(): User "%s" trying to access "team" or "department" form', session['username'])
         flash('You are not authorized to access this function', category='error')
         return render_template('base.html')
 
-    if query_for== 'self':
+    if query_for == 'self':
         form = Monthyear()
-    else:
+    elif query_for == 'others':
         form = Attnqueryusername()
 
     return render_template('forms.html', type='attendance_query', query_for=query_for, form=form)
