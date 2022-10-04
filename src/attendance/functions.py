@@ -230,3 +230,21 @@ def convert_team_name2(team_name):
         team_name = 'Support'
     
     return team_name
+
+#check whether session user is the team leader or department head of the employee
+def find_team_leader(employee_id):
+    employee = Employee.query.join(Team).filter(Employee.id==employee_id).first()
+    
+    supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    if supervisor:
+        return True
+
+    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+    if manager:
+        return True
+
+    head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+    if head:
+        return True
+
+    return False
