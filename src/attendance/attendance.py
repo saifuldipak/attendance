@@ -807,9 +807,11 @@ def query(query_type):
                         else:
                             attendance_list.append(None)
 
+                        holiday_name = ''
                         if  attendance_list[4]:
                             holiday = Holidays.query.filter_by(id=attendance_list[4]).first()
                             attendance_list.append(holiday.name)
+                            holiday_name = holiday.name
                         else:
                             attendance_list.append(None)
                         
@@ -827,7 +829,7 @@ def query(query_type):
 
                         no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
 
-                        if application_type in ('Casual', 'Medical', 'Both') or duty_shift in ('O', 'HO'):
+                        if application_type in ('Casual', 'Medical', 'Both') or duty_shift in ('O', 'HO') or holiday_name != '':
                             attendance_list.append(None)
                             attendance_list.append(None)
                         else:
@@ -849,7 +851,9 @@ def query(query_type):
                             else:
                                 attendance_list.append(None)
                         
-                        attendance_list.append(duty_schedule.name) 
+                        if duty_schedule:
+                            attendance_list.append(duty_schedule.name) 
+                        
                         attendances_list.append(attendance_list)  
 
                     attendances = attendances_list
