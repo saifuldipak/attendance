@@ -582,7 +582,7 @@ def search_application(application_for):
             applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
 
         if application_for == 'all':
-            applications = Applications.query.filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).all()
+            applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
 
         return render_template('data.html', type='leave_application_search', application_for=application_for, applications=applications)
     else:
