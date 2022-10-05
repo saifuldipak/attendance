@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
 from re import search
+from time import strftime
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
@@ -14,7 +15,7 @@ from .mail import send_mail, send_mail2
 from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -765,106 +766,115 @@ def holidays(action):
     return redirect(url_for('attendance.holidays', action='show'))
 
 
-@attendance.route('/attendance/query/<query_type>', methods=['GET', 'POST'])
+@attendance.route('/attendance/query/<query_for>', methods=['GET', 'POST'])
 @login_required
-def query(query_type):
+def query(query_for):
 
-    if query_type == 'date':
-        form = Attnquerydate()
-    elif query_type == 'username':
-        if session['role'] == 'Team':
-            form = Attnquery()
+    if query_for not in ('self', 'others'):
+        current_app.logger.error(' query(): Unknown <query_for> "%s"', query_for)
+        flash('Query failed', category='error')
+        return render_template('base.html')
+    
+    if query_for == 'self':
+        form = Monthyear()
+    else:
+        form = Attnqueryusername()
+
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='attendance_query', query_for=query_for, form=form)
+        
+    if query_for == 'self':
+        user_name = session['username']
+    elif query_for == 'others':
+        user_name = form.username.data
+
+    employee = Employee.query.filter_by(username=user_name).first()
+    if not employee:
+        current_app.logger.error(' query(): Employee details not found for "%s"', user_name)
+        flash('Query failed', category='error')
+        return redirect(url_for('forms.attendance_query', query_for=query_for))
+
+    if query_for == 'others':
+        has_access = check_data_access(employee.id)
+        if not has_access:
+            msg = f"You don't have access to '{employee.fullname}' attendance data"
+            flash(msg, category='error')
+            return redirect(url_for('forms.attendance_query', query_for=query_for))
+    
+    attendances = Attendance.query.filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).order_by(Attendance.date).all()
+    
+    if not attendances:
+        flash('No record found', category='warning')
+        return redirect(url_for('forms.attendance_query', query_for=query_for))
+
+    attendances_list = []
+
+    for attendance in attendances:
+        attendance_list = {'date': attendance.date, 'in_time':attendance.in_time, 'out_time':attendance.out_time}
+        
+        attendance_list['day'] = datetime.strftime(attendance.date, "%A")
+
+        in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['GRACE_PERIOD'])
+        out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['GRACE_PERIOD'])
+
+        duty_schedule = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name, DutyShift.in_time, DutyShift.out_time, DutySchedule.date).filter(DutySchedule.date==attendance.date, DutySchedule.empid==employee.id).first()
+        if duty_schedule:
+            attendance_list['duty_shift'] = duty_schedule.name
+
+            if duty_schedule.name not in ('O', 'HO'):
+                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['GRACE_PERIOD'])
+                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['GRACE_PERIOD'])
         else:
-            form = Attnqueryusername()
-    elif query_type == 'month':
-        form = Attnsummaryshow()
+            attendance_list['duty_shift'] = None
 
-    if form.validate_on_submit():
-                
-        if query_type == 'username':
-            
-            if session['role'] == 'Team':
-                user_name = session['username']
+        application = Applications.query.filter(Applications.empid==employee.id, Applications.start_date<=attendance.date, Applications.end_date>=attendance.date).first()
+        application_type = ''
+        if  application:
+            application_type = application.type
+            attendance_list['application_type'] = application.type
+            attendance_list['application_id'] = application.id
+        else:
+            attendance_list['application_type'] = None
+            attendance_list['application_id'] = None
+
+        holiday = Holidays.query.filter(Holidays.start_date<=attendance.date, Holidays.end_date>=attendance.date).first()
+        holiday_name = ''
+        if  holiday:
+            holiday_name = holiday.name
+            attendance_list['holiday'] = holiday.name
+        else:
+            attendance_list['holiday'] = None
+
+        no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
+
+        if application_type in ('Casual', 'Medical', 'Both') or attendance_list['duty_shift'] in ('O', 'HO') or holiday_name != '' or attendance_list['day'] in ('Friday', 'Saturday'):
+            attendance_list['in_flag'] = None
+            attendance_list['out_flag'] = None
+        else:
+            if application_type == 'In':
+                attendance_list['in_flag'] = None
+            elif attendance_list['in_time'] == no_attendance:
+                attendance_list['in_flag'] = 'NI'
+            elif attendance_list['in_time'] > in_time.time():
+                attendance_list['in_flag'] = 'L'
             else:
-                user_name = form.username.data
+                attendance_list['in_flag'] = None
 
-            employee = Employee.query.filter_by(username=user_name).first()
-            
-            if employee:
-                attendances = db.session.query(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.date==ApplicationsHolidays.date, Attendance.empid==ApplicationsHolidays.empid)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).order_by(Attendance.date).all()
-                
-                if attendances:
-                    attendances_list = []
-
-                    for attendance in attendances:
-                        attendance_list = list(attendance)
-                        
-                        application_type = ''
-                        if  attendance_list[3]:
-                            application = Applications.query.filter_by(id=attendance_list[3]).first()
-                            application_type = application.type
-                            attendance_list.append(application.type)
-                        else:
-                            attendance_list.append(None)
-
-                        holiday_name = ''
-                        if  attendance_list[4]:
-                            holiday = Holidays.query.filter_by(id=attendance_list[4]).first()
-                            attendance_list.append(holiday.name)
-                            holiday_name = holiday.name
-                        else:
-                            attendance_list.append(None)
-                        
-                        in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['GRACE_PERIOD'])
-                        out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['GRACE_PERIOD'])
-
-                        duty_schedule = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name, DutyShift.in_time, DutyShift.out_time, DutySchedule.date).filter(DutySchedule.date==attendance.date, DutySchedule.empid==employee.id).first()
-                        duty_shift = ''
-                        if duty_schedule:
-                            duty_shift = duty_schedule.name
-
-                            if duty_schedule.name not in ('O', 'HO'):
-                                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['GRACE_PERIOD'])
-                                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['GRACE_PERIOD'])
-
-                        no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
-
-                        if application_type in ('Casual', 'Medical', 'Both') or duty_shift in ('O', 'HO') or holiday_name != '':
-                            attendance_list.append(None)
-                            attendance_list.append(None)
-                        else:
-                            if application_type == 'In':
-                                attendance_list.append(None)
-                            elif attendance_list[1] == no_attendance:
-                                attendance_list.append('NI')
-                            elif attendance_list[1] > in_time.time():
-                                attendance_list.append('L')
-                            else:
-                                attendance_list.append(None)
-
-                            if application_type == 'Out':
-                                attendance_list.append(None)
-                            elif attendance_list[2] == no_attendance:
-                                attendance_list.append('NO')
-                            elif attendance_list[2] < out_time.time():
-                                attendance_list.append('E')
-                            else:
-                                attendance_list.append(None)
-                        
-                        if duty_schedule:
-                            attendance_list.append(duty_schedule.name) 
-                        
-                        attendances_list.append(attendance_list)  
-
-                    attendances = attendances_list
-                else:
-                    flash('No record found', category='warning')
-                
-                return render_template('data.html', type='attendance_query', query='all', fullname=employee.fullname, query_type=query_type, form=form, attendances=attendances)
+            if application_type == 'Out':
+                attendance_list['out_flag'] = None
+            elif attendance_list['out_time'] == no_attendance:
+                attendance_list['out_flag'] = 'NO'
+            elif attendance_list['out_time'] < out_time.time():
+                attendance_list['out_flag'] = 'E'
             else:
-                flash('Username not found', category='error')
-                return redirect(url_for('attendance.query_menu'))
+                attendance_list['out_flag'] = None
 
+        attendances_list.append(attendance_list)  
+
+    attendances = attendances_list
+    
+    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendances)
+            
 
 @attendance.route('/attendance/application/cancel/<application_for>,<application_id>')
 @login_required
