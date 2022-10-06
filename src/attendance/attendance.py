@@ -219,29 +219,18 @@ def approval():
     flash('Application approved')
     
     #Send mail to all concerned
-    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-    if not admin:
-        current_app.logger.warning('HR email not found')
-        msg = 'warning'
+    emails = get_concern_emails(application.empid)
+    team_leader_email = find_team_leader_email(emails)
+    cc = [session['email']]
     
-    manager = Employee.query.filter_by(id=session['empid']).first()
-    if not manager:
-        current_app.logger.warning('Team Manager email not found')
-        msg = 'warning'
+    if emails['employee'] != '':
+        cc.append(emails['employee'])
+    
+    if team_leader_email:
+        cc.append(team_leader_email)
 
-    head = Employee.query.filter(Employee.department==application.employee.department, Employee.role=='Head').first()
-    if not head:
-        current_app.logger.warning('Dept. Head email not found')
-        msg = 'warning'
-    
-    if 'msg' in locals():
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.appl_status_team'))
+    rv = send_mail2(sender=session['email'], receiver=emails['admin'], cc=cc, type='attendance', action='approved', application=application)
 
-    host = current_app.config['SMTP_HOST']
-    port = current_app.config['SMTP_PORT'] 
-    
-    rv = send_mail(host=host, port=port, sender=manager.email, receiver=admin.email, cc1=application.employee.email, cc2=head.email, type='attendance', action='approved', application=application)
     if rv:
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
