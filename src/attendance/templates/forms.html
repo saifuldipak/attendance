@@ -501,7 +501,7 @@
 
     {% if type == 'prepare_attendance_summary' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.summary', action='prepare') }}">
+                <form method="post" action="{{ url_for('attendance.prepare_summary') }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Prepare Attendance Summary</div>
                     <label for="month">

@@ -15,7 +15,7 @@ from .mail import send_mail, send_mail2
 from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_attendance_data, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -292,86 +292,6 @@ def approval_department():
 
     return redirect(url_for('attendance.appl_status_department'))
 
-#Update attn_summary table with attendance summary data for each employee
-@attendance.route('/attendance/prepare_summary', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def prepare_summary():
-    form = Attnquery()
-
-    if form.validate_on_submit():
-        current_month = datetime.now().month
-        current_year = datetime.now().year
-
-        if form.month.data >= current_month and current_year >= form.year.data:
-            flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
-            return redirect(url_for('forms.attn_prepare_summary'))
-            
-        summary = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
-        if summary:
-            flash('Summary data already exists for the year and month you submitted', category='error')
-            return redirect(url_for('forms.attn_prepare_summary'))
-    
-        employees = Employee.query.all()
-
-        count = 0
-        for employee in employees:
-            attendances = Attendance.query.with_entities(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.empid==ApplicationsHolidays.empid, Attendance.date==ApplicationsHolidays.date)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).all()
-            
-            absent_count = 0
-            late_count = 0
-            early_count = 0
-            
-            for attendance in attendances:
-                if attendance.holiday_id:
-                    continue
-                
-                if attendance.weekend_id:
-                    continue
-
-                if attendance.application_id:
-                    application = Applications.query.filter_by(id=attendance.application_id).first()
-                    if application.type in ('Casual', 'Medical', 'Both'):
-                        continue
-                    else:
-                        application_type = application.type
-                else:
-                    application_type = ''
-
-                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, DutySchedule.date==attendance.date).first()
-                
-                if duty_schedule:
-                    standard_in_time = duty_schedule.dutyshift.in_time
-                    standard_out_time = duty_schedule.dutyshift.out_time
-                else:
-                    standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
-                    standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
-
-                no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
-                if attendance.in_time == no_attendance:
-                    absent_count += 1
-
-                if attendance.in_time > standard_in_time and application_type != 'In':
-                    late_count += 1
-
-                if attendance.out_time < standard_out_time or attendance.out_time == no_attendance:
-                    if application_type != 'Out':
-                        early_count += 1
-
-            if absent_count > 0 or late_count > 0 or early_count > 0:
-                attnsummary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=absent_count, late=late_count, early=early_count)
-                db.session.add(attnsummary)
-                count += 1
-            
-        if count == 0:
-            flash('No late or absent in attendance data', category='warning')
-        else:
-            db.session.commit()
-            flash('Attendance summary created', category='message')
-    else:
-        flash('Form data not correct', category='error')
-    
-    return redirect(url_for('forms.attn_prepare_summary')) 
 
 ##Casual and Medical attendance application submission for Fiber##
 @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
@@ -1123,4 +1043,42 @@ def summary(action):
     else:
         flash('Form data not correct', category='error')
     
+    return redirect(url_for('forms.attendance_summary', action='prepare'))
+
+                
+@attendance.route('/attendance/summary/prepare', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def prepare_summary():
+    form = Attendancesummaryprepare()
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+
+    if form.month.data >= current_month and current_year >= form.year.data:
+        flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
+        return redirect(url_for('forms.attendance_summary', action='prepare'))
+        
+    summary = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
+    if summary:
+        flash('Summary data already exists for the year and month you submitted', category='error')
+        return redirect(url_for('forms.attendance_summary', action='prepare'))
+
+    employees = Employee.query.all()
+
+    count = 0
+    for employee in employees:
+        attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
+        if attendance['returned']:
+            early = attendance['summary']['NO'] + attendance['summary']['E']
+            attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early)
+            db.session.add(attendance_summary)
+            count += 1
+    
+    if count > 0:
+        db.session.commit()
+        msg = f'Attendance summary prepared for {form.month.data}, {form.year.data}. Added record {count}'
+    else:
+        msg = f'No record found for {form.month.data}, {form.year.data}'
+    
+    flash(msg)
     return redirect(url_for('forms.attendance_summary', action='prepare'))
