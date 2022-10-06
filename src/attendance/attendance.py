@@ -641,11 +641,14 @@ def duty_shift(action):
         current_app.logger.error(' duty_shift() - action unknown')
         flash('Unknown action', category='error')
         return render_template('base.html')
-    
-    team_name = convert_team_name()
 
     if action == 'query':
-        shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
+        if session['role'] == 'Head' or session['access'] == 'Admin':
+            shifts = DutyShift.query.all()
+        else:
+            team_name = convert_team_name()
+            shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
+        
         return render_template('data.html', type='duty_shift', shifts=shifts)
     
     if action == 'create':
