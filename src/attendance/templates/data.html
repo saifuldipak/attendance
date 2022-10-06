@@ -648,14 +648,17 @@
                         <td></td><td><input type="submit" value="Show" /></td>
                     </tr>
                 </table>
-                <p>
-                    <a href={{ url_for('forms.duty_schedule', action='upload') }}>Upload schedule</a>
-                    <a href={{ url_for('forms.duty_schedule', action='delete') }}>Delete schedule</a>
-                </p>
+                {% if session['access'] != 'Admin' %}
+                    <p>
+                        <a href={{ url_for('forms.duty_schedule', action='upload') }}>Upload schedule</a>
+                        <a href={{ url_for('forms.duty_schedule', action='delete') }}>Delete schedule</a>
+                    </p>
+                {% endif %}
                 Month: {{ form.month.data}}
                 Year: {{ form.year.data }}
                 <table class="query-result">
                     <tr>
+                        <td></td>
                         <td></td>
                         {% for i in range(month_days) %}
                             <td>{{ i + 1 }}</td>
@@ -664,13 +667,7 @@
                     {% for schedule in schedules %}
                         <tr>
                             {% for i in schedule %}
-                                {% if i == 'Morning' %}
-                                    <td>M</td>
-                                {% elif i == None %}
-                                    <td></td>
-                                {% else %}
                                     <td>{{ i }}</td>
-                                {% endif %}
                             {% endfor %}
                         </tr>
                     {% endfor %}

@@ -493,7 +493,6 @@ def duty_schedule(action):
         flash('Unknown action', category='error')
         return render_template('base.html')
        
-    team_name = convert_team_name()
 
     if action == 'query':
         form = Monthyear()
@@ -505,15 +504,26 @@ def duty_schedule(action):
             month = datetime.now().month
             year = datetime.now().year
         
-        team_name_string = f'{team_name}' + '%'
-        employees = Employee.query.join(Team).filter(Team.name.like(team_name_string), and_(Employee.role!='Supervisor', Employee.role!='Manager')).all()
-        
+        if session['role'] == 'Head':
+            employees = Employee.query.join(Team).filter(Employee.department==session['department']).order_by(Team.name).all()
+        elif session['access'] == 'Admin':
+            employees = Employee.query.join(Team).filter(Employee.department=='Technical').order_by(Team.name).all()
+        elif session['role'] in ('Supervisor', 'Manager'):
+            team_name = convert_team_name()
+            team_name_string = f'{team_name}' + '%'
+            employees = Employee.query.join(Team).filter(Team.name.like(team_name_string)).all()
+        else:
+            flash('You are not authorized to access this function', category='error')
+            return redirect(url_for('forms.duty_schedule', action='query'))
+
         schedules = []
         for employee in employees:
+            team = Team.query.filter_by(empid=employee.id).first()
+
             dates = DutySchedule.query.join(DutyShift, isouter=True).with_entities(DutyShift.name.label('shift')).filter(DutySchedule.empid==employee.id, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
             
             if dates:
-                individual_schedule = [employee.fullname]
+                individual_schedule = [employee.fullname, team.name]
 
                 count = 0
                 for date in dates:
