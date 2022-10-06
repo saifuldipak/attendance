@@ -545,18 +545,24 @@
                 <th>Shift</th>
                 <th>In time</th>
                 <th>Out time</th>
-                <th>Action</th>
+                {% if session['access'] != 'Admin' %}
+                    <th>Action</th>
+                {% endif %}
                 {% for shift in shifts %}
                     <tr>
                         <td>{{ shift['team'] }}</td>
                         <td>{{ shift['name'] }}</td>
                         <td>{{ shift['in_time'] }}</td>
                         <td>{{ shift['out_time'] }}</td>
-                        <td><a href={{ url_for('attendance.duty_shift', action='delete', shift_id=shift['id']) }}>Delete</a></td>
+                        {% if session['access'] != 'Admin' %}
+                            <td><a href={{ url_for('attendance.duty_shift', action='delete', shift_id=shift['id']) }}>Delete</a></td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </table>
-            <p><a href={{ url_for('forms.duty_shift_create') }}>Add shift</a></p>
+            {% if session['access'] != 'Admin' %}
+                <p><a href={{ url_for('forms.duty_shift_create') }}>Add shift</a></p>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -662,14 +668,17 @@
                         <td></td><td><input type="submit" value="Show" /></td>
                     </tr>
                 </table>
-                <p>
-                    <a href={{ url_for('forms.duty_schedule', action='upload') }}>Upload schedule</a>
-                    <a href={{ url_for('forms.duty_schedule', action='delete') }}>Delete schedule</a>
-                </p>
+                {% if session['access'] != 'Admin' %}
+                    <p>
+                        <a href={{ url_for('forms.duty_schedule', action='upload') }}>Upload schedule</a>
+                        <a href={{ url_for('forms.duty_schedule', action='delete') }}>Delete schedule</a>
+                    </p>
+                {% endif %}
                 Month: {{ form.month.data}}
                 Year: {{ form.year.data }}
                 <table class="query-result">
                     <tr>
+                        <td></td>
                         <td></td>
                         {% for i in range(month_days) %}
                             <td>{{ i + 1 }}</td>
@@ -678,13 +687,7 @@
                     {% for schedule in schedules %}
                         <tr>
                             {% for i in schedule %}
-                                {% if i == 'Morning' %}
-                                    <td>M</td>
-                                {% elif i == None %}
-                                    <td></td>
-                                {% else %}
                                     <td>{{ i }}</td>
-                                {% endif %}
                             {% endfor %}
                         </tr>
                     {% endfor %}
