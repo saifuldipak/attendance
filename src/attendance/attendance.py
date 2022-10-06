@@ -794,8 +794,8 @@ def query(query_for):
 
     employee = Employee.query.filter_by(username=user_name).first()
     if not employee:
-        current_app.logger.error(' query(): Employee details not found for "%s"', user_name)
-        flash('Query failed', category='error')
+        msg = f"Employee '{user_name}' not found"
+        flash(msg, category='error')
         return redirect(url_for('forms.attendance_query', query_for=query_for))
 
     if query_for == 'others':
@@ -812,7 +812,7 @@ def query(query_for):
         return redirect(url_for('forms.attendance_query', query_for=query_for))
 
     attendances_list = []
-
+    summary = {'NI': 0, 'L': 0, 'NO': 0, 'E': 0}
     for attendance in attendances:
         attendance_list = {'date': attendance.date, 'in_time':attendance.in_time, 'out_time':attendance.out_time}
         
@@ -859,8 +859,10 @@ def query(query_for):
                 attendance_list['in_flag'] = None
             elif attendance_list['in_time'] == no_attendance:
                 attendance_list['in_flag'] = 'NI'
+                summary['NI'] += 1
             elif attendance_list['in_time'] > in_time.time():
                 attendance_list['in_flag'] = 'L'
+                summary['L'] += 1
             else:
                 attendance_list['in_flag'] = None
 
@@ -868,8 +870,10 @@ def query(query_for):
                 attendance_list['out_flag'] = None
             elif attendance_list['out_time'] == no_attendance:
                 attendance_list['out_flag'] = 'NO'
+                summary['NO'] += 1
             elif attendance_list['out_time'] < out_time.time():
                 attendance_list['out_flag'] = 'E'
+                summary['E'] += 1
             else:
                 attendance_list['out_flag'] = None
 
@@ -877,7 +881,7 @@ def query(query_for):
 
     attendances = attendances_list
     
-    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendances)
+    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendances, summary=summary)
             
 
 @attendance.route('/attendance/application/cancel/<application_for>,<application_id>')

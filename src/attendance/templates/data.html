@@ -571,6 +571,12 @@
             <p>Name: {{ fullname }}<br>
             Month: {{ form.month.data }}
             Year: {{ form.year.data }}</p>
+            <p>
+                Absent: {{ summary['NI'] }} &nbsp&nbsp
+                Late: {{ summary['L'] }} &nbsp&nbsp
+                No out: {{ summary['NO'] }} &nbsp&nbsp
+                Early: {{ summary['E'] }}
+            </p>
         <table class="query-result">
             <th>Date</th>
             <th>Day</th>
