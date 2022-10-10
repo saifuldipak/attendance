@@ -471,10 +471,10 @@ def duty_schedule(action):
                 flash(msg, category='error')
                 return redirect(url_for('forms.duty_schedule', action='upload'))
             
-            employee_team_name = convert_team_name2(employee.teams[0].name)
+            team_name = convert_team_name2(employee.teams[0].name)
 
             if session['role'] in ('Supervisor', 'Manager'):
-                if employee_team_name not in team_leader_teams:
+                if team_name not in team_leader_teams:
                     msg = f'Employee "{fullname}" is not in your team'
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
