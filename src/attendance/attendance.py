@@ -437,7 +437,7 @@ def duty_schedule(action):
         attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
             msg = 'Cannot upload duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
-            return redirect(url_for('forms.duty_schedule'))
+            return redirect(url_for('forms.duty_schedule', action='upload'))
         
         if session['role'] in ('Supervisor', 'Manager'):
             team_leader = Employee.query.join(Team).filter(Employee.id==session['empid']).first()
@@ -445,7 +445,7 @@ def duty_schedule(action):
                 current_app.logger.error(" duty_schedule(action='upload'): Employee details not found for %s", session['username'])
                 msg = f"Employee details not found for '{session['username']}'"
                 flash(msg, category='error')
-                return redirect(url_for('forms.duty_shcedule', action='upload'))
+                return redirect(url_for('forms.duty_schedule', action='upload'))
 
             team_leader_teams = []
             for team in team_leader.teams:
