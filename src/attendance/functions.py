@@ -49,7 +49,7 @@ def update_applications_holidays(empid, start_date, end_date, application_id=Non
         if attendance:
             attendance.application_id = application_id
         
-        start_date += datetime.timedelta(days=1)
+        start_date += timedelta(days=1)
 
 #check whether session user is the team leader of the employee of the supplied application_id 
 def check_team_access(application_id):
