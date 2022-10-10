@@ -437,7 +437,7 @@ def duty_schedule(action):
         attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
             msg = 'Cannot upload duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
-            return redirect(url_for('forms.duty_shcedule'))
+            return redirect(url_for('forms.duty_schedule'))
         
         if session['role'] in ('Supervisor', 'Manager'):
             team_leader = Employee.query.join(Team).filter(Employee.id==session['empid']).first()
