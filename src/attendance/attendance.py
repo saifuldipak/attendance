@@ -376,7 +376,6 @@ def application_fiber():
 
 @attendance.route('/attendance/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
-@team_leader_required
 def duty_schedule(action):
     if action not in ('query', 'upload', 'delete'):
         current_app.logger.error(' duty_schedule() - action unknown')
@@ -523,7 +522,7 @@ def duty_schedule(action):
 
         attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
-            msg = 'Cannot delete duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
+            msg = f'Cannot delete duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
             flash(msg, category='error')
             return redirect(url_for('forms.duty_schedule', action='delete'))
 
@@ -575,9 +574,14 @@ def duty_shift(action):
 
         team_name = convert_team_name2(session['team'])
 
-        shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, DutyShift.team==team_name).all()
-        if shift_exist:
-            flash('Shift exists', category='error')
+        shift_name_exist = DutyShift.query.filter_by(team=team_name, name=form.shift_name.data).first()
+        if shift_name_exist:
+            flash('Shift name exists', category='error')
+            return redirect(url_for('forms.duty_shift_create', form=form))
+
+        shift_date_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, DutyShift.team==team_name).all()
+        if shift_date_exist:
+            flash('Shift date exists', category='error')
             return redirect(url_for('forms.duty_shift_create', form=form))
 
         duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, out_time=form.out_time.data)
