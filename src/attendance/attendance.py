@@ -524,6 +524,7 @@ def duty_schedule(action):
         attnsummary_prepared = AttendanceSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
         if attnsummary_prepared:
             msg = 'Cannot delete duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
+            flash(msg, category='error')
             return redirect(url_for('forms.duty_schedule', action='delete'))
 
         team_name = convert_team_name2(session['team'])
