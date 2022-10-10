@@ -600,7 +600,7 @@ def duty_shift(action):
             current_app.logger.warning('duty_shift(action="delete"): Shift id not found')
             return redirect(url_for('attendance.duty_shift', action='query'))
         
-        shift_exist = DutySchedule.query.filter_by(shift=shift.id).all()
+        shift_exist = DutySchedule.query.filter_by(duty_shift=shift.id).all()
         if shift_exist:
             flash('Shift exist in duty schedule', category='error')
             return redirect(url_for('attendance.duty_shift', action='query'))
