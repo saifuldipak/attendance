@@ -525,7 +525,8 @@ def duty_schedule(action):
         if attnsummary_prepared:
             msg = 'Cannot delete duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
             return redirect(url_for('forms.duty_schedule', action='delete'))
-        
+            
+        team_name = convert_team_name2(session['team'])
         duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team_name).all()
         
         if not duty_schedules:
