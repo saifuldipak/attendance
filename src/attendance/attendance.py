@@ -525,7 +525,7 @@ def duty_schedule(action):
         if attnsummary_prepared:
             msg = 'Cannot delete duty schedule. Attendance summary already prepared for {form.month.data}, {form.year.data}'
             return redirect(url_for('forms.duty_schedule', action='delete'))
-            
+
         team_name = convert_team_name2(session['team'])
         duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team_name).all()
         
@@ -572,15 +572,15 @@ def duty_shift(action):
         if not form.validate_on_submit():
             return redirect('forms.html', type='duty_shift_create', form=form)
 
-        shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, 
-                        DutyShift.team==team_name).all()
+        team_name = convert_team_name2(session['team'])
+
+        shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, DutyShift.team==team_name).all()
         if shift_exist:
             flash('Shift exists', category='error')
             return redirect(url_for('forms.duty_shift_create', form=form))
 
-        team_name = convert_team_name()
-        duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, 
-                        out_time=form.out_time.data)
+        duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, out_time=form.out_time.data)
+        
         db.session.add(duty_shift)
         db.session.commit()
 
