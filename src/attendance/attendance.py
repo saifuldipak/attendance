@@ -544,9 +544,8 @@ def duty_schedule(action):
 
 @attendance.route('/attendance/duty_shift/<action>', methods=['GET', 'POST'])
 @login_required
-@team_leader_required
 def duty_shift(action):
-    if action != 'query' and action != 'create' and action != 'delete':
+    if action not in ('query', 'create', 'delete'):
         current_app.logger.error(' duty_shift() - action unknown')
         flash('Unknown action', category='error')
         return render_template('base.html')
@@ -554,31 +553,44 @@ def duty_shift(action):
     if action == 'query':
         if session['role'] == 'Head' or session['access'] == 'Admin':
             shifts = DutyShift.query.all()
-        else:
+        elif session['role'] in ('Supervisor', 'Manager'):
             team_name = convert_team_name()
             shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
-        
+        else:
+            flash('You are not authorized to access this function', category='error')
+            return render_template('base.html')
+
         return render_template('data.html', type='duty_shift', shifts=shifts)
     
     if action == 'create':
+        if session['role'] not in ('Supervisor', 'Manager', 'Head'):
+            flash('You are not authorized to access this function', category='error')
+            return render_template('base.html')
+        
         form = Dutyshiftcreate()
-        
-        if form.validate_on_submit():
-            shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, 
-                            DutyShift.team==team_name).all()
-            if shift_exist:
-                flash('Shift exists', category='error')
-                return redirect(url_for('forms.duty_shift_create', form=form))
-        
-            duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, 
-                            out_time=form.out_time.data)
-            db.session.add(duty_shift)
-            db.session.commit()
+        if not form.validate_on_submit():
+            return redirect('forms.html', type='duty_shift_create', form=form)
 
-            flash('Duty shift created', category='message')
-            return redirect(url_for('attendance.duty_shift', action='query'))
+        shift_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, 
+                        DutyShift.team==team_name).all()
+        if shift_exist:
+            flash('Shift exists', category='error')
+            return redirect(url_for('forms.duty_shift_create', form=form))
+
+        team_name = convert_team_name()
+        duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, 
+                        out_time=form.out_time.data)
+        db.session.add(duty_shift)
+        db.session.commit()
+
+        flash('Duty shift created', category='message')
+        return redirect(url_for('attendance.duty_shift', action='query'))
 
     if action == 'delete':
+        if session['role'] not in ('Supervisor', 'Manager', 'Head'):
+            flash('You are not authorized to access this function', category='error')
+            return render_template('base.html')
+
         shift_id = request.args.get('shift_id')
         
         shift = DutyShift.query.filter_by(id=shift_id).one()
