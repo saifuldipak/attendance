@@ -339,3 +339,86 @@ def get_attendance_data(empid, month, year):
     return_values['returned'] = True
 
     return return_values
+
+
+def get_concern_emails2(empid):
+    employee = Employee.query.filter_by(id=empid).first()
+    emails = {}
+
+    if employee.email:
+        employee_email = employee.email
+    else:
+        employee_email = ''
+
+    emails['employee'] = employee_email
+
+    supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name).first()
+    if supervisor:
+        if supervisor.email:
+            supervisor_email = supervisor.email
+        else:
+            supervisor_email = ''
+    else:
+        supervisor_email = ''
+    
+    emails['supervisor'] = supervisor_email
+
+    manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name).first()
+    if manager:
+        if manager.email:
+            manager_email = manager.email
+        else:
+            manager_email = ''
+    else:
+        manager_email = ''
+    
+    emails['manager'] = manager_email
+
+    head = Employee.query.join(Team).filter(Employee.department==employee.department, Employee.role=='Head').first()
+    if head:
+        if head.email:
+            head_email = head.email
+        else:
+            head_email = ''
+    else:
+        head_email = ''
+    
+    emails['head'] = head_email
+    
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
+    if admin:
+        if admin.email:
+            admin_email = admin.email
+        else:
+            admin_email = ''
+    else:
+        admin_email = ''
+    
+    emails['admin'] = admin_email
+
+    cc = []
+    
+    if emails['employee'] != '':
+        cc.append(emails['employee'])
+    
+    if employee.role == 'Team':
+        if emails['supervisor'] != '':
+            cc.append(emails['supervisor'])
+        if emails['manager'] != '':
+            cc.append(emails['manager'])
+        if emails['head'] != '':
+            cc.append(emails['head'])
+
+    if employee.role == 'Supervisor':
+        if emails['manager'] != '':
+            cc.append(emails['manager'])
+        if emails['head'] != '':
+            cc.append(emails['head'])
+
+    if employee.role == 'Manager':
+        if emails['head'] != '':
+            cc.append(emails['head'])
+
+    emails['cc'] = cc
+
+    return emails
