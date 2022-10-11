@@ -15,7 +15,7 @@ from .mail import send_mail, send_mail2
 from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_attendance_data, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_attendance_data, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access, get_concern_emails2
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -207,7 +207,7 @@ def approval():
         flash('You are not authorized to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
-    application = Applications.query.filter_by(id=application_id).first()
+    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
     start_date = application.start_date
     end_date = application.end_date
     
@@ -219,17 +219,9 @@ def approval():
     flash('Application approved')
     
     #Send mail to all concerned
-    emails = get_concern_emails(application.empid)
-    team_leader_email = find_team_leader_email(emails)
-    cc = [session['email']]
-    
-    if emails['employee'] != '':
-        cc.append(emails['employee'])
-    
-    if team_leader_email:
-        cc.append(team_leader_email)
+    emails = get_concern_emails2(application.empid)    
 
-    rv = send_mail2(sender=session['email'], receiver=emails['admin'], cc=cc, type='attendance', action='approved', application=application)
+    rv = send_mail2(sender=session['email'], receiver=emails['admin'], cc=emails['cc'], type='attendance', action='approved', application=application)
 
     if rv:
         msg = 'Mail sending failed (' + str(rv) + ')' 
@@ -256,42 +248,20 @@ def approval_department():
     flash('Application approved')
     
     #Send mail to all concerned
-    error = False
+    emails = get_concern_emails(application.empid)
+    team_leader_email = find_team_leader_email(emails)
+    cc = [session['email']]
 
-    if not session['email']:
-        current_app.logger.warning('approval_department(): Head email not found for employee id: %s', application.employee.id)
-        error = True
+    if team_leader_email:
+        cc.append(team_leader_email)
 
-    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR').first()
-    if not admin:
-        current_app.logger.warning('approval_department(): Admin email not found for employee id: %s', application.employee.id)
-        error = True
+    rv = send_mail2(sender=session['email'], receiver=emails['admin'], cc=cc, type='attendance', action='approved', application=application)    
     
-    if application.employee.role == 'Team' or application.employee.role == 'Supervisor':
-        team = Team.query.filter_by(empid=application.empid).first()
-        manager = Employee.query.join(Team).filter(Team.name==team.name, Employee.role=='Manager').first()
-    
-        if not manager:
-            manager_email = ''
-        else:
-            manager_email = manager.email
-    else:
-        manager_email = ''
-
-    if error:
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.appl_status_department'))
-    
-    rv = send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=session['email'], 
-            receiver=admin.email, cc1=application.employee.email, cc2=manager_email, application=application, type='attendance', 
-            action='approved')
     if rv:
-        current_app.logger.warning(rv)
-        flash('Failed to send mail', category='warning')
-        return redirect(url_for('attendance.appl_status_department'))
-
+        flash('Mail sending failed', category='warning')
+    
     return redirect(url_for('attendance.appl_status_department'))
-
+    
 
 ##Casual and Medical attendance application submission for Fiber##
 @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
