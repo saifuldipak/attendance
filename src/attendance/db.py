@@ -1,4 +1,3 @@
-from enum import unique
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -111,6 +110,7 @@ class LeaveDeductionSummary(db.Model):
     late_early = db.Column(db.Integer) #days leave deducted due to late & early days
     casual_overlap = db.Column(db.Integer) #days leave deducted due to casual before or after holidays
     salary_deduct = db.Column(db.Integer) #days salary deducted due to leave unavailable
+    attendance_summary = db.Column(db.Integer, db.ForeignKey('attendance_summary.id'))
 
 #Datewise approved Leave/Attendance applications and holidays
 class ApplicationsHolidays(db.Model):
@@ -130,5 +130,4 @@ class AttendanceSummary(db.Model):
     absent = db.Column(db.Integer)
     late = db.Column(db.Integer)
     early = db.Column(db.Integer)
-    extra_absent = db.Column(db.Integer)
-    leave_deducted = db.Column(db.Integer)
+    leave_deduction_summary = db.relationship('LeaveDeductionSummary', backref='attendancesummary', lazy=True)
