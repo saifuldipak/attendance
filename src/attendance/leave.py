@@ -2,7 +2,7 @@ from attendance.functions import check_edit_permission2, find_team_leader_email,
 from flask import (Blueprint, current_app, redirect, render_template, request, send_from_directory, session, flash, url_for)
 from sqlalchemy import and_, or_, extract
 from .check import check_access, check_holiday_dates, check_application_dates
-from .db import (ApprLeaveAttn, Holidays, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary)
+from .db import (ApprLeaveAttn, Holidays, LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary)
 from .mail import send_mail, send_mail2
 from .auth import *
 from werkzeug.utils import secure_filename
@@ -460,51 +460,41 @@ def files(name):
 def deduction():
     form = Monthyear()
 
-    month = datetime.datetime.strptime(form.month.data, '%B').month
-    cur_month = datetime.datetime.now().month
-    cur_year = datetime.datetime.now().year
-
-    if month >= cur_month and int(form.year.data) >= cur_year:
-        flash('You can only deduct leave for attendance of previous month or before previous month', category='error')    
+    summary = AttendanceSummary.query.filter(AttendanceSummary.year==form.year.data, AttendanceSummary.month==form.month.data).all()
+    if not summary:
+        msg = f'No attendance summary found for {form.month.data}, {form.year.data}'
+        flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
     
     deducted = LeaveDeduction.query.filter_by(month=form.month.data, year=form.year.data).first()
     if deducted:
-        flash('You have already deducted leave for this month', category='error')
+        msg = f'You have already deducted leave for {form.month.data}, {form.year.data}'
+        flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
 
-    summary = AttendanceSummary.query.filter(AttendanceSummary.year==form.year.data, AttendanceSummary.month==form.month.data).all()
-    if summary:
-        for employee in summary:
-            if employee.late >= 3 or employee.early >= 3:
-                summary = AttendanceSummary.query.filter_by(empid=employee.empid, year=form.year.data, 
-                            month=form.month.data).first()
-                leave = LeaveAvailable.query.filter(LeaveAvailable.empid==employee.empid).first()
-                total_leave = leave.casual + leave.earned
-                total_deduct = round(employee.late/3) + round(employee.early/3)
-                
-                if leave.casual >= total_deduct:
-                    leave.casual = leave.casual - total_deduct
-                    summary.extra_absent = 0
-                    summary.leave_deducted = total_deduct
-                elif total_leave >= total_deduct:
-                    leave.earned = leave.earned + leave.casual - total_deduct
-                    leave.casual = 0
-                    summary.extra_absent = 0
-                    summary.leave_deducted = total_deduct
-                else:    
-                    summary.extra_absent = total_deduct - total_leave
-                    leave.casual = 0
-                    leave.earned = 0
-                    summary.leave_deducted = total_leave
+    for employee in summary:
+        if employee.late >= 3 or employee.early >= 3:
+            leave = LeaveAvailable.query.filter(LeaveAvailable.empid==employee.empid).first()
+            total_leave = leave.casual + leave.earned
+            total_deduct = round(employee.late/3) + round(employee.early/3)
+            
+            salary_deduct = 0
+            if leave.casual >= total_deduct:
+                leave.casual = leave.casual - total_deduct
+            elif total_leave >= total_deduct:
+                leave.earned = total_leave - total_deduct
+                leave.casual = 0
+            else:    
+                leave.casual = 0
+                leave.earned = 0
+                salary_deduct = total_deduct - total_leave
          
-        deduction = LeaveDeduction(year=form.year.data, month=form.month.data, date=datetime.datetime.now())
+        deduction = LeaveDeductionSummary(year=form.year.data, month=form.month.data, empid=employee.empid, late_early=total_deduct, salary_deduct=salary_deduct)
         
         db.session.add(deduction)
-        db.session.commit()
-        flash('Leave deducted')
-    else:
-        flash('No record found in attendance summary', category='warning')
+    
+    db.session.commit()
+    flash('Leave deducted')
     
     return redirect(url_for('forms.leave_deduction'))
 
