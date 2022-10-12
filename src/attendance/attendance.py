@@ -950,10 +950,14 @@ def summary(action):
             if summary_for == 'all':
                 attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
 
-            if not attendance_summary:
-                flash('No record found')
+                df = pd.read_sql(db.session.query(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee, LeaveDeductionSummary).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).statement, db.session.bind)
 
-            return render_template('data.html', type='show_attendance_summary', form=form, attendance_summary=attendance_summary)
+                file_name = f'attendance-summary-{form.month.data}-{form.year.data}.csv'
+
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
+                df.to_csv(file_path, index=False)
+
+            return render_template('data.html', type='show_attendance_summary', form=form, attendance_summary=attendance_summary, file=file_name)
 
         if action == 'prepare':
             current_month = datetime.now().month

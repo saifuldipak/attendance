@@ -659,6 +659,7 @@
                 </tr>
             {% endfor %}
         </table>
+        <a href="{{ url_for('attendance.files', name=file) }}">Download</a>
     {% endif %}
 
     {% if type == 'duty_schedule' %}
