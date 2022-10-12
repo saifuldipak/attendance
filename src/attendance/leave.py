@@ -7,7 +7,7 @@ from .mail import send_mail, send_mail2
 from .auth import *
 from werkzeug.utils import secure_filename
 import os
-from .forms import (Createleave, Leavemedical, Leavecasual, Leavefibercasual, Leavefibermedical, Searchapplication, Monthyear)
+from .forms import (Createleave, Leavemedical, Leavecasual, Leavefibercasual, Leavefibermedical, Searchapplication, Monthyear, attendance_summary)
 import datetime
 from .functions import check_view_permission, get_fiscal_year_start_end
 
@@ -460,8 +460,8 @@ def files(name):
 def deduction():
     form = Monthyear()
 
-    summary = AttendanceSummary.query.filter(AttendanceSummary.year==form.year.data, AttendanceSummary.month==form.month.data).all()
-    if not summary:
+    all_summary = AttendanceSummary.query.filter(AttendanceSummary.year==form.year.data, AttendanceSummary.month==form.month.data).all()
+    if not all_summary:
         msg = f'No attendance summary found for {form.month.data}, {form.year.data}'
         flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
@@ -472,11 +472,11 @@ def deduction():
         flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
 
-    for employee in summary:
-        if employee.late >= 3 or employee.early >= 3:
-            leave = LeaveAvailable.query.filter(LeaveAvailable.empid==employee.empid).first()
+    for summary in all_summary:
+        if summary.late >= 3 or summary.early >= 3:
+            leave = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
             total_leave = leave.casual + leave.earned
-            total_deduct = round(employee.late/3) + round(employee.early/3)
+            total_deduct = round(summary.late/3) + round(summary.early/3)
             
             salary_deduct = 0
             if leave.casual >= total_deduct:
@@ -489,7 +489,7 @@ def deduction():
                 leave.earned = 0
                 salary_deduct = total_deduct - total_leave
          
-        deduction = LeaveDeductionSummary(year=form.year.data, month=form.month.data, empid=employee.empid, late_early=total_deduct, salary_deduct=salary_deduct)
+        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, late_early=total_deduct, salary_deduct=salary_deduct, year=form.year.data, month=form.month.data)
         
         db.session.add(deduction)
     
