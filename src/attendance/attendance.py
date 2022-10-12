@@ -948,7 +948,7 @@ def summary(action):
                 attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
 
             if summary_for == 'all':
-                attendance_summary = AttendanceSummary.query.join(Employee).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+                attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
 
             if not attendance_summary:
                 flash('No record found')

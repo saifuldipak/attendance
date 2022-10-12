@@ -646,16 +646,16 @@
             <th>Abset</th>
             <th>Late</th>
             <th>Early</th>
-            <th>Extra absent</th>
             <th>Leave deducted</th>
+            <th>Salary deducted</th>
             {% for row in attendance_summary %}
                 <tr>
                     <td>{{ row['fullname'] }}</td>
                     <td>{{ row['absent'] }}</td>
                     <td>{{ row['late'] }}</td>
                     <td>{{ row['early'] }}</td>
-                    <td>{{ row['extra_absent'] }}</td>
-                    <td>{{ row['leave_deducted'] }}</td>
+                    <td>{{ row['late_early'] }}</td>
+                    <td>{{ row['salary_deduct'] }}</td>
                 </tr>
             {% endfor %}
         </table>
