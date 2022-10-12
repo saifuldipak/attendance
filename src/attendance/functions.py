@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import re
 from .db import Employee, db, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift
 from flask import session, current_app
@@ -422,3 +422,16 @@ def get_concern_emails2(empid):
     emails['cc'] = cc
 
     return emails
+
+def get_fiscal_year_start_end():
+    current_year = date.today().year
+    current_month = date.today().month
+    
+    if current_month <= 6:
+        year_start = date((current_year - 1), 7, 1)
+        year_end = date(current_year, 6, 30)
+    else:
+        year_start = date(current_year, 7, 1)
+        year_end = date((current_year + 1), 6, 30)
+    
+    return year_start, year_end

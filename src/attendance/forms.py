@@ -90,11 +90,6 @@ class Attnsummary(FlaskForm):
 class Attnsummaryshow(Attnsummary):
     result = SelectField('Result', render_kw={'class': 'input-field'}, choices=['Show', 'Download'])
     
-#Attendance summary
-class Leavededuction(FlaskForm):
-    year = SelectField('Year', render_kw={'class': 'input-field'}, choices=years)
-    month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
-
 #Self password change
 class Changeselfpass(FlaskForm):
     password = PasswordField('Password', 
@@ -398,7 +393,7 @@ def attendance_summary(action):
 @login_required
 @admin_required
 def leave_deduction():
-    form = Leavededuction()
+    form = Monthyear()
     return render_template('forms.html', type='leave_deduction', form=form)
 
 #Employee modify - email
