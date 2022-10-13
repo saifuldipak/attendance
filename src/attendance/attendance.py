@@ -926,118 +926,121 @@ def summary(action):
         flash('Failed to execute function', category='error')
         return render_template('base.html')
 
-    if form.validate_on_submit():
-
+    if not form.validate_on_submit():
         if action == 'show':
-            if summary_for == 'self':
-                attendance_summary = AttendanceSummary.query.join(Employee).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
-            
-            if summary_for == 'team':
-                if session['role'] in ('Supervisor', 'Manager'):
-                    teams = Team.query.filter_by(empid=session['empid']).all()
-                    
-                    attendance_summary_list = []
-                    for team in teams:
-                        attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
-
-                        attendance_summary_list.append(attendance_summary)
-                    
-                    attendance_summary = attendance_summary_list
-                
-            if summary_for == 'department':
-                attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
-
-            if summary_for == 'all':
-                stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee). join(LeaveDeductionSummary).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
-                
-                attendance_summary = db.session.execute(stmt).all()
-
-                file_name = ''
-                if form.download.data:
-                    df = pd.read_sql(stmt, db.session.bind)
-                    file_name = f'attendance-summary-{form.month.data}-{form.year.data}.csv'
-                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
-                    df.to_csv(file_path, index=False)
-
-            return render_template('data.html', type='show_attendance_summary', form=form, attendance_summary=attendance_summary, file=file_name)
-
-        if action == 'prepare':
-            current_month = datetime.now().month
-            current_year = datetime.now().year
-
-            if form.month.data >= current_month and current_year >= form.year.data:
-                flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
-                return redirect(url_for('forms.attendance_summary', action='prepare'))
-                
-            summary = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
-            if summary:
-                flash('Summary data already exists for the year and month you submitted', category='error')
-                return redirect(url_for('forms.attendance_summary', action='prepare'))
+            return render_template('forms.html', type='show_attendance_summary', summary_for=summary_for, form=form)
         
-            employees = Employee.query.all()
+        if action == 'prepare':
+            return render_template('forms.html', type='prepare_attendance_summary', form=form)
 
-            count = 0
-            for employee in employees:
-                attendances = Attendance.query.with_entities(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.empid==ApplicationsHolidays.empid, Attendance.date==ApplicationsHolidays.date)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).all()
-                
-                absent_count = 0
-                late_count = 0
-                early_count = 0
-                
-                for attendance in attendances:
-                    if attendance.holiday_id:
-                        continue
-                    
-                    if attendance.weekend_id:
-                        continue
+    if action == 'show':
+        file_name = ''
 
-                    if attendance.application_id:
-                        application = Applications.query.filter_by(id=attendance.application_id).first()
-                        if application.type in ('Casual', 'Medical', 'Both'):
-                            continue
-                        else:
-                            application_type = application.type
-                    else:
-                        application_type = ''
+        if summary_for == 'self':
+            attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+        
+        if summary_for == 'team':
+            teams = Team.query.filter_by(empid=session['empid']).all()
+            attendance_summary_list = []
+            
+            for team in teams:
+                team_attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary).join(Team, AttendanceSummary.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Employee.fullname).all()
 
-                    duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, DutySchedule.date==attendance.date).first()
-                    
-                    if duty_schedule:
-                        standard_in_time = duty_schedule.dutyshift.in_time
-                        standard_out_time = duty_schedule.dutyshift.out_time
-                    else:
-                        standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
-                        standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
+                for attendance_summary in team_attendance_summary:
+                    attendance_summary_list.append(attendance_summary)
+            
+            attendance_summary = attendance_summary_list
 
-                    no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
-                    if attendance.in_time == no_attendance:
-                        if application_type not in ('In', 'Both'):
-                            absent_count += 1
-                            continue
+        if summary_for == 'department':
+            attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary, Team).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Team.name, Employee.fullname).all()
 
-                    if attendance.in_time > standard_in_time: 
-                        if application_type not in ('In', 'Both'):
-                            late_count += 1
+        if summary_for == 'all':
+            stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee). join(LeaveDeductionSummary).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
+            
+            attendance_summary = db.session.execute(stmt).all()
 
-                    if attendance.out_time < standard_out_time or attendance.out_time == no_attendance:
-                        if application_type not in ('Out', 'Both'):
-                            early_count += 1
+            if form.download.data:
+                df = pd.read_sql(stmt, db.session.bind)
+                file_name = f'attendance-summary-{form.month.data}-{form.year.data}.csv'
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
+                df.to_csv(file_path, index=False)
 
-                if absent_count > 0 or late_count > 0 or early_count > 0:
-                    attnsummary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=absent_count, late=late_count, early=early_count)
-                    db.session.add(attnsummary)
-                    count += 1
-                
-            if count == 0:
-                flash('No late or absent in attendance data', category='warning')
-            else:
-                db.session.commit()
-                flash('Attendance summary created', category='message')
+        return render_template('data.html', type='show_attendance_summary', form=form, attendance_summary=attendance_summary, file=file_name)
+
+    if action == 'prepare':
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+
+        if form.month.data >= current_month and current_year >= form.year.data:
+            flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
+            return redirect(url_for('forms.attendance_summary', action='prepare'))
+            
+        summary = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
+        if summary:
+            flash('Summary data already exists for the year and month you submitted', category='error')
+            return redirect(url_for('forms.attendance_summary', action='prepare'))
     
-    else:
-        flash('Form data not correct', category='error')
+        employees = Employee.query.all()
+
+        count = 0
+        for employee in employees:
+            attendances = Attendance.query.with_entities(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.empid==ApplicationsHolidays.empid, Attendance.date==ApplicationsHolidays.date)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).all()
+            
+            absent_count = 0
+            late_count = 0
+            early_count = 0
+            
+            for attendance in attendances:
+                if attendance.holiday_id:
+                    continue
+                
+                if attendance.weekend_id:
+                    continue
+
+                if attendance.application_id:
+                    application = Applications.query.filter_by(id=attendance.application_id).first()
+                    if application.type in ('Casual', 'Medical', 'Both'):
+                        continue
+                    else:
+                        application_type = application.type
+                else:
+                    application_type = ''
+
+                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, DutySchedule.date==attendance.date).first()
+                
+                if duty_schedule:
+                    standard_in_time = duty_schedule.dutyshift.in_time
+                    standard_out_time = duty_schedule.dutyshift.out_time
+                else:
+                    standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
+                    standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
+
+                no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
+                if attendance.in_time == no_attendance:
+                    if application_type not in ('In', 'Both'):
+                        absent_count += 1
+                        continue
+
+                if attendance.in_time > standard_in_time: 
+                    if application_type not in ('In', 'Both'):
+                        late_count += 1
+
+                if attendance.out_time < standard_out_time or attendance.out_time == no_attendance:
+                    if application_type not in ('Out', 'Both'):
+                        early_count += 1
+
+            if absent_count > 0 or late_count > 0 or early_count > 0:
+                attnsummary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=absent_count, late=late_count, early=early_count)
+                db.session.add(attnsummary)
+                count += 1
+            
+        if count == 0:
+            flash('No late or absent in attendance data', category='warning')
+        else:
+            db.session.commit()
+            flash('Attendance summary created', category='message')
     
-    return redirect(url_for('forms.attendance_summary', action='prepare'))
+        return redirect(url_for('forms.attendance_summary', action='prepare'))
 
                 
 @attendance.route('/attendance/summary/prepare', methods=['GET', 'POST'])

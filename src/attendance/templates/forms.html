@@ -537,10 +537,12 @@
                             <td>{{ form.year.label }}</td>
                             <td>{{ form.year }}</td>
                         </tr>
-                        <tr>
-                            <td>{{ form.download.label }}</td>
-                            <td>{{ form.download }}</td>
-                        </tr>
+                        {% if summary_for == 'all' %}
+                            <tr>
+                                <td>{{ form.download.label }}</td>
+                                <td>{{ form.download }}</td>
+                            </tr>
+                        {% endif %}
                         <tr>
                             <td></td>
                             <td> <input type="submit" value="Show" /></td>

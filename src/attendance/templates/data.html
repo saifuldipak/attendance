@@ -646,6 +646,7 @@
         {% endif %}
         <table class="query-result">
             <th>Name</th>
+            <th>Team</th>
             <th>Abset</th>
             <th>Late</th>
             <th>Early</th>
@@ -654,6 +655,7 @@
             {% for row in attendance_summary %}
                 <tr>
                     <td>{{ row['fullname'] }}</td>
+                    <td>{{ row['team'] }}</td>
                     <td>{{ row['absent'] }}</td>
                     <td>{{ row['late'] }}</td>
                     <td>{{ row['early'] }}</td>
