@@ -1,13 +1,14 @@
 from datetime import datetime
 import re
 from urllib import request
+from xmlrpc.client import Boolean
 from attendance.functions import convert_team_name
 from flask import Blueprint, Flask, current_app, flash, render_template, session, request
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators, widgets
 from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, 
-                        EmailField, TelField, SelectField, RadioField, DateTimeField, TimeField, SelectMultipleField) 
+                        EmailField, TelField, SelectField, RadioField, DateTimeField, TimeField, SelectMultipleField, BooleanField) 
 from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
                                 Optional, NumberRange)
 from .auth import admin_required, login_required, manager_required, supervisor_required, team_leader_required
@@ -367,7 +368,7 @@ def prepare_attendance_summary():
 
 #Attendance summary show and prepare
 class Attendancesummaryshow(Monthyear):
-    action = SelectField('Action', render_kw={'class': 'input-field'}, choices=['show', 'download'], validators=[InputRequired()])
+    download = BooleanField('Download', render_kw={'class': 'input-field'})
 
 class Attendancesummaryprepare(Monthyear):
     pass
