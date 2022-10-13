@@ -475,24 +475,26 @@ def deduction():
         return redirect(url_for('forms.leave_deduction'))
 
     for summary in all_summary:
-        if summary.late >= 3 or summary.early >= 3:
-            leave = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
-            total_leave = leave.casual + leave.earned
+        if summary.late > 2 or summary.early > 2:
+            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
+            leave_available_casual_earned = leave_available.casual + leave_available.earned
             total_deduct = int(summary.late/3) + int(summary.early/3)
             
             salary_deduct = summary.absent
-            if leave.casual >= total_deduct:
-                leave.casual = leave.casual - total_deduct
-            elif total_leave >= total_deduct:
-                leave.earned = total_leave - total_deduct
-                leave.casual = 0
+            if leave_available.casual >= total_deduct:
+                leave_available.casual = leave_available.casual - total_deduct
+            elif leave_available_casual_earned >= total_deduct:
+                leave_available.earned = leave_available_casual_earned - total_deduct
+                leave_available.casual = 0
             else:    
-                leave.casual = 0
-                leave.earned = 0
-                salary_deduct = total_deduct - total_leave
-         
-        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, late_early=total_deduct, salary_deduct=salary_deduct, year=form.year.data, month=form.month.data)
+                leave_available.casual = 0
+                leave_available.earned = 0
+                salary_deduct = total_deduct - leave_available_casual_earned
+        else:
+            total_deduct = 0
+            salary_deduct = 0
         
+        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, late_early=total_deduct, salary_deduct=salary_deduct, year=form.year.data, month=form.month.data)
         db.session.add(deduction)
     
     db.session.commit()
@@ -744,37 +746,48 @@ def cancel(application_id):
 @admin_required
 def approval_batch():
     employees = Employee.query.all()
+    
     for employee in employees:
         leave_available = LeaveAvailable.query.filter_by(empid=employee.id).first()
         casual = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Casual').first() 
         medical = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Medical').first() 
         
+        yearly_casual = current_app.config['CASUAL']
+        yearly_medical = current_app.config['MEDICAL']
+        yearly_earned = current_app.config['EARNED']
+        yearly_casual_earned = yearly_casual + yearly_earned
+        yearly_medical_casual = yearly_casual + yearly_medical
+        yearly_all = yearly_medical_casual + yearly_earned
+
         if casual.days:
-            if casual.days < leave_available.casual:
-                leave_available.casual = leave_available.casual - casual.days
-            elif casual.days > leave_available.casual:
-                leave_available.earned = (leave_available.casual + leave_available.earned) - casual.days
+            if casual.days < yearly_casual:
+                leave_available.casual = yearly_casual - casual.days
+            elif casual.days > yearly_casual:
+                leave_available.earned = yearly_casual_earned - casual.days
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for %s (casual)', employee.username)
                 msg = f'Batch approval failed for {employee.fullname}'
                 flash(msg, category='warning')
+        else:
+            leave_available.casual = yearly_casual
 
         if medical.days:
-            if medical.days < leave_available.medical:
-                leave_available.medical = leave_available.medical - medical.days
-            elif medical.days > leave_available.medical and medical.days < (leave_available.casual + leave_available.medical):
+            if medical.days < yearly_medical:
+                leave_available.medical = yearly_medical - medical.days
+            elif medical.days > yearly_medical and medical.days < yearly_medical_casual:
                 leave_available.medical = 0
-                leave_available.casual = (leave_available.casual + leave_available.medical) - medical.days
-            elif medical.days > (leave_available.casual + leave_available.medical):
-                leave_available.earned = (leave_available.casual + leave_available.medical + leave_available.earned) - medical.days
+                leave_available.casual = yearly_medical_casual - medical.days
+            elif medical.days > yearly_medical_casual:
+                leave_available.earned = yearly_all - medical.days
                 leave_available.medical = 0
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
                 msg = f'Batch approval failed for {employee.fullname}'
                 flash(msg, category='warning')
-
+        else:
+            leave_available.medical = yearly_medical
 
 
     db.session.commit()
