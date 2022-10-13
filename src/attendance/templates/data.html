@@ -641,6 +641,9 @@
         <div class="form-style-2-heading">Attendance Summary</div>
             Month: {{ form.month.data }}
             Year: {{ form.year.data }}</p>
+        {% if form.download.data %}
+            <a href="{{ url_for('attendance.files', name=file) }}">Download</a>
+        {% endif %}
         <table class="query-result">
             <th>Name</th>
             <th>Abset</th>
@@ -659,7 +662,6 @@
                 </tr>
             {% endfor %}
         </table>
-        <a href="{{ url_for('attendance.files', name=file) }}">Download</a>
     {% endif %}
 
     {% if type == 'duty_schedule' %}

@@ -949,13 +949,15 @@ def summary(action):
 
             if summary_for == 'all':
                 stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee). join(LeaveDeductionSummary).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
-                    
+                
                 attendance_summary = db.session.execute(stmt).all()
 
-                df = pd.read_sql(stmt, db.session.bind)
-                file_name = f'attendance-summary-{form.month.data}-{form.year.data}.csv'
-                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
-                df.to_csv(file_path, index=False)
+                file_name = ''
+                if form.download.data:
+                    df = pd.read_sql(stmt, db.session.bind)
+                    file_name = f'attendance-summary-{form.month.data}-{form.year.data}.csv'
+                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
+                    df.to_csv(file_path, index=False)
 
             return render_template('data.html', type='show_attendance_summary', form=form, attendance_summary=attendance_summary, file=file_name)
 
