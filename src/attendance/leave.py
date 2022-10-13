@@ -459,6 +459,8 @@ def files(name):
 @admin_required
 def deduction():
     form = Monthyear()
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='leave_deduction', form=form)
 
     all_summary = AttendanceSummary.query.filter(AttendanceSummary.year==form.year.data, AttendanceSummary.month==form.month.data).all()
     if not all_summary:
@@ -476,9 +478,9 @@ def deduction():
         if summary.late >= 3 or summary.early >= 3:
             leave = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
             total_leave = leave.casual + leave.earned
-            total_deduct = round(summary.late/3) + round(summary.early/3)
+            total_deduct = int(summary.late/3) + int(summary.early/3)
             
-            salary_deduct = 0
+            salary_deduct = summary.absent
             if leave.casual >= total_deduct:
                 leave.casual = leave.casual - total_deduct
             elif total_leave >= total_deduct:
