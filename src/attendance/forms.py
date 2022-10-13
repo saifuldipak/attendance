@@ -569,3 +569,11 @@ class Searchapplication(FlaskForm):
 def search_application(application_for):
     form = Searchapplication()
     return render_template('forms.html', type='search_application', application_for=application_for, form=form)
+
+
+@forms.route('/forms/leave/reverse_deduction')
+@login_required
+@admin_required
+def reverse_leave_deduction():
+    form = Monthyear()
+    return render_template('forms.html', type='leave_deduction', action='reverse', form=form)

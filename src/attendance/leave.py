@@ -824,3 +824,42 @@ def summary():
         flash('No leave summary record found', category='warning')
 
     return render_template('data.html', data_type='leave_summary', leaves=leaves)
+
+
+@leave.route('/leave/reverse_deduction', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def reverse_deduction():
+    form = Monthyear()
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='leave_deduction', action='reverse', form=form)
+    
+    all_deducted = LeaveDeductionSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
+    if not all_deducted:
+        msg = f'No leave deduction record found for {form.month.data}, {form.year.data}'
+        flash(msg, category='error')
+        return redirect(url_for('forms.reverse_leave_deduction'))
+    
+    yearly_earned_leave = current_app.config['EARNED']
+    
+    for deducted in all_deducted:
+        leave_available = LeaveAvailable.query.filter_by(empid=deducted.empid).first()
+
+        if deducted.casual_overlap:
+            total_deducted = deducted.late_early + deducted.casual_overlap
+        else:
+            total_deducted = deducted.late_early
+
+        if leave_available.earned < yearly_earned_leave:
+            earned_deducted = yearly_earned_leave - leave_available.earned
+            casual_deducted = total_deducted - earned_deducted
+            leave_available.earned = yearly_earned_leave
+            leave_available.casual = leave_available.casual + casual_deducted
+        else:
+            leave_available.casual = leave_available.casual + total_deducted
+
+        db.session.delete(deducted)
+             
+    db.session.commit()
+    flash('Leave deduction reversed')
+    return redirect(url_for('forms.reverse_leave_deduction'))

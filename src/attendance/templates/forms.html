@@ -288,9 +288,14 @@
     {# --leave deduction form-- #}
     {% if type == 'leave_deduction' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('leave.deduction') }}">
+                {% if action == 'reverse' %}
+                    <form method="post" action="{{ url_for('leave.reverse_deduction') }}">
+                        <div class="form-style-2-heading">Reverse Leave Deduction</div>
+                {% else %}
+                    <form method="post" action="{{ url_for('leave.deduction') }}">
+                        <div class="form-style-2-heading">Process Leave Deduction</div>
+                {% endif %}
                     {{ form.csrf_token }}
-                    <div class="form-style-2-heading">Process Leave Deduction</div>
                     <label for="month">
                         <span>{{ form.month.label }}</span>
                             {{ form.month }}
@@ -301,7 +306,7 @@
                     </label>
                     <label>
                         <span> </span>
-                        <input type="submit" value="Process" /></label>
+                        <input type="submit" value="Submit" /></label>
                     </label>
     {% endif %}
 
