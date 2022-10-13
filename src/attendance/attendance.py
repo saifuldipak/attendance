@@ -948,12 +948,12 @@ def summary(action):
                 attendance_summary = AttendanceSummary.query.join(Employee).join(Team, AttendanceSummary.empid==Team.empid). with_entities(Employee.fullname, Team.name, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.extra_absent, AttendanceSummary.leave_deducted).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
 
             if summary_for == 'all':
-                attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+                stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee). join(LeaveDeductionSummary).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
+                    
+                attendance_summary = db.session.execute(stmt).all()
 
-                df = pd.read_sql(db.session.query(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee, LeaveDeductionSummary).filter(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).statement, db.session.bind)
-
+                df = pd.read_sql(stmt, db.session.bind)
                 file_name = f'attendance-summary-{form.month.data}-{form.year.data}.csv'
-
                 file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
                 df.to_csv(file_path, index=False)
 
