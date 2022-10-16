@@ -10,157 +10,130 @@
 </head>
 
 <body>
-    
     {#-- Menu for all --#}
     <div class="dropdown">
         <button class="dropbtn">@{{ session["username"] }}</button>
             <div class="dropdown-content">
-                <a href="{{ url_for('employee.details_self') }}" class="navbar-item">
-                    Details
-                </a>
-                <a href="{{ url_for('forms.password_self') }}" class="navbar-item">
-                    Change password
-                </a>
-                <a href="{{ url_for('auth.logout') }}" class="navbar-item">
-                    Logout
-                </a>
-                
+                <a href="{{ url_for('employee.details_self') }}" class="navbar-item">Details</a>
+                <a href="{{ url_for('forms.password_self') }}" class="navbar-item">Change password</a>
+                <a href="{{ url_for('auth.logout') }}" class="navbar-item">Logout</a>
             </div>
     </div>
-    <div class="dropdown">
-        <button class="dropbtn">Attendance</button>
+    {% if session['role'] == 'Team' %}
+        <div class="dropdown">
+            <button class="dropbtn">Application</button>
+                <div class="dropdown-content">
+                        <a href="{{ url_for('forms.search_application', application_for='self') }}" class="navbar-item">--Search</a>
+                </div>
+        </div>
+        <div class="dropdown">
+            <button class="dropbtn">Attendance</button>
             <div class="dropdown-content">
-                <a href="{{ url_for('forms.attn_application') }}" class="navbar-item">
-                    Application
-                </a>
-                <a href="{{ url_for('attendance.application_status', application_for='self') }}" class="navbar-item">
-                    Application Status
-                </a>
-                <a href="{{ url_for('forms.attendance_query', query_for='self') }}" class="navbar-item">
-                    Query
-                </a>
-                <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='self') }}" class="navbar-item">
-                    Summary
-                </a>
-            </div>
-    </div>
-
-    <div class="dropdown">
-        <button class="dropbtn">Leave</button>
-            <div class="dropdown-content">
-                <a href="{{ url_for('forms.leave', type='Casual') }}" class="navbar-item">
-                    Application-Casual
-                </a>
-                <a href="{{ url_for('forms.leave', type='Medical') }}" class="navbar-item">
-                    Application-Medical
-                </a>
-                <a href="{{ url_for('forms.search_application', application_for='self') }}" class="navbar-item">
-                    Search Application
-                </a>
-                <a href="{{ url_for('leave.summary_self') }}" class="navbar-item">
-                    Summary
-                </a>
+                <a href="{{ url_for('forms.attn_application') }}" class="navbar-item">--Application</a>
+                <a href="{{ url_for('forms.attendance_query', query_for='self') }}" class="navbar-item">--Query</a>
+                <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='self') }}" class="navbar-item">--Summary</a>
             </div>
         </div>
+        <div class="dropdown">
+            <button class="dropbtn">Leave</button>
+            <div class="dropdown-content">
+                <a href="{{ url_for('forms.leave', type='Casual') }}" class="navbar-item">--Application-Casual</a>
+                <a href="{{ url_for('forms.leave', type='Medical') }}" class="navbar-item">--Application-Medical</a>
+                <a href="{{ url_for('leave.summary_self') }}" class="navbar-item">--Summary</a>
+            </div>
+        </div>
+    {% else %}
+        <div class="dropdown">
+            <button class="dropbtn">Self</button>
+                <div class="dropdown-content">
+                    <p>Application
+                        <a href="{{ url_for('forms.search_application', application_for='self') }}" class="navbar-item">--Search</a>
+                    </p>
+                    <p>Attendance</p>
+                        <a href="{{ url_for('forms.attn_application') }}" class="navbar-item">--Application</a>
+                        <a href="{{ url_for('forms.attendance_query', query_for='self') }}" class="navbar-item">--Query</a>
+                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='self') }}" class="navbar-item">--Summary</a>
+    
+                    <p>Leave</p>
+                        <a href="{{ url_for('forms.leave', type='Casual') }}" class="navbar-item">--Application-Casual</a>
+                        <a href="{{ url_for('forms.leave', type='Medical') }}" class="navbar-item">--Application-Medical</a>
+                        <a href="{{ url_for('leave.summary_self') }}" class="navbar-item">--Summary</a>
+                </div>
+        </div>
+    {% endif %}
 
     
-    {% if session['role'] in ('Supervisor', 'Manager', 'Head') %}
+    {% if session['role'] in ('Supervisor', 'Manager', 'Head') and session['access'] != 'Admin' %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
+                    <p>Application
+                        {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
+                            <a href="{{ url_for('forms.search_application', application_for='team') }}" class="navbar-item">-- Search</a>
+                        {% elif session['role'] == 'Head' %}
+                            <a href="{{ url_for('forms.search_application', application_for='department') }}" class="navbar-item">-- Search</a>
+                        {% endif %}
+                    </p>
                     <p>Leave
-                    {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
-                        <a href="{{ url_for('forms.leave_fiber', type='Casual') }}" class="navbar-item">-- Appl Casual</a>
-                        <a href="{{ url_for('forms.leave_fiber', type='Medical') }}" class="navbar-item">-- Appl Medical</a>
-                    {% endif %}
-                    {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
-                        <a href="{{ url_for('forms.search_application', application_for='team') }}" class="navbar-item">-- Search Application</a>
-                        <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">-- Summary</a>
-                    {% endif %}
-                    {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('forms.search_application', application_for='department') }}" class="navbar-item">-- Search Application</a>
-                        <a href="{{ url_for('leave.summary_department') }}" class="navbar-item">-- Summary</a>
-                    {% endif %}
-                    
-                    Attendance
-                    {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
-                        <a href="{{ url_for('forms.attn_fiber') }}" class="navbar-item">-- Application</a>
-                    {% endif %}
-                    <a href="{{ url_for('attendance.application_status', application_for='team') }}" class="navbar-item">-- Appl Status</a>
-                    <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
-                    <a href="{{ url_for('attendance.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
-                    <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
-                    {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
-                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='team') }}" class="navbar-item">-- Show Summary</a>
-                    {% endif %}
-                    {% if session['role'] == 'Head' %}
-                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='department') }}" class="navbar-item">-- Show Summary</a>
-                    {% endif %}                        
+                        {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
+                            <a href="{{ url_for('forms.leave_fiber', type='Casual') }}" class="navbar-item">-- Appl Casual</a>
+                            <a href="{{ url_for('forms.leave_fiber', type='Medical') }}" class="navbar-item">-- Appl Medical</a>
+                        {% endif %}
+                        {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
+                            <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">-- Summary</a>
+                        {% elif session['role'] == 'Head' %}
+                            <a href="{{ url_for('leave.summary_department') }}" class="navbar-item">-- Summary</a>
+                        {% endif %}
+                    </p>
+                    <p>Attendance
+                        {% if session['team']|truncate(length=5, end='') == 'Fiber' %}
+                            <a href="{{ url_for('forms.attn_fiber') }}" class="navbar-item">-- Application</a>
+                        {% endif %}
+                        <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
+                        <a href="{{ url_for('attendance.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
+                        <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
+                        {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
+                            <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='team') }}" class="navbar-item">-- Summary</a>
+                        {% endif %}
+                        {% if session['role'] == 'Head' %}
+                            <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='department') }}" class="navbar-item">-- Summary</a>
+                        {% endif %}
+                    </p>                        
                 </div>
             </div>
     {% endif %}
 
-    {#-- Menu for admins --#}
     {% if session['access'] == 'Admin' %}
     <div class="dropdown">
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
-                    <p>Leave
-                    <a href="{{ url_for('forms.search_application', application_for='all') }}" class="navbar-item">
-                        -- Search Application
-                    </a>
-                    <a href="{{ url_for('leave.summary_all', type='all') }}" class="navbar-item">
-                        -- Summary
-                    </a>
-                    <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">
-                        -- Deduction
-                    </a>
-                    <a href="{{ url_for('forms.create_leave') }}" class="navbar-item">
-                        -- Create
-                    </a>
+                    <p>Application
+                        <a href="{{ url_for('forms.search_application', application_for='all') }}" class="navbar-item">-- Search</a>
                     </p>
-                    Attendance
-                    <a href="{{ url_for('attendance.application_status', application_for='all') }}" class="navbar-item">
-                        -- Application Status
-                    </a>
-                    <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">
-                    <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">
-                        -- Duty shift
-                    </a>
-                    <a href="{{ url_for('forms.duty_schedule', action='query') }}" class="navbar-item">
-                        -- Duty schedule
-                    </a>
-                    <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
-                    <a href="{{ url_for('forms.upload') }}" class="navbar-item">
-                        -- Upload
-                    </a>
-                    <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='all') }}" class="navbar-item">
-                        -- Show Summary
-                    </a>
-                    <a href="{{ url_for('forms.attendance_summary', action='prepare') }}" class="navbar-item">
-                        -- Prepare Summary
-                    </a> 
-                    <a href="{{ url_for('attendance.holidays', action='show') }}" class="navbar-item">
-                        -- Holidays
-                    </a> 
+                    <p>Leave
+                        <a href="{{ url_for('leave.summary_all', type='all') }}" class="navbar-item">-- Summary</a>
+                        <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">-- Deduction</a>
+                        <a href="{{ url_for('forms.create_leave') }}" class="navbar-item">-- Create</a>
+                    </p>
+                    <p>Attendance
+                        <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
+                        <a href="{{ url_for('forms.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
+                        <a href="{{ url_for('attendance.holidays', action='show') }}" class="navbar-item">-- Holidays</a> 
+                        <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
+                        <a href="{{ url_for('forms.upload') }}" class="navbar-item">-- Upload</a>
+                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='all') }}" class="navbar-item">-- Show Summary</a>
+                        <a href="{{ url_for('forms.attendance_summary', action='prepare') }}" class="navbar-item">-- Prepare Summary</a> 
+                    </p>
                 </div>
             </div> 
 
             <div class="dropdown">
             <button class="dropbtn">Employee</button>
                 <div class="dropdown-content">
-                    <a href="{{ url_for('employee.search', action='employee_search') }}" class="navbar-item">
-                        Search
-                    </a>
-                    <a href="{{ url_for('forms.employee', action='create') }}" class="navbar-item">
-                        Create
-                    </a>
-                    <a href="{{ url_for('employee.update_menu') }}" class="navbar-item">
-                        Update
-                    </a>
-                    <a href="{{ url_for('forms.employee', action='delete') }}" class="navbar-item">
-                        Delete
-                    </a> 
+                    <a href="{{ url_for('employee.search', action='employee_search') }}" class="navbar-item">Search</a>
+                    <a href="{{ url_for('forms.employee', action='create') }}" class="navbar-item">Create</a>
+                    <a href="{{ url_for('employee.update_menu') }}" class="navbar-item">Update</a>
+                    <a href="{{ url_for('forms.employee', action='delete') }}" class="navbar-item">Delete</a> 
                 </div>
         </div>   
     {% endif %}
