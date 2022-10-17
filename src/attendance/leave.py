@@ -560,7 +560,7 @@ def search_application(application_for):
     if form.validate_on_submit():
 
         if application_for == 'self':
-            applications = Applications.query.filter(Applications.empid==session['empid'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like('Casual%'), Applications.type=='Medical')).all()
+            applications = Applications.query.join(Employee).with_entities(Employee.fullname, Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Applications.empid==session['empid'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data).order_by(Applications.start_date.desc()).all()
         
         if application_for == 'team':
             teams = Team.query.filter_by(empid=session['empid']).all()
