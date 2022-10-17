@@ -561,7 +561,11 @@ def duty_shift_create():
 
 
 #Search applications
+application_types = ['All', 'Casual', 'Medical', 'In', 'Out', 'Both', 'Casual adjust']
+
 class Searchapplication(FlaskForm):
+    name = StringField('Name', render_kw={'class': 'input-field'}, validators=[Optional()])
+    type = SelectField('Type', render_kw={'class': 'input-field'}, choices=application_types)
     month = IntegerField('Month', render_kw={'class': 'input-field'}, default=datetime.now().month, validators=[InputRequired(), NumberRange(min=1, max=12, message='Number must be between 1 to 12')])
     year = IntegerField('Year ', render_kw={'class': 'input-field'}, default=datetime.now().year, validators=[InputRequired(), NumberRange(min=2021, max=2030, message='Number must be between 2021 to 2030')])
 
