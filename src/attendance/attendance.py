@@ -9,10 +9,10 @@ from time import strftime
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, or_, extract, func, select
 import pandas as pd
-from attendance.leave import update_apprleaveattn
+from attendance.leave import summary_all, update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail, send_mail2
-from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryprepare, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
+from .forms import (Addholidays, Attnapplfiber, Attnquerydate, Attnqueryusername, Attndataupload, Attnapplication, Attnsummaryshow, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, leave_deduction)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
 from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_attendance_data, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access, get_concern_emails2
@@ -900,12 +900,19 @@ def application_status(application_for):
 @login_required
 def summary(action):
 
+    if action not in ('show', 'prepare', 'delete'):
+        current_app.logger.error(' summary(): Unknown <action> %s', action)
+        flash('Failed to perform this action', category='error')
+        return redirect(url_for('forms.attendance_summary', action='show'))
+
     if action == 'show':
         summary_for = request.args.get('summary_for')
         
         if summary_for not in ('self', 'team', 'department', 'all'):
             current_app.logger.error(' summary(): Unknown summary_for %s', summary_for)
             flash('Failed to run this function', category='error')
+            return redirect(url_for('forms.attendance_summary', action='show'))
+
         
         if summary_for != 'self':
             has_permission = check_view_permission(summary_for)
@@ -913,25 +920,21 @@ def summary(action):
                 flash('You are not authorized to run this function', category='error')
                 return redirect(url_for('forms.attendance_summary', action='show'))
 
-    if action == 'prepare' and session['access'] != 'Admin':    
+    if action in ('prepare', 'delete') and session['access'] != 'Admin':    
         flash('You are not authorized to run this function', category='error')
         return redirect(url_for('forms.attendance_summary', action='show'))
 
     if action == 'show':
         form = Attendancesummaryshow()
-    elif action == 'prepare':
-        form = Attendancesummaryprepare()
-    else:
-        current_app.logger.error(' summary(): function argument unknown %s', action)
-        flash('Failed to execute function', category='error')
-        return render_template('base.html')
+    elif action in ('prepare', 'delete'):
+        form = Monthyear()
 
     if not form.validate_on_submit():
         if action == 'show':
             return render_template('forms.html', type='show_attendance_summary', summary_for=summary_for, form=form)
         
-        if action == 'prepare':
-            return render_template('forms.html', type='prepare_attendance_summary', form=form)
+        if action in ('prepare', 'delete'):
+            return render_template('forms.html', type='attendance_summary', action=action, form=form)
 
     if action == 'show':
         file_name = ''
@@ -979,75 +982,53 @@ def summary(action):
         if summary:
             flash('Summary data already exists for the year and month you submitted', category='error')
             return redirect(url_for('forms.attendance_summary', action='prepare'))
-    
+
         employees = Employee.query.all()
 
         count = 0
         for employee in employees:
-            attendances = Attendance.query.with_entities(Attendance.date, Attendance.in_time, Attendance.out_time, ApplicationsHolidays.application_id, ApplicationsHolidays.holiday_id, ApplicationsHolidays.weekend_id).join(ApplicationsHolidays, and_(Attendance.empid==ApplicationsHolidays.empid, Attendance.date==ApplicationsHolidays.date)).filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).all()
-            
-            absent_count = 0
-            late_count = 0
-            early_count = 0
-            
-            for attendance in attendances:
-                if attendance.holiday_id:
-                    continue
-                
-                if attendance.weekend_id:
-                    continue
-
-                if attendance.application_id:
-                    application = Applications.query.filter_by(id=attendance.application_id).first()
-                    if application.type in ('Casual', 'Medical', 'Both'):
-                        continue
-                    else:
-                        application_type = application.type
-                else:
-                    application_type = ''
-
-                duty_schedule = DutySchedule.query.join(DutyShift).filter(DutySchedule.empid==employee.id, DutySchedule.date==attendance.date).first()
-                
-                if duty_schedule:
-                    standard_in_time = duty_schedule.dutyshift.in_time
-                    standard_out_time = duty_schedule.dutyshift.out_time
-                else:
-                    standard_in_time = datetime.strptime(current_app.config['LATE'], '%H:%M:%S').time()
-                    standard_out_time = datetime.strptime(current_app.config['EARLY'], '%H:%M:%S').time()
-
-                no_attendance = datetime.strptime('00:00:00', '%H:%M:%S').time()
-                if attendance.in_time == no_attendance:
-                    if application_type not in ('In', 'Both'):
-                        absent_count += 1
-                        continue
-
-                if attendance.in_time > standard_in_time: 
-                    if application_type not in ('In', 'Both'):
-                        late_count += 1
-
-                if attendance.out_time < standard_out_time or attendance.out_time == no_attendance:
-                    if application_type not in ('Out', 'Both'):
-                        early_count += 1
-
-            if absent_count > 0 or late_count > 0 or early_count > 0:
-                attnsummary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=absent_count, late=late_count, early=early_count)
-                db.session.add(attnsummary)
+            attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
+            if attendance['returned']:
+                early = attendance['summary']['NO'] + attendance['summary']['E']
+                attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early)
+                db.session.add(attendance_summary)
                 count += 1
-            
-        if count == 0:
-            flash('No late or absent in attendance data', category='warning')
-        else:
-            db.session.commit()
-            flash('Attendance summary created', category='message')
     
+        if count > 0:
+            db.session.commit()
+            msg = f'Attendance summary prepared for {form.month.data}, {form.year.data}. Added record {count}'
+        else:
+            msg = f'No record found for {form.month.data}, {form.year.data}'
+        
+        flash(msg)
         return redirect(url_for('forms.attendance_summary', action='prepare'))
+    
+    if action == 'delete':
+        summary_all = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).all()
+        if not summary_all:
+            msg = f'Attendance summary not found for {form.month.data}, {form.year.data}'
+            flash(msg, category='error')
+            return redirect(url_for('forms.attendance_summary', action='delete', form=form))
 
+        leave_deducted = LeaveDeductionSummary.query.filter_by(month=form.month.data, year=form.year.data).all()
+        if leave_deducted:
+            msg = f'You must reverse leave deduction of {form.month.data}, {form.year.data} before deleting attendance summary'
+            flash(msg, category='error')
+            return redirect(url_for('forms.attendance_summary', action='delete', form=form))
+
+        for summary in summary_all:
+            db.session.delete(summary)
+
+        db.session.commit()
+        msg = f'Attendance summary deleted for {form.month.data}, {form.year.data}'
+        flash(msg)
+        return redirect(url_for('forms.attendance_summary', action='delete'))
                 
 @attendance.route('/attendance/summary/prepare', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def prepare_summary():
-    form = Attendancesummaryprepare()
+    form = Monthyear()
     current_month = datetime.now().month
     current_year = datetime.now().year
 

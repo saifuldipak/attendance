@@ -370,9 +370,6 @@ def prepare_attendance_summary():
 class Attendancesummaryshow(Monthyear):
     download = BooleanField('Download', render_kw={'class': 'input-field'})
 
-class Attendancesummaryprepare(Monthyear):
-    pass
-
 @forms.route('/forms/attendance/summary/<action>')
 @login_required
 def attendance_summary(action):
@@ -381,9 +378,9 @@ def attendance_summary(action):
     if action == 'show':
         form = Attendancesummaryshow()
         return render_template('forms.html', type='show_attendance_summary', summary_for=summary_for, form=form)
-    elif action == 'prepare':
-        form = Attendancesummaryprepare()
-        return render_template('forms.html', type='prepare_attendance_summary', form=form)
+    elif action in ('prepare', 'delete'):
+        form = Monthyear()
+        return render_template('forms.html', type='attendance_summary', action=action, form=form)
     else:
         current_app.logger.error(' summary(): Failed to create forms with argument %s', action)
         return render_template('base.html')

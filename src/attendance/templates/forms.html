@@ -504,11 +504,17 @@
         </div>
     {% endif %}
 
-    {% if type == 'prepare_attendance_summary' %}
+    {% if type == 'attendance_summary' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('attendance.prepare_summary') }}">
-                    {{ form.csrf_token }}
+                {% if action == 'prepare' %}
+                    <form method="post" action="{{ url_for('attendance.summary', action='prepare') }}">
                     <div class="form-style-2-heading">Prepare Attendance Summary</div>
+                {% elif action == 'delete' %}
+                    <form method="post" action="{{ url_for('attendance.summary', action='delete') }}">
+                    <div class="form-style-2-heading">Delete Attendance Summary</div>
+                {% endif %}
+
+                {{ form.csrf_token }}
                     <label for="month">
                         <span>{{ form.month.label }}</span>
                             {{ form.month }}
@@ -519,7 +525,7 @@
                     </label>
                     <label>
                         <span> </span>
-                        <input type="submit" value="Prepare" /></label>
+                        <input type="submit" value="Submit" /></label>
                     </label>
     {% endif %}
 
