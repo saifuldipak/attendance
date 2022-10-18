@@ -701,84 +701,10 @@ def query(query_for):
             msg = f"You don't have access to '{employee.fullname}' attendance data"
             flash(msg, category='error')
             return redirect(url_for('forms.attendance_query', query_for=query_for))
+
+    attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
     
-    attendances = Attendance.query.filter(Attendance.empid==employee.id, extract('month', Attendance.date)==form.month.data, extract('year', Attendance.date)==form.year.data).order_by(Attendance.date).all()
-    
-    if not attendances:
-        flash('No record found', category='warning')
-        return redirect(url_for('forms.attendance_query', query_for=query_for))
-
-    attendances_list = []
-    summary = {'NI': 0, 'L': 0, 'NO': 0, 'E': 0}
-    for attendance in attendances:
-        attendance_list = {'date': attendance.date, 'in_time':attendance.in_time, 'out_time':attendance.out_time}
-        
-        attendance_list['day'] = datetime.strftime(attendance.date, "%A")
-
-        in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['GRACE_PERIOD'])
-        out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['GRACE_PERIOD'])
-
-        duty_schedule = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name, DutyShift.in_time, DutyShift.out_time, DutySchedule.date).filter(DutySchedule.date==attendance.date, DutySchedule.empid==employee.id).first()
-        if duty_schedule:
-            attendance_list['duty_shift'] = duty_schedule.name
-
-            if duty_schedule.name not in ('O', 'HO'):
-                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['GRACE_PERIOD'])
-                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['GRACE_PERIOD'])
-        else:
-            attendance_list['duty_shift'] = None
-
-        application = Applications.query.filter(Applications.empid==employee.id, Applications.start_date<=attendance.date, Applications.end_date>=attendance.date).first()
-        application_type = ''
-        if  application:
-            application_type = application.type
-            attendance_list['application_type'] = application.type
-            attendance_list['application_id'] = application.id
-        else:
-            attendance_list['application_type'] = None
-            attendance_list['application_id'] = None
-
-        holiday = Holidays.query.filter(Holidays.start_date<=attendance.date, Holidays.end_date>=attendance.date).first()
-        holiday_name = ''
-        if  holiday:
-            holiday_name = holiday.name
-            attendance_list['holiday'] = holiday.name
-        else:
-            attendance_list['holiday'] = None
-
-        no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
-
-        if application_type in ('Casual', 'Medical', 'Both') or attendance_list['duty_shift'] in ('O', 'HO') or holiday_name != '' or attendance_list['day'] in ('Friday', 'Saturday'):
-            attendance_list['in_flag'] = None
-            attendance_list['out_flag'] = None
-        else:
-            if application_type == 'In':
-                attendance_list['in_flag'] = None
-            elif attendance_list['in_time'] == no_attendance:
-                attendance_list['in_flag'] = 'NI'
-                summary['NI'] += 1
-            elif attendance_list['in_time'] > in_time.time():
-                attendance_list['in_flag'] = 'L'
-                summary['L'] += 1
-            else:
-                attendance_list['in_flag'] = None
-
-            if application_type == 'Out':
-                attendance_list['out_flag'] = None
-            elif attendance_list['out_time'] == no_attendance:
-                attendance_list['out_flag'] = 'NO'
-                summary['NO'] += 1
-            elif attendance_list['out_time'] < out_time.time():
-                attendance_list['out_flag'] = 'E'
-                summary['E'] += 1
-            else:
-                attendance_list['out_flag'] = None
-
-        attendances_list.append(attendance_list)  
-
-    attendances = attendances_list
-    
-    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendances, summary=summary)
+    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendance['attendances'], summary=attendance['summary'])
             
 
 @attendance.route('/attendance/application/cancel/<application_for>,<application_id>')
