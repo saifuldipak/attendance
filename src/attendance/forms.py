@@ -1,20 +1,13 @@
 from datetime import datetime
-import re
-from urllib import request
-from xmlrpc.client import Boolean
-from attendance.functions import convert_team_name
-from flask import Blueprint, Flask, current_app, flash, render_template, session, request
+from flask import Blueprint, current_app, flash, render_template, session, request
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import validators, widgets
-from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, 
-                        EmailField, TelField, SelectField, RadioField, DateTimeField, TimeField, SelectMultipleField, BooleanField) 
-from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, 
-                                Optional, NumberRange)
-from .auth import admin_required, login_required, manager_required, supervisor_required, team_leader_required
+from wtforms import validators
+from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, EmailField, TelField, SelectField, RadioField, TimeField, BooleanField) 
+from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, Optional, NumberRange)
+from .auth import admin_required, login_required, supervisor_required, team_leader_required
 from .db import Employee, Team, DutyShift
 from werkzeug.security import check_password_hash
-from sqlalchemy import or_
 
 
 departments = ['Accounts', 'Sales', 'Technical']

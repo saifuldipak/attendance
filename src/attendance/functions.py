@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, date
 import re
-from .db import Employee, db, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift
+from .db import Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift
 from flask import session, current_app
 from sqlalchemy import extract
 

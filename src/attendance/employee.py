@@ -1,17 +1,13 @@
 import secrets
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
-
-from attendance.check import check_attnsummary
 from .db import db, Employee, Team, LeaveAvailable
-from .forms import (Addholidays, Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, 
-                    Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
+from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
 from .mail import send_mail
 from .auth import admin_required, login_required
 import random
 import string
 from datetime import datetime, date, timedelta
-from sqlalchemy import extract
 
 employee = Blueprint('employee', __name__)
 
