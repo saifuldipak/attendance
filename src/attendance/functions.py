@@ -304,7 +304,7 @@ def get_attendance_data(empid, month, year):
 
         no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
 
-        if application_type in ('Casual', 'Medical', 'Both') or attendance_list['duty_shift'] in ('O', 'HO') or holiday_name != '' or attendance_list['day'] in ('Friday', 'Saturday'):
+        if application_type in ('Casual', 'Medical', 'Both', 'Casual adjust') or attendance_list['duty_shift'] in ('O', 'HO') or holiday_name != '' or attendance_list['day'] in ('Friday', 'Saturday'):
             attendance_list['in_flag'] = None
             attendance_list['out_flag'] = None
         else:
