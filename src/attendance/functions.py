@@ -256,16 +256,14 @@ def check_data_access(employee_id):
 
 
 def get_attendance_data(empid, month, year):
-    
     attendances = Attendance.query.filter(Attendance.empid==empid, extract('month', Attendance.date)==month, extract('year', Attendance.date)==year).order_by(Attendance.date).all()
+    if not attendances:
+        return False
     
     return_values = {}
-    if not attendances:
-        return_values['returned'] = False
-        return return_values
-
     attendances_list = []
     summary = {'NI': 0, 'L': 0, 'NO': 0, 'E': 0}
+    
     for attendance in attendances:
         attendance_list = {'date': attendance.date, 'in_time':attendance.in_time, 'out_time':attendance.out_time}
         
@@ -336,7 +334,6 @@ def get_attendance_data(empid, month, year):
     
     return_values['attendances'] = attendances
     return_values['summary'] = summary
-    return_values['returned'] = True
 
     return return_values
 
