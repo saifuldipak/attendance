@@ -545,7 +545,7 @@ def create_leave():
 def search_application(application_for):
     if application_for not in ('self', 'team', 'department', 'all'):
         current_app.logger.error(' search_application(): Unknown function argument "%s", user: %s', application_for, session['username'])
-        flash('Failed to get search result')
+        flash('Failed to get search result', category='error')
         return render_template('base.html')
     
     if application_for != 'self':
@@ -557,30 +557,39 @@ def search_application(application_for):
 
     form = Searchapplication()
 
-    if form.validate_on_submit():
-
-        if application_for == 'self':
-            applications = Applications.query.join(Employee).with_entities(Employee.fullname, Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Applications.empid==session['empid'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data).order_by(Applications.start_date.desc()).all()
-        
-        if application_for == 'team':
-            teams = Team.query.filter_by(empid=session['empid']).all()
-            applications = []
-
-            for team in teams:
-                team_applications = Applications.query.select_from(Applications).join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
-
-                for team_application in team_applications:
-                    applications.append(team_application)
-
-        if application_for == 'department':
-            applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
-
-        if application_for == 'all':
-            applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, or_(Applications.type.like("Casual%"), Applications.type=='Medical')).order_by(Applications.status, Applications.submission_date.desc()).all()
-
-        return render_template('data.html', type='leave_application_search', application_for=application_for, applications=applications)
-    else:
+    if not form.validate_on_submit():
         return render_template('forms.html', type='search_application', application_for=application_for, form=form)
+
+    if form.name.data:
+        name_string = f'%{form.name.data}%'
+    else:
+        name_string = f'%'
+
+    if form.type.data == 'All':
+        application_type_string = f'%'
+    else:
+        application_type_string = f'{form.type.data}'
+    
+    if application_for == 'self':
+            applications = Applications.query.join(Employee).with_entities(Employee.fullname, Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Applications.empid==session['empid'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+        
+    if application_for == 'team':
+        teams = Team.query.filter_by(empid=session['empid']).all()
+        applications = []
+
+        for team in teams:
+            team_applications = Applications.query.select_from(Applications).join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], Applications.type.like(application_type_string), Employee.fullname.like(name_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+
+            for team_application in team_applications:
+                applications.append(team_application)
+
+    if application_for == 'department':
+        applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], Employee.fullname.like(name_string), Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+
+    if application_for == 'all':
+        applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.fullname.like(name_string), extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+    
+    return render_template('data.html', type='application_search', application_for=application_for, applications=applications, form=form)
 
 @leave.route('/leave/approval')
 @login_required

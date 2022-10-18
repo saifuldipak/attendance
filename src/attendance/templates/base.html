@@ -23,7 +23,7 @@
         <div class="dropdown">
             <button class="dropbtn">Application</button>
                 <div class="dropdown-content">
-                        <a href="{{ url_for('forms.search_application', application_for='self') }}" class="navbar-item">--Search</a>
+                        <a href="{{ url_for('leave.search_application', application_for='self') }}" class="navbar-item">--Search</a>
                 </div>
         </div>
         <div class="dropdown">
@@ -69,9 +69,9 @@
                 <div class="dropdown-content">
                     <p>Application
                         {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
-                            <a href="{{ url_for('forms.search_application', application_for='team') }}" class="navbar-item">-- Search</a>
+                            <a href="{{ url_for('leave.search_application', application_for='team') }}" class="navbar-item">-- Search</a>
                         {% elif session['role'] == 'Head' %}
-                            <a href="{{ url_for('forms.search_application', application_for='department') }}" class="navbar-item">-- Search</a>
+                            <a href="{{ url_for('leave.search_application', application_for='department') }}" class="navbar-item">-- Search</a>
                         {% endif %}
                     </p>
                     <p>Leave
@@ -108,7 +108,7 @@
             <button class="dropbtn">Team</button>
                 <div class="dropdown-content">
                     <p>Application
-                        <a href="{{ url_for('forms.search_application', application_for='all') }}" class="navbar-item">-- Search</a>
+                        <a href="{{ url_for('leave.search_application', application_for='all') }}" class="navbar-item">-- Search</a>
                     </p>
                     <p>Leave
                         <a href="{{ url_for('leave.summary_all', type='all') }}" class="navbar-item">-- Summary</a>

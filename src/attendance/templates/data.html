@@ -2,8 +2,34 @@
 
 {% block content %}
 
-    {% if type == 'leave_application_search' %}
+    {% if type == 'application_search' %}
         <div class="form-style-2-heading">Applications</div>
+                {% if application_for=='self' %}
+                    <form method="post" action="{{ url_for('leave.search_application', application_for='self') }}">
+                {% endif %} 
+                {% if application_for=='team' %}
+                    <form method="post" action="{{ url_for('leave.search_application', application_for='team') }}">
+                {% endif %}
+                {% if application_for=='department' %}
+                    <form method="post" action="{{ url_for('leave.search_application', application_for='department') }}">
+                {% endif %}
+                {% if application_for=='all' %}
+                    <form method="post" action="{{ url_for('leave.search_application', application_for='all') }}">
+                {% endif %} 
+
+                {{ form.csrf_token }}
+                        <table>
+                            <tr>
+                                {% if application_for != 'self' %}
+                                    <td>{{ form.name.label }}</td><td>{{ form.name }}</td>
+                                {% endif %}
+                                <td>{{ form.type.label }}</td><td>{{ form.type }}</td>
+                                <td>{{ form.month.label }}</td><td>{{ form.month }}</td>
+                                <td>{{ form.year.label }}</td><td>{{ form.year }}</td>
+                                <td></td><td><input type="submit" value="Search" /></td>
+                            </tr>
+                        </table>
+                    </form>
         <table class="query-result">
             <th>Name</th>
             <th>Team</th>

@@ -471,8 +471,7 @@
     {% endif %}
 
     {% if type == 'search_application' %}
-        <div class="form-style-2">
-            <div class="form-style-2-heading">Search application</div>
+            <div class="form-style-2-heading">Applications</div>
                 {% if application_for=='self' %}
                     <form method="post" action="{{ url_for('leave.search_application', application_for='self') }}">
                 {% endif %} 
@@ -487,21 +486,19 @@
                 {% endif %} 
 
                 {{ form.csrf_token }}
-                            <label for="month">
-                                <span>{{ form.month.label }}</span>
-                                    {{ form.month }}
-                            </label>
-                            <label for="year">
-                                <span>{{ form.year.label }}</span>
-                                    {{ form.year }}
-                            </label>
-                            <label>
-                                <span> </span>
-                                <input type="submit" value="Search" /></label>
-                            </label>
+                        <table>
+                            <tr>
+                                {% if application_for != 'self' %}
+                                    <td>{{ form.name.label }}</td><td>{{ form.name }}</td>
+                                {% endif %}
+                                <td>{{ form.type.label }}</td><td>{{ form.type }}</td>
+                                <td>{{ form.month.label }}</td><td>{{ form.month }}</td>
+                                <td>{{ form.year.label }}</td><td>{{ form.year }}</td>
+                                <td></td><td><input type="submit" value="Search" /></td>
+                            </tr>
+                        </table>
+                            
                     </form>
-            </div>
-        </div>
     {% endif %}
 
     {% if type == 'attendance_summary' %}
