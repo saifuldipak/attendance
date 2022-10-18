@@ -597,12 +597,14 @@
             <p>Name: {{ fullname }}<br>
             Month: {{ form.month.data }}
             Year: {{ form.year.data }}</p>
-            <p>
-                Absent: {{ summary['NI'] }} &nbsp&nbsp
-                Late: {{ summary['L'] }} &nbsp&nbsp
-                No out: {{ summary['NO'] }} &nbsp&nbsp
-                Early: {{ summary['E'] }}
-            </p>
+            {% if attendances %}
+                <p>
+                    Absent: {{ attendances['summary']['NI'] }} &nbsp&nbsp
+                    Late: {{ attendances['summary']['L'] }} &nbsp&nbsp
+                    No out: {{ attendances['summary']['NO'] }} &nbsp&nbsp
+                    Early: {{ attendances['summary']['E'] }}
+                </p>
+            {% endif %}
         <table class="query-result">
             <th>Date</th>
             <th>Day</th>
@@ -611,55 +613,57 @@
             <th>Duty shift</th>
             <th>Application</th>
             <th>Holiday</th>
-            {% for attendance in attendances %}
-                <tr>
-                    <td>{{ attendance['date'] }}</td>
-                    {% if attendance['day'] in ('Friday', 'Saturday') %}
-                        <td class="data-weekend">
-                    {% else %}
-                        <td>
-                    {% endif %}
-                            {{ attendance['day'] }}
-                        </td>
-                    {% if attendance['in_flag'] == 'NI' %}
-                        <td class="data-no-attendance">
-                    {% elif attendance['in_flag'] == 'L' %}
-                        <td class="data-late-early">
-                    {% else %}
-                        <td>
-                    {% endif %}
-                        {{ attendance['in_time'] }}
-                        </td>
+            {% if attendances %}
+                {% for attendance in attendances['attendances'] %}
+                    <tr>
+                        <td>{{ attendance['date'] }}</td>
+                        {% if attendance['day'] in ('Friday', 'Saturday') %}
+                            <td class="data-weekend">
+                        {% else %}
+                            <td>
+                        {% endif %}
+                                {{ attendance['day'] }}
+                            </td>
+                        {% if attendance['in_flag'] == 'NI' %}
+                            <td class="data-no-attendance">
+                        {% elif attendance['in_flag'] == 'L' %}
+                            <td class="data-late-early">
+                        {% else %}
+                            <td>
+                        {% endif %}
+                            {{ attendance['in_time'] }}
+                            </td>
 
-                    {% if attendance['out_flag'] == 'NO' %}
-                        <td class="data-no-attendance">
-                    {% elif attendance['out_flag'] == 'E' %}
-                        <td class="data-late-early">
-                    {% else %}
-                        <td>
-                    {% endif %}
-                        {{ attendance['out_time'] }}
-                        </td>
-                    
-                    {% if attendance['duty_shift'] is none %}
-                        <td></td>
-                    {% else %}
-                        <td>{{ attendance['duty_shift'] }}</td>
-                    {% endif %}
+                        {% if attendance['out_flag'] == 'NO' %}
+                            <td class="data-no-attendance">
+                        {% elif attendance['out_flag'] == 'E' %}
+                            <td class="data-late-early">
+                        {% else %}
+                            <td>
+                        {% endif %}
+                            {{ attendance['out_time'] }}
+                            </td>
+                        
+                        {% if attendance['duty_shift'] is none %}
+                            <td></td>
+                        {% else %}
+                            <td>{{ attendance['duty_shift'] }}</td>
+                        {% endif %}
 
-                    {% if attendance['application_type'] is none %}
-                        <td></td>
-                    {% else %}
-                        <td><a href={{ url_for('leave.details', application_id=attendance['application_id']) }}>{{ attendance['application_type'] }}</a></td>
-                    {% endif %}
-                    
-                    {% if attendance['holiday'] is none %}
-                        <td></td>
-                    {% else %}
-                        <td>{{ attendance['holiday'] }}</td>
-                    {% endif %}
-                </tr>
-            {% endfor %}
+                        {% if attendance['application_type'] is none %}
+                            <td></td>
+                        {% else %}
+                            <td><a href={{ url_for('leave.details', application_id=attendance['application_id']) }}>{{ attendance['application_type'] }}</a></td>
+                        {% endif %}
+                        
+                        {% if attendance['holiday'] is none %}
+                            <td></td>
+                        {% else %}
+                            <td>{{ attendance['holiday'] }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            {% endif %}
         </table>
     {% endif %}
 
