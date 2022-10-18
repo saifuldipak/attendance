@@ -702,9 +702,9 @@ def query(query_for):
             flash(msg, category='error')
             return redirect(url_for('forms.attendance_query', query_for=query_for))
 
-    attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
-    
-    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendance['attendances'], summary=attendance['summary'])
+    attendances = get_attendance_data(employee.id, form.month.data, form.year.data)
+
+    return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendances)
             
 
 @attendance.route('/attendance/application/cancel/<application_for>,<application_id>')
