@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta, date
 import re
-from .db import Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift
+from .db import Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary
 from flask import session, current_app
-from sqlalchemy import extract
-
+from sqlalchemy import extract, or_
 
 #Convert all team names of Fiber & Support to generic name
 def convert_team_name():
@@ -432,3 +431,26 @@ def get_fiscal_year_start_end():
         year_end = date((current_year + 1), 6, 30)
     
     return year_start, year_end
+
+
+def check_attendance_summary(start_date, end_date=None):
+    start_date_in_summary = AttendanceSummary.query.filter(AttendanceSummary.year==start_date.year, AttendanceSummary.month==start_date.month).first()
+    
+    found = False
+    if start_date_in_summary:
+        month = start_date.strftime("%B")
+        year = start_date.year
+        found = True
+        
+    if end_date:
+        end_date_in_summary = AttendanceSummary.query.filter(AttendanceSummary.year==end_date.year, AttendanceSummary.month==end_date.month).first()
+        if end_date_in_summary:
+            month = end_date.strftime("%B")
+            year = end_date.year
+            found = True
+    
+    if found:
+        msg = f'Attendance summary already prepared for {month}, {year}'
+        return msg
+    
+    return False
