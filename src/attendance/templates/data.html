@@ -54,7 +54,11 @@
                         {% if application_for == 'team' or application_for == 'department' %}
                             <td>
                                 {% if application['status'] == "Approval Pending" %}
-                                    <a href="{{ url_for('leave.approval', application_id=application['id']) }}">Approve</a>
+                                    {% if application['type'] in ('Casual', 'Medical', 'Casual adjust') %}
+                                        <a href="{{ url_for('leave.approval', application_id=application['id']) }}">Approve</a>
+                                    {% elif  application['type'] in ('In', 'Out',  'Both') %}
+                                        <a href="{{ url_for('attendance.approval', application_id=application['id']) }}">Approve</a>
+                                    {% endif %}
                                 {% endif %}
                                 <a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a>
                             </td>
