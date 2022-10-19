@@ -66,42 +66,6 @@ def upload():
                     error = f"Employee ID '{str(empid)}' & date '{date}' record already exists in database or duplicate data in uploaded file"
                     flash(error, category='error')
                     return redirect(request.url)
-                
-                application = Applications.query.filter(Applications.empid==empid, Applications.start_date<=date, 
-                                Applications.end_date>=date, Applications.status=='Approved').first()
-                
-                team = Team.query.filter_by(empid=employee.id).first()
-                if not team:
-                    msg = f'Team name not found for {employee.fullname}'
-                    flash(msg, category='error')
-                    return redirect(url_for('forms.upload'))
-
-                match = search(r'^Fiber', team.name)
-                holiday = Holidays.query.filter(Holidays.start_date<=date, Holidays.end_date>=date).first()
-
-                if application:
-                    application_id = application.id
-                else:
-                    application_id = None
-
-                if holiday:
-                    holiday_id = holiday.id
-                else:
-                    holiday_id = None
-
-                day_name = date.strftime("%A")
-                if  day_name == 'Friday':
-                    weekend_id = 7
-                elif day_name == 'Saturday':
-                    if not match:
-                        weekend_id = 1
-                    else:
-                        weekend_id = None
-                else:
-                    weekend_id = None     
-
-                applications_holidays = ApplicationsHolidays(empid=empid, date=date, application_id=application_id, holiday_id=holiday_id, weekend_id=weekend_id)
-                db.session.add(applications_holidays)
 
                 attendance = Attendance(empid=empid, date=date, in_time=in_time, out_time=out_time)
                 db.session.add(attendance)
