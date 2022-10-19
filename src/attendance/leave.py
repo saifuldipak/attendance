@@ -656,8 +656,10 @@ def cancel(application_id):
     
     if session['empid'] == employee.id:
         application_for = 'self'
-    else:
+    elif session['role'] in ('Supervisor', 'Manager'):
         application_for = 'team'
+    elif session['role'] == 'Head':
+        application_for = 'department'
 
     can_edit = check_edit_permission2('cancel', application, employee)
     if not can_edit:
