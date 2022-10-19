@@ -167,12 +167,7 @@ def approval():
         flash('You are not authorized to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
-    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
-    start_date = application.start_date
-    end_date = application.end_date
-    
-    update_applications_holidays(application.empid, start_date, end_date, application_id)
-    
+    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()        
     application.status = 'Approved'
     application.approval_date = datetime.now()
     db.session.commit()
