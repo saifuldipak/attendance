@@ -11,7 +11,7 @@ from .mail import send_mail, send_mail2
 from .forms import (Addholidays, Attnapplfiber, Attnqueryusername, Attndataupload, Attnapplication, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import head_required, login_required, admin_required, manager_required, supervisor_required, team_leader_required
-from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_attendance_data, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access, get_concern_emails2
+from .functions import check_edit_permission, check_holidays, convert_team_name, find_team_leader_email, get_attendance_data, get_concern_emails, update_applications_holidays, check_team_access, check_view_permission, convert_team_name2, check_data_access, get_concern_emails2, check_attendance_summary
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -97,51 +97,56 @@ def application():
     form = Attnapplication()
     employee = Employee.query.filter_by(username=session['username']).first()
     
-    if form.validate_on_submit():
-
-        msg = check_application_dates(session['empid'], form.start_date.data, form.end_date.data)
-        if msg:
-            flash(msg, category='error')
-            return redirect(url_for('forms.attn_application'))
-        
-        #submit application
-        if form.end_date.data: 
-            duration = (form.end_date.data - form.start_date.data).days + 1
-        else:
-            duration = 1
-        
-        if not form.end_date.data:
-            form.end_date.data = form.start_date.data
-        
-        application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), status='Approval Pending')
-        db.session.add(application)
-        db.session.commit()
-        flash('Attendance application submitted')
-
-        #Send mail to all concerned
-        application = Applications.query.filter_by(start_date=form.start_date.data, end_date=form.end_date.data, type=form.type.data, empid=session['empid']).first()
-       
-        emails = get_concern_emails(application.empid)
-        if emails['employee'] == '':
-            flash('Failed to send mail', category='warning')
-            return redirect(request.url)
-
-        team_leader_email = find_team_leader_email(emails)
-        if not team_leader_email:
-            flash('Failed to send mail', category='warning')
-            return redirect(request.url)
-        
-        rv = send_mail2(sender=emails['employee'], receiver=team_leader_email, type='attendance', application=application, action='submitted')
-        
-        if rv:
-            current_app.logger.warning(rv)
-            flash('Failed to send mail', category='warning')
-            return redirect(request.url)
-    else:
+    if not form.validate_on_submit():
         return render_template('forms.html', type='attn_application', form=form)
+
+    msg = check_attendance_summary(form.start_date.data, form.end_date.data)
+
+    if msg:
+        flash(msg, category='error')
+        return redirect(request.url)
+
+    msg = check_application_dates(session['empid'], form.start_date.data, form.end_date.data)
+    if msg:
+        flash(msg, category='error')
+        return redirect(request.url)
+    
+    #submit application
+    if form.end_date.data: 
+        duration = (form.end_date.data - form.start_date.data).days + 1
+    else:
+        duration = 1
+    
+    if not form.end_date.data:
+        form.end_date.data = form.start_date.data
+    
+    application = Applications(empid=employee.id, start_date=form.start_date.data, end_date=form.end_date.data, duration=duration, type=form.type.data, remark=form.remark.data, submission_date=datetime.now(), status='Approval Pending')
+    db.session.add(application)
+    db.session.commit()
+    flash('Attendance application submitted')
+
+    #Send mail to all concerned
+    application = Applications.query.filter_by(start_date=form.start_date.data, end_date=form.end_date.data, type=form.type.data, empid=session['empid']).first()
+    
+    emails = get_concern_emails(application.empid)
+    if emails['employee'] == '':
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
+
+    team_leader_email = find_team_leader_email(emails)
+    if not team_leader_email:
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
+    
+    rv = send_mail2(sender=emails['employee'], receiver=team_leader_email, type='attendance', application=application, action='submitted')
+    
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+        return redirect(request.url)
     
     return redirect(url_for('forms.attn_application'))
-
+    
 
 ##Attendance application details##
 @attendance.route('/attendance/application/details/<application_id>')
@@ -167,7 +172,14 @@ def approval():
         flash('You are not authorized to perform this action', category='error')
         return redirect(url_for('attendance.appl_status_team'))
 
-    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()        
+    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
+    
+    msg = check_attendance_summary(application.start_date, application.end_date)
+
+    if msg:
+        flash(msg, category='error')
+        return redirect(url_for('leave.search_application', application_for='team'))
+
     application.status = 'Approved'
     application.approval_date = datetime.now()
     db.session.commit()
@@ -927,7 +939,7 @@ def prepare_summary():
     count = 0
     for employee in employees:
         attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
-        if attendance['returned']:
+        if attendance:
             early = attendance['summary']['NO'] + attendance['summary']['E']
             attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early)
             db.session.add(attendance_summary)
