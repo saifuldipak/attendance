@@ -535,3 +535,35 @@ def approval_authorization(application):
             return True
 
     return False
+
+
+def get_emails(application, action):
+    employee = Employee.query.filter_by(id=application.empid).first()
+    emails = {}
+    cc = []
+
+    if action == 'approve':
+        emails['sender'] = session['email']
+
+        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR', Employee.email!=None).first()
+        if admin:
+            emails['receiver'] = admin.email
+
+        if employee.email:
+            cc.append(employee.email)
+
+        supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name, Employee.email!=None).first()
+        if supervisor:
+            cc.append(supervisor.email)
+    
+        manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name, Employee.email!=None).first()
+        if manager:
+            cc.append(manager.email)
+   
+        head = Employee.query.filter_by(department=employee.department, role='Head', Employee.email!=None).first()
+        if head:
+           cc.append(head.email)
+    
+        emails['cc'] = cc
+        
+    return emails
