@@ -560,7 +560,7 @@ def get_emails(application, action):
         if manager:
             cc.append(manager.email)
    
-        head = Employee.query.filter_by(department=employee.department, role='Head', Employee.email!=None).first()
+        head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head', Employee.email!=None).first()
         if head:
            cc.append(head.email)
     
