@@ -554,11 +554,13 @@ def get_emails(application, action):
 
         supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name, Employee.email!=None).first()
         if supervisor:
-            cc.append(supervisor.email)
+            if employee.email != supervisor.email:
+                cc.append(supervisor.email)
     
         manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name, Employee.email!=None).first()
         if manager:
-            cc.append(manager.email)
+            if employee.email != manager.email:
+                cc.append(manager.email)
    
         head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head', Employee.email!=None).first()
         if head:
