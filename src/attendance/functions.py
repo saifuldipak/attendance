@@ -456,45 +456,45 @@ def check_attendance_summary(start_date, end_date=None):
     return False
 
 
-def check_available_leave(empid, start_date, duration, type, update=None):
-    leave = LeaveAvailable.query.filter(LeaveAvailable.empid==empid, and_(LeaveAvailable.year_start < start_date, LeaveAvailable.year_end > start_date)).first()
+def check_available_leave(application, update=None):
+    leave = LeaveAvailable.query.filter(LeaveAvailable.empid==application.empid, and_(LeaveAvailable.year_start < application.start_date, LeaveAvailable.year_end > application.start_date)).first()
     if not leave:
-        current_app.logger.warning('check_leave(): no data found in leave_available table for employee %s', empid)
+        current_app.logger.warning('check_leave(): no data found in leave_available table for employee %s', application.empid)
         return False
 
     if type == 'Casual':
-        if leave.casual > duration:
+        if leave.casual > application.duration:
             if update:
-                casual = leave.casual - duration
+                casual = leave.casual - application.duration
                 leave.casual = casual
         else:
             total = leave.casual + leave.earned
-            if total > duration:
+            if total > application.duration:
                 if update:
-                    earned = total - duration
+                    earned = total - application.duration
                     leave.casual = 0
                     leave.earned = earned
             else:
                 return False
 
     if type == 'Medical':
-        if leave.medical > duration:
+        if leave.medical > application.duration:
             if update:
-                medical = leave.medical - duration
+                medical = leave.medical - application.duration
                 leave.medical = medical
         else:
             total = leave.medical + leave.casual
             
-            if total > duration:
+            if total > application.duration:
                 if update:
-                    casual = total - duration
+                    casual = total - application.duration
                     leave.medical = 0
                     leave.casual = casual
             else:
                 total = total + leave.earned
-                if total > duration:
+                if total > application.duration:
                     if update:
-                        earned = total - duration
+                        earned = total - application.duration
                         leave.medical = 0
                         leave.casual = 0
                         leave.earned = earned
@@ -533,5 +533,5 @@ def approval_authorization(application):
         head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
         if head:
             return True
-            
+
     return False
