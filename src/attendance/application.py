@@ -37,10 +37,19 @@ def approve(application_id):
     
     application.status = 'Approved'
     db.session.commit()
-    flash('Leave approved', category='message')
+    msg = f'Application "{application_id}" approved'
+    flash(msg, category='message')
     
-    emails = get_emails(application)
-    rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type='leave', action='approved')
+    emails = get_emails(application, 'approve')
+    
+    if application.type in ('Casual', 'Medical', 'Casual adjust'):
+        type = 'leave'
+    elif application.type in ('In', 'Out', 'Both'):
+        type = 'attendance'
+    else:
+        type = ''
+
+    rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action='approved')
     if rv:
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
