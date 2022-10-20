@@ -69,4 +69,7 @@ def create_app(test_config=None):
     from .attendance import attendance as attendance_blueprint
     app.register_blueprint(attendance_blueprint)
 
+    from .application import application as application_blueprint
+    app.register_blueprint(application_blueprint)
+
     return app
