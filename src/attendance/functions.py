@@ -502,3 +502,36 @@ def check_available_leave(empid, start_date, duration, type, update=None):
                     return False
                 
     return True
+
+
+def approval_authorization(application):
+    employee = Employee.query.filter_by(id=application.empid).first()
+    
+    if employee.role == 'Team':
+        supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+        if supervisor:
+            return True
+        
+        manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+        if manager:
+            return True
+
+        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+        if head:
+            return True
+
+    if employee.role == 'Supervisor':
+        manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+        if manager:
+            return True
+
+        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+        if head:
+            return True
+        
+    if employee.role == 'Manager':
+        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+        if head:
+            return True
+            
+    return False
