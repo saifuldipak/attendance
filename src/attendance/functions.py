@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, date
 import re
-from .db import Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary
+from .db import Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
 from flask import session, current_app
-from sqlalchemy import extract, or_
+from sqlalchemy import extract, and_
 
 #Convert all team names of Fiber & Support to generic name
 def convert_team_name():
@@ -454,3 +454,51 @@ def check_attendance_summary(start_date, end_date=None):
         return msg
     
     return False
+
+
+def check_available_leave(empid, start_date, duration, type, update=None):
+    leave = LeaveAvailable.query.filter(LeaveAvailable.empid==empid, and_(LeaveAvailable.year_start < start_date, LeaveAvailable.year_end > start_date)).first()
+    if not leave:
+        current_app.logger.warning('check_leave(): no data found in leave_available table for employee %s', empid)
+        return False
+
+    if type == 'Casual':
+        if leave.casual > duration:
+            if update:
+                casual = leave.casual - duration
+                leave.casual = casual
+        else:
+            total = leave.casual + leave.earned
+            if total > duration:
+                if update:
+                    earned = total - duration
+                    leave.casual = 0
+                    leave.earned = earned
+            else:
+                return False
+
+    if type == 'Medical':
+        if leave.medical > duration:
+            if update:
+                medical = leave.medical - duration
+                leave.medical = medical
+        else:
+            total = leave.medical + leave.casual
+            
+            if total > duration:
+                if update:
+                    casual = total - duration
+                    leave.medical = 0
+                    leave.casual = casual
+            else:
+                total = total + leave.earned
+                if total > duration:
+                    if update:
+                        earned = total - duration
+                        leave.medical = 0
+                        leave.casual = 0
+                        leave.earned = earned
+                else:
+                    return False
+                
+    return True
