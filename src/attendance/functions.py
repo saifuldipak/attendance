@@ -540,35 +540,113 @@ def check_authorization(application):
 
 def get_emails(application, action):
     employee = Employee.query.filter_by(id=application.empid).first()
+    if not employee:
+        current_app.logger.error(' get_emails(): employee record not found for application "%s" and user "%s"', application.id, application.empid)
+        error = True
+        return error
+
+    admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR', Employee.email!=None).first()
+    supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name, Employee.email!=None).first()
+    manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name, Employee.email!=None).first()
+    head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head', Employee.email!=None).first()
+
     emails = {}
     cc = []
+    error = False
 
-    if action in ('approve', 'cancel'):
+    if session['email']:
         emails['sender'] = session['email']
-
-        admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR', Employee.email!=None).first()
+    else:
+        current_app.logger.error(' get_emails(): session email not found for "%s"', session['username'])
+        error = True
+        return error
+    
+    if action == 'approve':
         if admin:
             emails['receiver'] = admin.email
-
-        if employee.email:
-            cc.append(employee.email)
-
-        supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name, Employee.email!=None).first()
-        if supervisor:
-            if employee.email != supervisor.email:
-                cc.append(supervisor.email)
-    
-        manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name, Employee.email!=None).first()
-        if manager:
-            if employee.email != manager.email:
-                cc.append(manager.email)
-   
-        head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head', Employee.email!=None).first()
-        if head:
-           cc.append(head.email)
-    
-        emails['cc'] = cc
+        else:
+            current_app.logger.error(' get_emails(): admin email not found for application "%s" and user "%s"', application.id, application.empid)
+            error = True
+            return error
         
+        if employee.email:
+                cc.append(employee.email)
+
+        if supervisor:
+            if session['email'] != supervisor.email:
+                cc.append(supervisor.email)
+
+        if manager:
+            if session['email'] != manager.email:
+                cc.append(manager.email)
+        
+        if head:
+            if session['email'] != head.email:
+                cc.append(head.email)
+
+    if action == 'cancel':
+        if application.status.lower() == 'approval pending':
+            if session['empid'] == application.empid:
+                if supervisor:
+                    if supervisor.email:
+                        emails['receiver'] = supervisor.email
+                    else:
+                        current_app.logger.error(' get_emails: supervisor email not found')
+                        emails['error'] = True
+                        return emails
+                elif manager:
+                    if manager.email:
+                        emails['receiver'] = manager.email
+                    else:
+                        current_app.logger.error(' get_emails: manager email not found')
+                        emails['error'] = True
+                        return emails
+                elif head:
+                    if head.email:
+                        emails['receiver'] = head.email
+                    else:
+                        current_app.logger.error(' get_emails: head email not found')
+                        emails['error'] = True
+                        return emails
+                else:
+                    current_app.logger.error(' get_emails: team leader email not found')
+                    emails['error'] = True
+                    return emails
+                
+            else:
+                if employee.email:
+                    emails['receiver'] = employee.email
+                else:
+                    current_app.logger.error(' get_emails(): employee email not found for application "%s" and employee "%s"', application.id, application.empid)
+                    error = True
+                    return error
+                
+        if application.status.lower() == 'approved':
+            if admin:
+                emails['receiver'] = admin.email
+            else:
+                current_app.logger.error(' get_emails(): admin email not found for application "%s" and user "%s"', application.id, application.empid)
+                error = True
+                return error
+        
+            if employee.email:
+                cc.append(employee.email)
+
+            if supervisor:
+                if session['email'] != supervisor.email:
+                    cc.append(supervisor.email)
+
+            if manager:
+                if session['email'] != manager.email:
+                    cc.append(manager.email)
+            
+            if head:
+                if session['email'] != head.email:
+                    cc.append(head.email)
+    
+    cc.append(session['email'])
+    emails['error']  = error
+    emails['cc'] = cc    
     return emails
 
 
