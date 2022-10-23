@@ -543,7 +543,7 @@ def get_emails(application, action):
     emails = {}
     cc = []
 
-    if action == 'approve':
+    if action in ('approve', 'cancel'):
         emails['sender'] = session['email']
 
         admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR', Employee.email!=None).first()
