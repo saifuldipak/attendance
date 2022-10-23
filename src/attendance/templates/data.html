@@ -61,7 +61,7 @@
                         {% endif %}
                         {% if application_for == 'self' %}
                             {% if application['status'] == "Approval Pending" %}
-                                <td><a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a></td> 
+                                <td><a href="{{ url_for('application.process', action='cancel', application_id=application['id']) }}">Cancel</a></td> 
                             {% endif %}
                         {% endif %}
                     {% endif %}
