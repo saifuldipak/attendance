@@ -3,6 +3,7 @@ import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
 from flask import session, current_app
 from sqlalchemy import extract, and_
+import os
 
 #Convert all team names of Fiber & Support to generic name
 def convert_team_name():
@@ -601,3 +602,17 @@ def return_leave(application):
                 leave.casual = yearly_casual
 
     db.session.commit()
+
+
+def delete_files(files):
+    file_list = ''
+
+    for file in files:
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        else:
+            file_list += file_path
+
+    return file_list
