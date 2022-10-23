@@ -54,9 +54,9 @@
                         {% if application_for == 'team' or application_for == 'department' %}
                             <td>
                                 {% if application['status'] == "Approval Pending" %}
-                                    <a href="{{ url_for('application.approve', application_id=application['id']) }}">Approve</a>
+                                    <a href="{{ url_for('application.process', action='approve', application_id=application['id']) }}">Approve</a>
                                 {% endif %}
-                                    <a href="{{ url_for('leave.cancel', application_id=application['id']) }}">Cancel</a>
+                                    <a href="{{ url_for('application.process', action='cancel', application_id=application['id']) }}">Cancel</a>
                             </td>
                         {% endif %}
                         {% if application_for == 'self' %}
