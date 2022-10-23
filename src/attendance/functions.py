@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, date
 import re
-from .db import Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
+from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
 from flask import session, current_app
 from sqlalchemy import extract, and_
 
@@ -504,7 +504,7 @@ def check_available_leave(application, update=None):
     return True
 
 
-def approval_authorization(application):
+def check_authorization(application):
     employee = Employee.query.filter_by(id=application.empid).first()
     
     if employee.role == 'Team':
@@ -569,3 +569,35 @@ def get_emails(application, action):
         emails['cc'] = cc
         
     return emails
+
+
+def return_leave(application):
+    leave = LeaveAvailable.query.filter_by(empid=application.employee.id).first()
+    if not leave:
+        current_app.logger.warning(' cancel(): no data found in leave_available table for %s', application.employee.username)
+        msg = f'No leave available for {application.employee.username}'
+        return msg
+    
+    yearly_casual = current_app.config['CASUAL']
+    yearly_medical = current_app.config['MEDICAL']
+
+    if application.type == 'Casual':
+        leave.casual = leave.casual + application.duration        
+        if leave.casual > yearly_casual:
+            extra_casual = leave.casual - yearly_casual
+            leave.casual = yearly_casual
+            leave.earned = leave.earned + extra_casual
+
+    if application.type == 'Medical':
+        leave.medical = leave.medical + application.duration
+        if leave.medical > yearly_medical:
+            extra_medical = leave.medical - yearly_medical
+            leave.medical = yearly_medical
+
+            leave.casual = leave.casual + extra_medical
+            if leave.casual > yearly_casual:
+                extra_casual = leave.casual - yearly_casual
+                leave.earned = leave.earned + extra_casual
+                leave.casual = yearly_casual
+
+    db.session.commit()
