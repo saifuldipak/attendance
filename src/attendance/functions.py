@@ -2,8 +2,9 @@ from datetime import datetime, timedelta, date
 import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
 from flask import session, current_app
-from sqlalchemy import extract, and_
+from sqlalchemy import extract, and_, func, or_
 import os
+from werkzeug.utils import secure_filename
 
 #Convert all team names of Fiber & Support to generic name
 def convert_team_name():
@@ -694,3 +695,23 @@ def delete_files(files):
             file_list += file_path
 
     return file_list
+
+def check_application_dates(empid, start_date, end_date):
+    if not start_date:
+        return 'Start date must be given'
+
+    start_date_exists = Applications.query.filter(Applications.start_date<=start_date, Applications.end_date>=start_date, 
+                            Applications.empid==empid).first()
+    if start_date_exists:
+        return 'Start date overlaps with another application'
+
+    if end_date:
+        end_date_exists = Applications.query.filter(Applications.start_date<=end_date, Applications.end_date>=end_date, 
+                        Applications.empid==empid).first()
+        if end_date_exists:
+            return 'End date overlaps with another application'
+
+        any_date_exists = Applications.query.filter(Applications.start_date>start_date, Applications.end_date<end_date, 
+                            Applications.empid==empid).first()
+        if any_date_exists:
+            return 'Start and/or end dates overlaps with other application'
