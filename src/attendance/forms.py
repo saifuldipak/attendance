@@ -170,9 +170,10 @@ class Createleave(FlaskForm):
 
 forms = Blueprint('forms', __name__)
 
-#Leave application
+#Applications
 duty_types = ['No', 'On site', 'Off site']
-class Leavecasual(Dates):
+class ApplicationCasual(Dates):
+    type = StringField('', default='Casual', validators=[Optional()])
     remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'})
     holiday_duty_type = SelectField('Adjust with holiday duty', render_kw={'class': 'form-input'}, choices=duty_types)
     holiday_duty_start_date = DateField('Holiday Start Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[Optional()])
@@ -199,7 +200,8 @@ class Leavecasual(Dates):
             if leave_duration != holiday_duty_duration:
                 raise ValidationError('Leave duration and holiday duty duration must be same')
 
-class Leavemedical(Dates):
+class ApplicationMedical(Dates):
+    type = StringField('', default='Medical', validators=[Optional()])
     remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'}, validators=[InputRequired()])
     file1 = FileField('Upload File 1', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
                                 FileRequired(), file_length_check])
@@ -208,68 +210,40 @@ class Leavemedical(Dates):
     file3 = FileField('Upload File 3', validators=[FileAllowed(['jpeg', 'jpg', 'png', 'gif'], 'Images only!'),
                                                 file_length_check])
 
-@forms.route('/forms/leave/<type>', methods=['GET', 'POST'])
-@login_required
-def leave(type):
-
-    if type == 'Casual':
-        form = Leavecasual()
-    elif type == 'Medical':
-        form = Leavemedical()
-    
-    return render_template('forms.html', type='leave', leave=type, form=form)
-
-#Leave application - Fiber
-class Fiberteam(FlaskForm):
-    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-
-class Leavefibercasual(Fiberteam, Leavecasual):
-    pass
-
-class Leavefibermedical(Fiberteam, Leavemedical):
-    pass
-
-@forms.route('/forms/leave/fiber/<type>', methods=['GET', 'POST'])
-@login_required
-def leave_fiber(type):
-
-    if type == 'Casual':
-        form = Leavefibercasual()
-    elif type == 'Medical':
-        form = Leavefibermedical()
-    
-    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
-    form.empid.choices = [(i.id, i.fullname) for i in names]
-    
-    return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
-
-
-#Attendance application 
-class Attnapplication(Dates):
+class ApplicationAttendance(Dates):
     type = RadioField('Type', render_kw={'class': 'input-field'}, choices=attendance, validators=[InputRequired()])
     remark = TextAreaField('Remark', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
 
-@forms.route('/forms/attendance/application')
-@login_required
-def attn_application():
-    form = Attnapplication()
-    return render_template('forms.html', type='attn_application', form=form)
-
-
-#Attendance application - Fiber
-class Attnapplfiber(Attnapplication):
+class Fiberteam(FlaskForm):
     empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
-    
-@forms.route('/forms/attendance/fiber', methods=['GET', 'POST'])
+
+class ApplicationFiberCasual(Fiberteam, ApplicationCasual):
+    pass
+
+class ApplicationFiberMedical(Fiberteam, ApplicationMedical):
+    pass
+
+class ApplicationFiberAttendance(ApplicationAttendance):
+    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+
+@forms.route('/forms/application/<type>', methods=['GET', 'POST'])
 @login_required
-@supervisor_required
-def attn_fiber():
-    form = Attnapplfiber()
+def application(type):
+
+    if type == 'casual':
+        form = ApplicationCasual()
+    elif type == 'medical':
+        form = ApplicationMedical()
+    elif type == 'attendance':
+        form = ApplicationAttendance()
+    elif type == 'fiber_casual':
+        form = ApplicationFiberCasual()
+    elif type == 'fiber_medical':
+        form = ApplicationFiberMedical()
+    elif type == 'fiber_attendance':
+        form = ApplicationFiberAttendance() 
     
-    names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
-    form.empid.choices = [(i.id, i.fullname) for i in names]
-    
-    return render_template('forms.html', type='attn_application', team='fiber', form=form)
+    return render_template('forms.html', type='application', type=type, form=form)
 
 #Create, delete, update employee record
 teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 

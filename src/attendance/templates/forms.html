@@ -555,4 +555,69 @@
             </div>        
     {% endif %}
 
+    {% if type == 'application' %}
+        <div class="form-style-2-heading">
+            {% if application_type == 'casual' %}
+                Leave application - Casual
+            {% elif application_type == 'medical' %}
+                Leave application - Medical
+            {% elif application_type == 'attendance' %}
+                Attendance application
+            {% elif application_type == 'fiber_casual' %}
+                Leave application fiber - Casual
+            {% elif application_type == 'fiber_medical' %}
+                Leave application fiber - Medical
+            {% elif application_type == 'fiber_attendance' %}
+                Attendance application fiber
+            {% endif %}
+        </div>
+            <div class="form-style-2">
+                <table>
+                    <form method="post" action="{{ url_for('application.submit', application_type=application_type) }}" enctype="multipart/form-data">                     
+                    {{ form.csrf_token }}
+                    {% if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance') %}
+                        <tr>
+                            <td>{{ form.empid.label }}</td>
+                            <td>{{ form.empid }}</td>
+                        </tr>
+                    {% endif %}  
+                    <tr>
+                        <td>{{ form.start_date.label }}{{ form.start_date }}</td>
+                        <td>{{ form.end_date.label }}{{ form.end_date }}</td>
+                    </tr>
+                
+                    <tr>
+                        <td colspan="2">{{ form.remark.label }}{{ form.remark }}</td>
+                    </tr>
+                    {% if application_type in ('casual', 'fiber_casual') %}
+                            <tr>
+                                <td>{{ form.holiday_duty_type.label }}{{ form.holiday_duty_type }}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ form.holiday_duty_start_date.label }}{{ form.holiday_duty_start_date }}</td>
+                                <td>{{ form.holiday_duty_end_date.label }}{{ form.holiday_duty_end_date }}</td>
+                            </tr>
+                    {% endif %}
+                    {% if application_type in ('medical', 'fiber_medical') %}
+                        <tr>
+                            <td>{{ form.file1.label }}</td>
+                            <td>{{ form.file1 }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.file2.label }}</td>
+                            <td>{{ form.file2 }}</td>
+                        </tr>    
+                        <tr>
+                            <td>{{ form.file3.label }}</td>
+                            <td>{{ form.file3 }}</td>
+                        </tr>                                           
+                    {% endif %}
+
+                        <tr>
+                            <td><input type="submit" value="Submit" /></td>
+                    </form>
+                </table>          
+            </div>
+    {% endif %}
+
 {% endblock %}
