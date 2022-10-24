@@ -553,22 +553,32 @@ def get_emails(application, action):
 
     emails = {}
     cc = []
-    error = False
 
     if session['email']:
         emails['sender'] = session['email']
     else:
         current_app.logger.error(' get_emails(): session email not found for "%s"', session['username'])
-        error = True
-        return error
+        emails['error'] = True
+        return emails
     
+    if action == 'submit':
+        if supervisor and session['role'] != 'Supervisor':
+            emails['receiver'] = supervisor.email
+        elif manager and session['role'] != 'Manager':
+            emails['receiver'] = manager.email
+        elif head and session['role'] != 'Head':
+            emails['receiver'] = head.email
+        else:
+            emails['error'] = True
+            return emails
+
     if action == 'approve':
         if admin:
             emails['receiver'] = admin.email
         else:
             current_app.logger.error(' get_emails(): admin email not found for application "%s" and user "%s"', application.id, application.empid)
-            error = True
-            return error
+            emails['error'] = True
+            return emails
         
         if employee.email:
                 cc.append(employee.email)
@@ -612,23 +622,22 @@ def get_emails(application, action):
                 else:
                     current_app.logger.error(' get_emails: team leader email not found')
                     emails['error'] = True
-                    return emails
-                
+                    return emails    
             else:
                 if employee.email:
                     emails['receiver'] = employee.email
                 else:
                     current_app.logger.error(' get_emails(): employee email not found for application "%s" and employee "%s"', application.id, application.empid)
-                    error = True
-                    return error
+                    emails['error'] = True
+                    return emails
                 
         if application.status.lower() == 'approved':
             if admin:
                 emails['receiver'] = admin.email
             else:
                 current_app.logger.error(' get_emails(): admin email not found for application "%s" and user "%s"', application.id, application.empid)
-                error = True
-                return error
+                emails['error'] = True
+                return emails
         
             if employee.email:
                 cc.append(employee.email)
@@ -646,8 +655,8 @@ def get_emails(application, action):
                     cc.append(head.email)
     
     cc.append(session['email'])
-    emails['error']  = error
-    emails['cc'] = cc    
+    emails['cc'] = cc  
+    emails['error']  = False
     return emails
 
 
