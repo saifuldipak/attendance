@@ -8,6 +8,7 @@ from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRe
 from .auth import admin_required, login_required, supervisor_required, team_leader_required
 from .db import Employee, Team, DutyShift
 from werkzeug.security import check_password_hash
+from re import search
 
 
 departments = ['Accounts', 'Sales', 'Technical']
@@ -223,27 +224,31 @@ class ApplicationFiberCasual(Fiberteam, ApplicationCasual):
 class ApplicationFiberMedical(Fiberteam, ApplicationMedical):
     pass
 
-class ApplicationFiberAttendance(ApplicationAttendance):
-    empid = SelectField('Name', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+class ApplicationFiberAttendance(Fiberteam, ApplicationAttendance):
+    pass
 
-@forms.route('/forms/application/<type>', methods=['GET', 'POST'])
+@forms.route('/forms/application/<application_type>', methods=['GET', 'POST'])
 @login_required
-def application(type):
+def application(application_type):
 
-    if type == 'casual':
+    if application_type == 'casual':
         form = ApplicationCasual()
-    elif type == 'medical':
+    elif application_type == 'medical':
         form = ApplicationMedical()
-    elif type == 'attendance':
+    elif application_type == 'attendance':
         form = ApplicationAttendance()
-    elif type == 'fiber_casual':
+    elif application_type == 'fiber_casual':
         form = ApplicationFiberCasual()
-    elif type == 'fiber_medical':
+    elif application_type == 'fiber_medical':
         form = ApplicationFiberMedical()
-    elif type == 'fiber_attendance':
+    elif application_type == 'fiber_attendance':
         form = ApplicationFiberAttendance() 
     
-    return render_template('forms.html', type='application', type=type, form=form)
+    if search('^fiber_', application_type):
+        names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
+        form.empid.choices = [(i.id, i.fullname) for i in names]
+    
+    return render_template('forms.html', type='application', application_type=application_type, form=form)
 
 #Create, delete, update employee record
 teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 
