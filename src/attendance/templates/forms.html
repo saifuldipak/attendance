@@ -585,7 +585,11 @@
                         <td>{{ form.start_date.label }}{{ form.start_date }}</td>
                         <td>{{ form.end_date.label }}{{ form.end_date }}</td>
                     </tr>
-                
+                    {% if application_type in ('attendance', 'fiber_attendance') %}
+                        <tr>
+                            <td>{{ form.type.label }} {{ form.type }}</td>
+                        </tr>
+                    {% endif %}
                     <tr>
                         <td colspan="2">{{ form.remark.label }}{{ form.remark }}</td>
                     </tr>
