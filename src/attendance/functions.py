@@ -715,3 +715,46 @@ def check_application_dates(empid, start_date, end_date):
                             Applications.empid==empid).first()
         if any_date_exists:
             return 'Start and/or end dates overlaps with other application'
+
+def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
+    if not holiday_duty_end_date:
+        holiday_duty_end_date = holiday_duty_start_date
+
+    #Check whether holiday duty dates exists in any other application
+    holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=holiday_duty_start_date, Applications.holiday_duty_end_date>=holiday_duty_start_date, Applications.empid==empid).first()
+    if holiday_duty_start_date_exists:
+        return 'Holiday duty start date overlaps with another application'
+    
+    if holiday_duty_start_date != holiday_duty_end_date:
+        holiday_duty_end_date_exists = Applications.query.filter(Applications.start_date<=holiday_duty_end_date, Applications.end_date>=holiday_duty_end_date, Applications.empid==empid).first()
+        if holiday_duty_end_date_exists:
+            return 'Holiday duty end date overlaps with another application'
+
+        any_date_exists = Applications.query.filter(Applications.start_date>holiday_duty_start_date, Applications.end_date<holiday_duty_end_date, Applications.empid==empid).first()
+        if any_date_exists:
+            return 'Holiday duty start and/or end dates overlaps with other application'
+
+    #Check whether holidays added or not
+    holiday = Holidays.query.filter(Holidays.start_date<=holiday_duty_start_date, Holidays.end_date>=holiday_duty_end_date).first()
+    if not holiday:
+        return f'One or more days not holiday between dates {holiday_duty_start_date} & {holiday_duty_end_date}'
+        
+    #Check whether attendance data is uploaded
+    holiday_duty_duration = (holiday_duty_end_date - holiday_duty_start_date).days + 1
+    attendance_count = Attendance.query.with_entities(func.count(Attendance.id).label('count')).filter(Attendance.empid==empid, Attendance.date>=holiday_duty_start_date, Attendance.date<=holiday_duty_end_date).all()
+    if holiday_duty_duration != attendance_count:
+        return f'Attendance not found for one or more days between dates {holiday_duty_start_date} & {holiday_duty_end_date}'
+
+    attendances = Attendance.query.filter(Attendance.empid==empid, Attendance.date>=holiday_duty_start_date, Attendance.date<=holiday_duty_end_date).all()
+    no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time() 
+    
+    for attendance in attendances:
+        if attendance.in_time == no_attendance:
+            approved_attendance = Applications.query.filter(Applications.empid==empid, Applications.start_date<=attendance.date, Applications.end_date>=attendance.date, or_(Applications.type=='In', Applications.type=='Both')).first()
+            if not approved_attendance:
+                return f'No attendance "In time" for date {attendance.date}'
+                       
+        if attendance.out_time == no_attendance:
+            approved_attendance = Applications.query.filter(Applications.empid==empid, Applications.start_date<=attendance.date, Applications.end_date>=attendance.date, or_(Applications.type=='Out', Applications.type=='Both')).first()
+            if not approved_attendance:
+                return f'No attendance "Out time" for date {attendance.date}'
