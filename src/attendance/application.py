@@ -1,14 +1,136 @@
-from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app
+from crypt import methods
+from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance
+from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request
 from .auth import login_required
 from .db import db, Applications
-from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files
+from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files
 from .mail import send_mail2
+import datetime
+from re import search
 
 application = Blueprint('application', __name__)
+
+@application.route('/application/submit/<application_type>', methods=['GET', 'POST'])
+@login_required
+def submit(application_type):
+    #Checks
+    if application_type == 'casual':
+        form = ApplicationCasual()
+    elif application_type == 'fiber_casual':
+        form = ApplicationFiberCasual()
+    elif application_type == 'medical':
+        form = ApplicationMedical()
+    elif application_type == 'fiber_medical':
+        form = ApplicationFiberMedical()
+    elif application_type == 'attendance':
+        form = ApplicationAttendance()
+    elif application_type == 'fiber_attendance':
+        form = ApplicationFiberAttendance()
+    else:
+        current_app.logger.error(' submit(): <application_type> value %s unknown, session user %s', application_type, session['username'])
+        flash('Unknown application type', category='error')
+        return render_template('base.html')
+
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='application', application_type=application_type, form=form)
+    
+    leave_dates_exist = check_application_dates(session['empid'], form.start_date.data, form.end_date.data)
+    if leave_dates_exist:
+        flash(leave_dates_exist, category='error')
+        return render_template('forms.html', type='application', application_type=application_type, form=form)
+    
+    attendance_summary_exist = check_attendance_summary(form.start_date.data, form.end_date.data)
+    if attendance_summary_exist:
+        msg = f'Attendance summary prepared. You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
+        flash(msg, category='error')
+        return redirect(request.url)
+
+    if application_type in ('casual', 'fiber_casual'):
+        if form.holiday_duty_type.data == 'On site':
+            holiday_dates_exist = check_holiday_dates(session['empid'], form.holiday_duty_start_date.data, form.holiday_duty_end_date.data)
+            if holiday_dates_exist:
+                flash(holiday_dates_exist, category='error')
+                return render_template('forms.html', type='application', application_type=application_type, form=form)
+
+    if not form.end_date.data:
+        form.end_date.data = form.start_date.data
+    
+    leave_duration = (form.end_date.data - form.start_date.data).days + 1
+    
+    if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
+        if search('^Fiber', session['team']) and session['role'] == 'Supervisor':
+            employee_id = form.empid.data
+            status = 'Approved'
+        else:
+            current_app.logger.error(' submit(): "%s" trying to approve fiber team application', session['username'])
+            flash('You are not authorized to submit & approve Fiber team applications')
+            return redirect(url_for('forms.application', type=application_type, form=form))
+    else:
+        employee_id = session['empid']
+        status = 'Approval Pending'
+
+    if application_type in ('attendance', 'fiber_attendance'):
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
+    elif application_type in ('casual', 'fiber_casual'):
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
+    elif application_type in ('medical', 'fiber_medical'):
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
+        
+    if application_type in ('casual', 'medical') and form.holiday_duty_type.data == 'No':
+        available = check_available_leave(application)
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(request.url)
+
+    if application_type in ('medical', 'fiber_medical'):
+        files = [form.file1.data]
+        if form.file2.data is not None:
+            files.append(form.file2.data)
+        if form.file3.data is not None:
+            files.append(form.file3.data)
+
+        filenames = save_files(files, session['username'])
+        application.file_url = filenames
+
+    db.session.add(application)
+    flash('Application submitted', category='message')
+
+    #Send mail to all concerned
+    if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
+        emails = get_emails(application, action='approve')
+    else:
+        emails = get_emails(application, action='submit')
+    
+    if emails['error']:
+        current_app.logger.error('Failed to get emails for submitted application for "%s"', session['username'])
+        flash('Failed to get email addresses for sending email', category='error')
+        return redirect(url_for('forms.application', type=application_type))
+
+    if application_type in ('casual', 'medical', 'fiber_casual', 'fiber_medical', 'casual adjust'):
+        type = 'leave'
+        if application_type in ('fiber_casual', 'fiber_medical'):
+            action = 'approved'
+        else:
+            action = 'submitted'
+    elif application_type in ('attendance', 'fiber_attendance'):
+        type = 'attendance'
+        if application_type == 'fiber_attendance':
+            action = 'approved'
+        else:
+            action = 'submitted'
+    
+    rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+    if rv:
+        current_app.logger.warning(rv)
+        flash('Failed to send mail', category='warning')
+
+    db.session.commit()
+    return redirect(url_for('forms.application', application_type=application_type, form=form))
 
 @application.route('/application/<action>/<application_id>')
 @login_required
 def process(action, application_id=None):
+    #Checks
     if action not in ('approve', 'cancel', 'submit'):
         current_app.logger.error('<action> value %s unknown, session user %s', action, session['username'])
         flash('Failed to execute the function', category='error')
@@ -23,14 +145,14 @@ def process(action, application_id=None):
     elif session['role'] in ('Supervisor', 'Manager'):
         application_for = 'team'
 
-    if session['empid'] != application.empid:
+    if action in ('approve', 'cancel') and session['empid'] != application.empid:
         has_authorization = check_authorization(application)
         if not has_authorization:
             current_app.logger.error(' process(): "%s" trying to approve application "%s"', session['username'], application_id)
             msg = f'You are not authorized to "{action}" this application "{application_id}"'
             flash(msg, category='error')
             return render_template(url_for('leave.search_application', application_for=application_for))
-    else:
+    elif action in ('approve', 'cancel') and session['empid'] == application.empid:
         if action == 'approve':
             current_app.logger.error(' process(): "%s" trying to approve own application "%s"', session['username'], application_id)
             flash('You cannot approve your own application', category='error')
@@ -41,6 +163,7 @@ def process(action, application_id=None):
                 current_app.logger.error(' process(): "%s" trying to cancel own approved application "%s"', session['username'], application_id)
                 flash('You cannot cancel your own approved application', category='error')
                 return render_template(url_for('leave.search_application', application_for=application_for))
+    
 
     attendance_summary = check_attendance_summary(application.start_date, application.end_date)
     if attendance_summary:
