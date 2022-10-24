@@ -758,3 +758,22 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
             approved_attendance = Applications.query.filter(Applications.empid==empid, Applications.start_date<=attendance.date, Applications.end_date>=attendance.date, or_(Applications.type=='Out', Applications.type=='Both')).first()
             if not approved_attendance:
                 return f'No attendance "Out time" for date {attendance.date}'
+
+# renaming original uploaded files and saving to disk, also creating a string 
+# with all the file names for storing in database 
+def save_files(files, username):
+    file_names = ''
+    file_id = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    file_count = 1
+                
+    for file in files:
+        file_name = secure_filename(file.filename)
+        ext = os.path.splitext(file_name)[1]
+        file_name = username + "_" + file_id + str(file_count) + ext
+        file_url = os.path.join(current_app.config['UPLOAD_FOLDER'], file_name)
+        file.save(file_url)
+        file_names += file_name + ';'
+        file_count += 1
+    
+    file_names = file_names[:-1]
+    return file_names
