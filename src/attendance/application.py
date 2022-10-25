@@ -237,7 +237,7 @@ def process(action, application_id=None):
 
     db.session.commit()
     flash(msg, category='message')
-    return redirect(url_for('leave.search_application', application_for=application_for))
+    return redirect(url_for('forms.search_application', application_for=application_for))
 
 
 @application.route('/application/search/<application_for>', methods=['GET', 'POST'])
