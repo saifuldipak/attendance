@@ -34,7 +34,12 @@ def submit(application_type):
     if not form.validate_on_submit():
         return render_template('forms.html', type='application', application_type=application_type, form=form)
     
-    leave_dates_exist = check_application_dates(session['empid'], form.start_date.data, form.end_date.data)
+    if search('^fiber', application_type):
+        employee_id = form.empid.data
+    else:
+        employee_id = session['empid']
+
+    leave_dates_exist = check_application_dates(employee_id, form.start_date.data, form.end_date.data)
     if leave_dates_exist:
         flash(leave_dates_exist, category='error')
         return render_template('forms.html', type='application', application_type=application_type, form=form)
