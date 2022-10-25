@@ -1,12 +1,12 @@
-from crypt import methods
-from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance
+from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance, Searchapplication
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request
 from .auth import login_required
-from .db import db, Applications
-from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files
+from .db import db, Applications, Employee, Team
+from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission
 from .mail import send_mail2
 import datetime
 from re import search
+from sqlalchemy import extract
 
 application = Blueprint('application', __name__)
 
@@ -132,6 +132,7 @@ def submit(application_type):
     db.session.commit()
     return redirect(url_for('forms.application', application_type=application_type, form=form))
 
+
 @application.route('/application/<action>/<application_id>')
 @login_required
 def process(action, application_id=None):
@@ -239,3 +240,53 @@ def process(action, application_id=None):
     return redirect(url_for('leave.search_application', application_for=application_for))
 
 
+@application.route('/application/search/<application_for>', methods=['GET', 'POST'])
+@login_required
+def search(application_for):
+    if application_for not in ('self', 'team', 'department', 'all'):
+        current_app.logger.error(' search_application(): Unknown function argument "%s", user: %s', application_for, session['username'])
+        flash('Failed to get search result', category='error')
+        return render_template('base.html')
+    
+    if application_for != 'self':
+        has_access = check_view_permission(application_for)
+        if not has_access:
+            current_app.logger.warning(' search_application(): %s trying to access %s data', session['username'], application_for)
+            flash('You are not authorized to run this function', category='error')
+            return redirect(url_for('forms.search_application', application_for=application_for))
+
+    form = Searchapplication()
+
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='search_application', application_for=application_for, form=form)
+
+    if form.name.data:
+        name_string = f'%{form.name.data}%'
+    else:
+        name_string = f'%'
+
+    if form.type.data == 'All':
+        application_type_string = f'%'
+    else:
+        application_type_string = f'{form.type.data}'
+    
+    if application_for == 'self':
+            applications = Applications.query.join(Employee).with_entities(Employee.fullname, Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Applications.empid==session['empid'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+        
+    if application_for == 'team':
+        teams = Team.query.filter_by(empid=session['empid']).all()
+        applications = []
+
+        for team in teams:
+            team_applications = Applications.query.select_from(Applications).join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], Applications.type.like(application_type_string), Employee.fullname.like(name_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+
+            for team_application in team_applications:
+                applications.append(team_application)
+
+    if application_for == 'department':
+        applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.department==session['department'], extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], Employee.fullname.like(name_string), Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+
+    if application_for == 'all':
+        applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.fullname.like(name_string), extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+    
+    return render_template('data.html', type='application_search', application_for=application_for, applications=applications, form=form)
