@@ -471,18 +471,18 @@
     {% endif %}
 
     {% if type == 'search_application' %}
-            <div class="form-style-2-heading">Applications</div>
+            <div class="form-style-2-heading">Search Applications</div>
                 {% if application_for=='self' %}
-                    <form method="post" action="{{ url_for('leave.search_application', application_for='self') }}">
+                    <form method="post" action="{{ url_for('application.search', application_for='self') }}">
                 {% endif %} 
                 {% if application_for=='team' %}
-                    <form method="post" action="{{ url_for('leave.search_application', application_for='team') }}">
+                    <form method="post" action="{{ url_for('application.search', application_for='team') }}">
                 {% endif %}
                 {% if application_for=='department' %}
-                    <form method="post" action="{{ url_for('leave.search_application', application_for='department') }}">
+                    <form method="post" action="{{ url_for('application.search', application_for='department') }}">
                 {% endif %}
                 {% if application_for=='all' %}
-                    <form method="post" action="{{ url_for('leave.search_application', application_for='all') }}">
+                    <form method="post" action="{{ url_for('application.search', application_for='all') }}">
                 {% endif %} 
 
                 {{ form.csrf_token }}
