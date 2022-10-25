@@ -769,7 +769,7 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
 # with all the file names for storing in database 
 def save_files(files, username):
     file_names = ''
-    file_id = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    file_id = datetime.now().strftime("%Y%m%d%H%M%S")
     file_count = 1
                 
     for file in files:
