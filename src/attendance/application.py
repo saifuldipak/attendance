@@ -2,10 +2,10 @@ from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFib
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request
 from .auth import login_required
 from .db import db, Applications, Employee, Team
-from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission
+from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access
 from .mail import send_mail2
 import datetime
-from re import search
+import re
 from sqlalchemy import extract
 
 application = Blueprint('application', __name__)
@@ -33,8 +33,8 @@ def submit(application_type):
 
     if not form.validate_on_submit():
         return render_template('forms.html', type='application', application_type=application_type, form=form)
-    
-    if search('^fiber', application_type):
+
+    if re.search('^fiber', application_type):
         employee_id = form.empid.data
     else:
         employee_id = session['empid']
@@ -63,7 +63,7 @@ def submit(application_type):
     leave_duration = (form.end_date.data - form.start_date.data).days + 1
     
     if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
-        if search('^Fiber', session['team']) and session['role'] == 'Supervisor':
+        if re.search('^Fiber', session['team']) and session['role'] == 'Supervisor':
             employee_id = form.empid.data
             status = 'Approved'
         else:
@@ -290,3 +290,16 @@ def search(application_for):
         applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.fullname.like(name_string), extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
     
     return render_template('data.html', type='application_search', application_for=application_for, applications=applications, form=form)
+
+
+@application.route('/application/details/<application_id>')
+@login_required
+def details(application_id):
+    application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
+    has_access = check_data_access(application.empid)
+    
+    if not has_access:
+        flash('You are not authorized to see this record', category='error')
+        return redirect(url_for('leave.application_status_team', type=type))
+
+    return render_template('data.html', data_type='application_details', application=application)
