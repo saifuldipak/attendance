@@ -81,7 +81,13 @@ def submit(application_type):
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
         
-    if application_type in ('casual', 'medical') and form.holiday_duty_type.data == 'No':
+    if application_type == 'casual' and form.holiday_duty_type.data == 'No':
+        available = check_available_leave(application)
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(request.url)
+    
+    if application_type == 'medical':
         available = check_available_leave(application)
         if not available:
             flash('Leave not available, please check leave summary', category='error')
