@@ -1,5 +1,5 @@
 from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance, Searchapplication
-from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request
+from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
 from .auth import login_required
 from .db import db, Applications, Employee, Team
 from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access
@@ -309,3 +309,9 @@ def details(application_id):
         return redirect(url_for('leave.application_status_team', type=type))
 
     return render_template('data.html', data_type='application_details', application=application)
+
+
+@application.route('/application/files/<name>')
+@login_required
+def files(name):
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
