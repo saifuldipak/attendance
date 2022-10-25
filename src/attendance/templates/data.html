@@ -195,7 +195,7 @@
                                 <td class="data-left"> File</td>
                                 {% set files = application['file_url'].split(';') %}
                                     {% for file in files %}
-                                        <td class="data-right"><a href={{ url_for('leave.files', name=file) }}>File {{ loop.index }}</td>
+                                        <td class="data-right"><a href={{ url_for('application.files', name=file) }}>File {{ loop.index }}</td>
                                     {% endfor %}
                             </tr>    
                         {% endif %}
