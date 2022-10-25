@@ -14,7 +14,7 @@ from .functions import check_view_permission, get_fiscal_year_start_end
 
 # renaming original uploaded files and saving to disk, also creating a string 
 # with all the file names for storing in database 
-def save_files(files, username):
+""" def save_files(files, username):
     file_names = ''
     file_id = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     file_count = 1
@@ -29,10 +29,10 @@ def save_files(files, username):
         file_count += 1
     
     file_names = file_names[:-1]
-    return file_names
+    return file_names """
 
 # delete files uploaded with Medical leave application
-def delete_files(files):
+""" def delete_files(files):
     file_list = ''
     
     for file in files:
@@ -43,9 +43,9 @@ def delete_files(files):
         else:
             file_list += file_path
     
-    return file_list
+    return file_list """
 
-#Checking and updating leave
+""" #Checking and updating leave
 def check_available_leave(empid, start_date, duration, type, update=None):
     
     leave = LeaveAvailable.query.filter(LeaveAvailable.empid==empid, 
@@ -94,19 +94,19 @@ def check_available_leave(empid, start_date, duration, type, update=None):
                 else:
                     return False
                 
-    return True
+    return True """
  
 #update 'appr_leave_attn' table
-def update_apprleaveattn(empid, start_date, end_date, approved):
+""" def update_apprleaveattn(empid, start_date, end_date, approved):
     while start_date <= end_date:
         attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.date==start_date, ApprLeaveAttn.empid==empid).first()
         if attendance:
             attendance.approved = approved
         start_date += datetime.timedelta(days=1)
-    db.session.commit()
+    db.session.commit() """
 
 #return leave when leave is cancelled
-def return_available_leave(empid, start_date, duration):
+""" def return_available_leave(empid, start_date, duration):
     summary = AttendanceSummary.query.filter_by(year=application.start_date.year, month=application.start_date.strftime("%B"), 
                     empid=application.empid).first()
     if summary:
@@ -121,13 +121,13 @@ def return_available_leave(empid, start_date, duration):
         leave.casual = leave.casual + application.duration
 
     if application.type == 'Medical':
-        leave.medical = leave.medical + application.duration
+        leave.medical = leave.medical + application.duration """
 
 
 leave = Blueprint('leave', __name__)
 
 ##Casual and Medical leave application submission##
-@leave.route('/leave/application/<type>', methods=['GET', 'POST'])
+""" @leave.route('/leave/application/<type>', methods=['GET', 'POST'])
 @login_required
 def application(type):
 
@@ -248,10 +248,10 @@ def application(type):
     else:
         return render_template('forms.html', type='leave', leave=type, form=form)
     
-    return redirect(request.url)
+    return redirect(request.url) """
 
 #Casual and Medical leave application submission for Fiber
-@leave.route('/leave/application/fiber/<type>', methods=['GET', 'POST'])
+""" @leave.route('/leave/application/fiber/<type>', methods=['GET', 'POST'])
 @login_required
 @supervisor_required
 def application_fiber(type):
@@ -366,11 +366,11 @@ def application_fiber(type):
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
-    return redirect(request.url)
+    return redirect(request.url) """
 
 
 ## Query & show details of each leave application using application id ##
-@leave.route('/leave/details/<application_id>')
+""" @leave.route('/leave/details/<application_id>')
 @login_required
 def details(application_id):
     rv = check_access(application_id)
@@ -380,7 +380,7 @@ def details(application_id):
         return redirect(url_for('leave.application_status_team', type=type))
 
     details = Applications.query.join(Employee).filter(Applications.id==application_id).first()
-    return render_template('data.html', data_type='leave_application_details', details=details)    
+    return render_template('data.html', data_type='leave_application_details', details=details) """    
 
 
 ##Leave summary personal##
@@ -540,7 +540,7 @@ def create_leave():
         return render_template('forms.html', type='create_leave', form=form)
     
 
-@leave.route('/leave/application/search/<application_for>', methods=['GET', 'POST'])
+""" @leave.route('/leave/application/search/<application_for>', methods=['GET', 'POST'])
 @login_required
 def search_application(application_for):
     if application_for not in ('self', 'team', 'department', 'all'):
@@ -589,9 +589,9 @@ def search_application(application_for):
     if application_for == 'all':
         applications = Applications.query.join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Employee.fullname.like(name_string), extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.type.like(application_type_string)).order_by(Applications.status, Applications.start_date.desc()).all()
     
-    return render_template('data.html', type='application_search', application_for=application_for, applications=applications, form=form)
+    return render_template('data.html', type='application_search', application_for=application_for, applications=applications, form=form) """
 
-@leave.route('/leave/approval')
+""" @leave.route('/leave/approval')
 @login_required
 @team_leader_required
 def approval():
@@ -645,10 +645,10 @@ def approval():
     elif session['role'] in ('Supervisor', 'Manager'):
         application_for = 'team'
 
-    return redirect(url_for('leave.search_application', application_for=application_for))
+    return redirect(url_for('leave.search_application', application_for=application_for)) """
 
 
-@leave.route('/leave/cancel/<application_id>')
+""" @leave.route('/leave/cancel/<application_id>')
 @login_required
 def cancel(application_id):
     application = Applications.query.filter_by(id=application_id).first()
@@ -750,7 +750,7 @@ def cancel(application_id):
     db.session.commit()
     flash('Leave cancelled', category='message')
 
-    return redirect(url_for('leave.search_application', application_for=application_for))
+    return redirect(url_for('leave.search_application', application_for=application_for)) """
 
 @leave.route('/leave/approval/batch')
 @login_required

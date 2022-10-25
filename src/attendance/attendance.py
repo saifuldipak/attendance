@@ -5,7 +5,7 @@ from re import search
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import and_, extract, select
 import pandas as pd
-from attendance.leave import update_apprleaveattn
+#from attendance.leave import update_apprleaveattn
 from .check import check_access, check_application_dates, check_attnsummary
 from .mail import send_mail, send_mail2
 from .forms import (Addholidays, Attnqueryusername, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
@@ -91,7 +91,7 @@ def files(name):
 
 
 ##Attendance application##
-@attendance.route('/attendance/application', methods=['GET', 'POST'])
+""" @attendance.route('/attendance/application', methods=['GET', 'POST'])
 @login_required
 def application():
     form = Attnapplication()
@@ -145,11 +145,11 @@ def application():
         flash('Failed to send mail', category='warning')
         return redirect(request.url)
     
-    return redirect(url_for('forms.attn_application'))
+    return redirect(url_for('forms.attn_application')) """
     
 
 ##Attendance application details##
-@attendance.route('/attendance/application/details/<application_id>')
+""" @attendance.route('/attendance/application/details/<application_id>')
 @login_required
 def application_details(application_id):
     rv = check_access(application_id)
@@ -159,10 +159,10 @@ def application_details(application_id):
         return redirect(url_for('attendance.appl_status_self', type=type))
 
     details = Applications.query.join(Employee).filter(Applications.id==application_id).first()
-    return render_template('data.html', type='attn_appl_details', details=details)
+    return render_template('data.html', type='attn_appl_details', details=details) """
 
 
-@attendance.route('/attendance/application/approval')
+""" @attendance.route('/attendance/application/approval')
 @login_required
 @team_leader_required
 def approval():
@@ -194,10 +194,10 @@ def approval():
         msg = 'Mail sending failed (' + str(rv) + ')' 
         flash(msg, category='warning')
     
-    return redirect(url_for('attendance.application_status', application_for='team'))
+    return redirect(url_for('attendance.application_status', application_for='team')) """
 
 ##Attendance application approval for Department##
-@attendance.route('/attendance/application/approval/department')
+""" @attendance.route('/attendance/application/approval/department')
 @login_required
 @head_required
 def approval_department():
@@ -227,11 +227,11 @@ def approval_department():
     if rv:
         flash('Mail sending failed', category='warning')
     
-    return redirect(url_for('attendance.appl_status_department'))
+    return redirect(url_for('attendance.appl_status_department')) """
     
 
 ##Casual and Medical attendance application submission for Fiber##
-@attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
+""" @attendance.route('/attendance/application/fiber', methods=['GET', 'POST'])
 @login_required
 @supervisor_required
 def application_fiber():
@@ -308,7 +308,7 @@ def application_fiber():
     else:
         return render_template('forms.html', type='leave', leave=type, team='fiber', form=form)
 
-    return redirect(url_for('forms.attn_fiber'))
+    return redirect(url_for('forms.attn_fiber')) """
 
 
 @attendance.route('/attendance/duty_schedule/<action>', methods=['GET', 'POST'])
@@ -674,7 +674,7 @@ def query(query_for):
     return render_template('data.html', type='attendance_query', fullname=employee.fullname, form=form, attendances=attendances)
             
 
-@attendance.route('/attendance/application/cancel/<application_for>,<application_id>')
+""" @attendance.route('/attendance/application/cancel/<application_for>,<application_id>')
 @login_required
 def cancel_application(application_for, application_id):
     application = Applications.query.filter_by(id=application_id).first()
@@ -742,10 +742,10 @@ def cancel_application(application_for, application_id):
         current_app.logger.warning(rv)
         flash('Failed to send mail', category='warning')
     
-    return redirect(url_for('attendance.application_status', application_for=application_for))
+    return redirect(url_for('attendance.application_status', application_for=application_for)) """
 
 
-@attendance.route('/attendance/application/status/<application_for>')
+""" @attendance.route('/attendance/application/status/<application_for>')
 @login_required
 def application_status(application_for):
 
@@ -787,7 +787,7 @@ def application_status(application_for):
         applications = Applications.query.filter(and_(Applications.type!='Casual', Applications.type!='Medical')).order_by(Applications.status).all()
 
     return render_template('data.html', type='attendance_application_status', application_for=application_for, applications=applications)
-
+ """
 
 @attendance.route('/attendance/summary/<action>', methods=['GET', 'POST'])
 @login_required
