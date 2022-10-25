@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+from operator import add
 import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
 from flask import session, current_app
@@ -570,9 +571,42 @@ def get_emails(application, action):
             emails['receiver'] = head.email
         else:
             emails['error'] = True
-            return emails
-
-    if action == 'approve':
+            return emails        
+    elif action == 'cancel'and application.status.lower() == 'approval pending':
+        if session['empid'] == application.empid:
+            if supervisor:
+                if supervisor.email:
+                    emails['receiver'] = supervisor.email
+                else:
+                    current_app.logger.error(' get_emails: supervisor email not found')
+                    emails['error'] = True
+                    return emails
+            elif manager:
+                if manager.email:
+                    emails['receiver'] = manager.email
+                else:
+                    current_app.logger.error(' get_emails: manager email not found')
+                    emails['error'] = True
+                    return emails
+            elif head:
+                if head.email:
+                    emails['receiver'] = head.email
+                else:
+                    current_app.logger.error(' get_emails: head email not found')
+                    emails['error'] = True
+                    return emails
+            else:
+                current_app.logger.error(' get_emails: team leader email not found')
+                emails['error'] = True
+                return emails    
+        else:
+            if employee.email:
+                emails['receiver'] = employee.email
+            else:
+                current_app.logger.error(' get_emails(): employee email not found for application "%s" and employee "%s"', application.id, application.empid)
+                emails['error'] = True
+                return emails
+    else:
         if admin:
             emails['receiver'] = admin.email
         else:
@@ -583,76 +617,29 @@ def get_emails(application, action):
         if employee.email:
                 cc.append(employee.email)
 
-        if supervisor:
-            if session['email'] != supervisor.email:
-                cc.append(supervisor.email)
-
-        if manager:
-            if session['email'] != manager.email:
-                cc.append(manager.email)
-        
-        if head:
-            if session['email'] != head.email:
-                cc.append(head.email)
-
-    if action == 'cancel':
-        if application.status.lower() == 'approval pending':
-            if session['empid'] == application.empid:
-                if supervisor:
-                    if supervisor.email:
-                        emails['receiver'] = supervisor.email
-                    else:
-                        current_app.logger.error(' get_emails: supervisor email not found')
-                        emails['error'] = True
-                        return emails
-                elif manager:
-                    if manager.email:
-                        emails['receiver'] = manager.email
-                    else:
-                        current_app.logger.error(' get_emails: manager email not found')
-                        emails['error'] = True
-                        return emails
-                elif head:
-                    if head.email:
-                        emails['receiver'] = head.email
-                    else:
-                        current_app.logger.error(' get_emails: head email not found')
-                        emails['error'] = True
-                        return emails
-                else:
-                    current_app.logger.error(' get_emails: team leader email not found')
-                    emails['error'] = True
-                    return emails    
-            else:
-                if employee.email:
-                    emails['receiver'] = employee.email
-                else:
-                    current_app.logger.error(' get_emails(): employee email not found for application "%s" and employee "%s"', application.id, application.empid)
-                    emails['error'] = True
-                    return emails
-                
-        if application.status.lower() == 'approved':
-            if admin:
-                emails['receiver'] = admin.email
-            else:
-                current_app.logger.error(' get_emails(): admin email not found for application "%s" and user "%s"', application.id, application.empid)
-                emails['error'] = True
-                return emails
-        
-            if employee.email:
-                cc.append(employee.email)
-
-            if supervisor:
-                if session['email'] != supervisor.email:
-                    cc.append(supervisor.email)
-
+        if session['role'] == 'Supervisor':
             if manager:
-                if session['email'] != manager.email:
+                cc.append(manager.email)
+            elif head:
+                cc.append(head.email)
+            
+        if session['role'] == 'Manager':
+            if employee.role == 'Team':
+                if supervisor:
+                    cc.append(supervisor.email)
+            if head:
+                cc.append(head.email)
+        
+        if session['role'] == 'Head':
+            if employee.role == 'Team':
+                if supervisor:
+                    cc.append(supervisor.email)
+                if manager:
                     cc.append(manager.email)
             
-            if head:
-                if session['email'] != head.email:
-                    cc.append(head.email)
+            if employee.role == 'Supervisor':
+                if manager:
+                    cc.append(manager.email)
     
     cc.append(session['email'])
     emails['cc'] = cc  
