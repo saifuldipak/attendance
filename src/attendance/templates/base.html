@@ -69,9 +69,9 @@
                 <div class="dropdown-content">
                     <p>Application
                         {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
-                            <a href="{{ url_for('leave.search_application', application_for='team') }}" class="navbar-item">-- Search</a>
+                            <a href="{{ url_for('application.search', application_for='team') }}" class="navbar-item">-- Search</a>
                         {% elif session['role'] == 'Head' %}
-                            <a href="{{ url_for('leave.search_application', application_for='department') }}" class="navbar-item">-- Search</a>
+                            <a href="{{ url_for('application.search', application_for='department') }}" class="navbar-item">-- Search</a>
                         {% endif %}
                     </p>
                     <p>Leave
