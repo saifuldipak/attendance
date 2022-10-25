@@ -302,11 +302,12 @@ def search(application_for):
 @login_required
 def details(application_id):
     application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
-    has_access = check_data_access(application.empid)
-    
-    if not has_access:
-        flash('You are not authorized to see this record', category='error')
-        return redirect(url_for('leave.application_status_team', type=type))
+
+    if session['empid'] != application.empid:
+        has_access = check_data_access(application.empid)
+        if not has_access:
+            flash('You are not authorized to see this record', category='error')
+            return render_template('base.html')
 
     return render_template('data.html', data_type='application_details', application=application)
 
