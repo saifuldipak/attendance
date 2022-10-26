@@ -44,18 +44,17 @@ def submit(application_type):
         flash(leave_dates_exist, category='error')
         return render_template('forms.html', type='application', application_type=application_type, form=form)
     
+    if application_type in ('casual', 'fiber_casual'):
+        holiday_dates_exist = check_holiday_dates(form, application_type)
+        if holiday_dates_exist:
+            flash(holiday_dates_exist, category='error')
+            return render_template('forms.html', type='application', application_type=application_type, form=form)
+    
     attendance_summary_exist = check_attendance_summary(form.start_date.data, form.end_date.data)
     if attendance_summary_exist:
         msg = f'Attendance summary prepared. You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
         flash(msg, category='error')
         return redirect(request.url)
-
-    if application_type in ('casual', 'fiber_casual'):
-        if form.holiday_duty_type.data == 'On site':
-            holiday_dates_exist = check_holiday_dates(session['empid'], form.holiday_duty_start_date.data, form.holiday_duty_end_date.data)
-            if holiday_dates_exist:
-                flash(holiday_dates_exist, category='error')
-                return render_template('forms.html', type='application', application_type=application_type, form=form)
 
     if not form.end_date.data:
         form.end_date.data = form.start_date.data
