@@ -659,7 +659,7 @@
                         {% if attendance['application_type'] is none %}
                             <td></td>
                         {% else %}
-                            <td><a href={{ url_for('leave.details', application_id=attendance['application_id']) }}>{{ attendance['application_type'] }}</a></td>
+                            <td><a href={{ url_for('application.details', application_id=attendance['application_id']) }}>{{ attendance['application_type'] }}</a></td>
                         {% endif %}
                         
                         {% if attendance['holiday'] is none %}
