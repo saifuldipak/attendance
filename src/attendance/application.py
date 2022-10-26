@@ -71,12 +71,7 @@ def submit(application_type):
     if application_type in ('attendance', 'fiber_attendance'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('casual', 'fiber_casual'):
-        if form.holiday_duty_type != 'No':
-            application_type = 'Casual adjust'
-        else:
-            application_type = form.type.data
-
-        application = Applications(empid=employee_id, type=application_type, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
         
@@ -116,13 +111,16 @@ def submit(application_type):
         flash('Failed to get email addresses for sending email', category='error')
         return redirect(url_for('forms.application', type=application_type))
 
-    if application_type in ('casual', 'medical', 'fiber_casual', 'fiber_medical', 'casual adjust'):
+    if application_type not in ('attendance', 'fiber_attendance'):
         type = 'leave'
         if application_type in ('fiber_casual', 'fiber_medical'):
             action = 'approved'
         else:
             action = 'submitted'
-    elif application_type in ('attendance', 'fiber_attendance'):
+        
+        if form.holiday_duty_type != 'No':
+            application.type = 'Casual adjust'
+    else:
         type = 'attendance'
         if application_type == 'fiber_attendance':
             action = 'approved'
@@ -131,7 +129,7 @@ def submit(application_type):
     
     rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
-        current_app.logger.warning(rv)
+        current_app.logger.warning(' submit(): %s',rv)
         flash('Failed to send mail', category='warning')
 
     db.session.commit()
@@ -237,7 +235,7 @@ def process(action, application_id=None):
 
     rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
-        current_app.logger.warning(rv)
+        current_app.logger.warning(' process():', rv)
         flash('Failed to send mail', category='warning')
 
     db.session.commit()
