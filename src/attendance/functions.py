@@ -745,10 +745,10 @@ def check_holiday_dates(form, application_type):
         return f'One or more days not holiday between dates {form.holiday_duty_start_date.data} & {form.holiday_duty_end_date.data}'
     
     #Check whether attendance data is uploaded
-    if form.holiday_duty_type == 'On site':
+    if form.holiday_duty_type.data == 'On site':
         holiday_duty_duration = (form.holiday_duty_end_date.data - form.holiday_duty_start_date.data).days + 1
-        attendance_count = Attendance.query.with_entities(func.count(Attendance.id).label('count')).filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).all()
-        if holiday_duty_duration != attendance_count:
+        attendance = Attendance.query.with_entities(func.count(Attendance.id).label('count')).filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).first()
+        if holiday_duty_duration != attendance.count:
             return f'Attendance not found for one or more days between dates {form.holiday_duty_start_date.data} & {form.holiday_duty_end_date.data}'
 
         attendances = Attendance.query.filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).all()
