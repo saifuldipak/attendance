@@ -145,7 +145,8 @@ def send_mail2(sender, receiver, type, **kwargs):
     elif type == 'reset':
         subject = 'Your Attendance app password has been reset'
     else:
-        return 'Type arguement must be "leave, attendance or reset"'
+        msg = f'Unknown type {type}'
+        return msg
 
     #creating email body for leave and attendance
     if type == 'leave' or type == 'attendance':
