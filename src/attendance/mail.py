@@ -179,8 +179,8 @@ def send_mail2(sender, receiver, type, **kwargs):
     
     if type == 'leave' or type == 'attendance':
         if 'cc' in kwargs:
-            for cc in kwargs['cc']:
-                msg.add_header('cc', cc)
+            cc_list = ','.join(kwargs['cc'])
+            msg.add_header('cc', cc_list)
     
     msg.add_header('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     msg.add_header('subject', subject)
