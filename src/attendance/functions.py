@@ -700,19 +700,19 @@ def check_application_dates(form, application_type):
     else:
         employee_id = session['empid']
 
-    if not form.start_date:
+    if not form.start_date.data:
         return 'Start date must be given'
 
-    start_date_exists = Applications.query.filter(Applications.start_date<=form.start_date, Applications.end_date>=form.start_date, Applications.empid==employee_id).first()
+    start_date_exists = Applications.query.filter(Applications.start_date<=form.start_date.data, Applications.end_date>=form.start_date.data, Applications.empid==employee_id).first()
     if start_date_exists:
         return 'Start date overlaps with another application'
 
-    if form.end_date:
-        end_date_exists = Applications.query.filter(Applications.start_date<=form.end_date, Applications.end_date>=form.end_date, Applications.empid==employee_id).first()
+    if form.end_date.data:
+        end_date_exists = Applications.query.filter(Applications.start_date<=form.end_date.data, Applications.end_date>=form.end_date.data, Applications.empid==employee_id).first()
         if end_date_exists:
             return 'End date overlaps with another application'
 
-        any_date_exists = Applications.query.filter(Applications.start_date>form.start_date, Applications.end_date<form.end_date, Applications.empid==employee_id).first()
+        any_date_exists = Applications.query.filter(Applications.start_date>form.start_date.data, Applications.end_date<form.end_date.data, Applications.empid==employee_id).first()
         if any_date_exists:
             return 'Start and/or end dates overlaps with other application'
 
@@ -722,36 +722,36 @@ def check_holiday_dates(form, application_type):
     else:
         employee_id = session['empid']
 
-    if not form.holiday_duty_end_date:
-        form.holiday_duty_end_date = form.holiday_duty_start_date
+    if not form.holiday_duty_end_date.data:
+        form.holiday_duty_end_date.data = form.holiday_duty_start_date.data
 
     #Check whether holiday duty dates exists in any other application
-    holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=form.holiday_duty_start_date, Applications.holiday_duty_end_date>=form.holiday_duty_start_date, Applications.empid==employee_id).first()
+    holiday_duty_start_date_exists = Applications.query.filter(Applications.holiday_duty_start_date<=form.holiday_duty_start_date.data, Applications.holiday_duty_end_date>=form.holiday_duty_start_date.data, Applications.empid==employee_id).first()
     if holiday_duty_start_date_exists:
         return 'Holiday duty start date overlaps with another application'
     
-    if form.holiday_duty_start_date != form.holiday_duty_end_date:
-        holiday_duty_end_date_exists = Applications.query.filter(Applications.start_date<=form.holiday_duty_end_date, Applications.end_date>=form.holiday_duty_end_date, Applications.empid==employee_id).first()
+    if form.holiday_duty_start_date.data != form.holiday_duty_end_date.data:
+        holiday_duty_end_date_exists = Applications.query.filter(Applications.start_date<=form.holiday_duty_end_date.data, Applications.end_date>=form.holiday_duty_end_date.data, Applications.empid==employee_id).first()
         if holiday_duty_end_date_exists:
             return 'Holiday duty end date overlaps with another application'
 
-        any_date_exists = Applications.query.filter(Applications.start_date>form.holiday_duty_start_date, Applications.end_date<form.holiday_duty_end_date, Applications.empid==employee_id).first()
+        any_date_exists = Applications.query.filter(Applications.start_date>form.holiday_duty_start_date.data, Applications.end_date<form.holiday_duty_end_date.data, Applications.empid==employee_id).first()
         if any_date_exists:
             return 'Holiday duty start and/or end dates overlaps with other application'
 
     #Check whether holidays added or not
-    holiday = Holidays.query.filter(Holidays.start_date<=form.holiday_duty_start_date, Holidays.end_date>=form.holiday_duty_end_date).first()
+    holiday = Holidays.query.filter(Holidays.start_date<=form.holiday_duty_start_date.data, Holidays.end_date>=form.holiday_duty_end_date.data).first()
     if not holiday:
-        return f'One or more days not holiday between dates {form.holiday_duty_start_date} & {form.holiday_duty_end_date}'
+        return f'One or more days not holiday between dates {form.holiday_duty_start_date.data} & {form.holiday_duty_end_date.data}'
     
     #Check whether attendance data is uploaded
     if form.holiday_duty_type == 'On site':
-        holiday_duty_duration = (form.holiday_duty_end_date - form.holiday_duty_start_date).days + 1
-        attendance_count = Attendance.query.with_entities(func.count(Attendance.id).label('count')).filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date, Attendance.date<=form.holiday_duty_end_date).all()
+        holiday_duty_duration = (form.holiday_duty_end_date.data - form.holiday_duty_start_date.data).days + 1
+        attendance_count = Attendance.query.with_entities(func.count(Attendance.id).label('count')).filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).all()
         if holiday_duty_duration != attendance_count:
-            return f'Attendance not found for one or more days between dates {form.holiday_duty_start_date} & {form.holiday_duty_end_date}'
+            return f'Attendance not found for one or more days between dates {form.holiday_duty_start_date.data} & {form.holiday_duty_end_date.data}'
 
-        attendances = Attendance.query.filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date, Attendance.date<=form.holiday_duty_end_date).all()
+        attendances = Attendance.query.filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).all()
         no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time() 
         
         for attendance in attendances:
