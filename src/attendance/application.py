@@ -39,7 +39,7 @@ def submit(application_type):
         flash(application_dates_exist, category='error')
         return render_template('forms.html', type='application', application_type=application_type, form=form)
     
-    if application_type in ('casual', 'fiber_casual'):
+    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type != 'No':
         holiday_dates_exist = check_holiday_dates(form, application_type)
         if holiday_dates_exist:
             flash(holiday_dates_exist, category='error')
@@ -71,7 +71,12 @@ def submit(application_type):
     if application_type in ('attendance', 'fiber_attendance'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('casual', 'fiber_casual'):
-        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
+        if form.holiday_duty_type != 'No':
+            application_type = 'Casual adjust'
+        else:
+            application_type = form.type.data
+
+        application = Applications(empid=employee_id, type=application_type, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
         
