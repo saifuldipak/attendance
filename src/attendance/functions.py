@@ -694,20 +694,25 @@ def delete_files(files):
 
     return file_list
 
-def check_application_dates(empid, start_date, end_date):
-    if not start_date:
+def check_application_dates(form, application_type):
+    if re.search('^fiber', application_type):
+        employee_id = form.empid.data
+    else:
+        employee_id = session['empid']
+
+    if not form.start_date:
         return 'Start date must be given'
 
-    start_date_exists = Applications.query.filter(Applications.start_date<=start_date, Applications.end_date>=start_date, Applications.empid==empid).first()
+    start_date_exists = Applications.query.filter(Applications.start_date<=form.start_date, Applications.end_date>=form.start_date, Applications.empid==employee_id).first()
     if start_date_exists:
         return 'Start date overlaps with another application'
 
-    if end_date:
-        end_date_exists = Applications.query.filter(Applications.start_date<=end_date, Applications.end_date>=end_date, Applications.empid==empid).first()
+    if form.end_date:
+        end_date_exists = Applications.query.filter(Applications.start_date<=form.end_date, Applications.end_date>=form.end_date, Applications.empid==employee_id).first()
         if end_date_exists:
             return 'End date overlaps with another application'
 
-        any_date_exists = Applications.query.filter(Applications.start_date>start_date, Applications.end_date<end_date, Applications.empid==empid).first()
+        any_date_exists = Applications.query.filter(Applications.start_date>form.start_date, Applications.end_date<form.end_date, Applications.empid==employee_id).first()
         if any_date_exists:
             return 'Start and/or end dates overlaps with other application'
 
