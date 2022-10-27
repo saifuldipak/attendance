@@ -123,8 +123,8 @@
             <th>Earned</th>
             <th>&nbsp</th>
         
-        {% if leaves %}
-            {% for leave in leaves %}
+        {% if leave_summary %}
+            {% for leave in leave_summary %}
                 <tr>
                     <td>{{ leave['employee']['fullname'] }}</td>
                     <td></td>

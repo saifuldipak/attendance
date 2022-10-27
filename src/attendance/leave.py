@@ -1,14 +1,14 @@
-from flask import Blueprint, current_app, redirect, render_template, send_from_directory, session, flash, url_for
+from flask import Blueprint, current_app, redirect, render_template, session, flash, url_for
 from sqlalchemy import and_, or_
 from .db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary
 from .auth import *
 from .forms import Createleave, Monthyear
 import datetime
-from .functions import get_fiscal_year_start_end
+#from .functions import get_fiscal_year_start_end
 
 leave = Blueprint('leave', __name__)
 
-##Leave summary personal##
+""" ##Leave summary personal##
 @leave.route('/leave/summary/self')
 @login_required     
 def summary_self():
@@ -70,7 +70,7 @@ def summary_all():
         current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
         flash('No leave summary record found', category='warning')
 
-    return render_template('data.html', data_type='leave_summary', leaves=leaves)
+    return render_template('data.html', data_type='leave_summary', leaves=leaves) """
 
 """ @leave.route('/leave/files/<name>')
 @login_required
@@ -302,3 +302,57 @@ def reverse_deduction():
     db.session.commit()
     flash('Leave deduction reversed')
     return redirect(url_for('forms.reverse_leave_deduction'))
+
+
+@leave.route('/leave/summary/<type>')
+@login_required     
+def summary(type):
+    if type not in ('self', 'team', 'department', 'all'):
+        current_app.logger.error(' summary(): unknown type "%s" for user "%s"', type, session['username'])
+        flash('Failed to show summary', category='error')
+        return render_template('base.html')
+    
+    if type == 'team' and session['role'] not in ('Supervisor', 'Manager'):
+        current_app.logger.error(' summary(): "%s" is trying to access team leave summary', session['username'])
+        flash('You are not authorized to see leave summary of team', category='error')
+        return render_template('base.html')
+    
+    if type == 'department' and session['role'] != 'Head':
+        current_app.logger.error(' summary(): "%s" is trying to access department leave summary', session['username'])
+        flash('You are not authorized to see leave summary of department', category='error')
+        return render_template('base.html')
+    
+    if type == 'all' and session['access'] != 'Admin':
+        current_app.logger.error(' summary(): "%s" is trying to access all leave summary', session['username'])
+        flash('You are not authorized to see leave summary of all', category='error')
+        return render_template('base.html')
+
+    if type == 'self':
+        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+        if not leave_summary:
+            current_app.logger.warning(' summary(): No data found in leave_available table for %s', session['empid'])
+            flash('No leave summary record found', category='warning')
+            return render_template('base.html')
+
+    if type == 'team':
+        teams = Team.query.filter_by(empid=session['empid']).all()
+        team_summary = []
+    
+        for team in teams:
+            summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+            team_summary += summary
+        
+        leave_summary = team_summary
+    
+        if not leave_summary:
+            current_app.logger.warning(' summary(): No data found in leave_available table for team user "%s"', session['username'])
+            flash('No leave summary record found for team', category='warning')
+            return render_template('base.html')
+    
+    if type == 'department':
+        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.department==session['department'], Employee.id!=session['empid'],  and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+
+    if type == 'all':
+        leave_summary = LeaveAvailable.query.join(Employee).filter(or_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+
+    return render_template('data.html', data_type='leave_summary', leave_summary=leave_summary)

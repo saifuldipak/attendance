@@ -39,7 +39,7 @@
             <div class="dropdown-content">
                 <a href="{{ url_for('forms.application', application_type='casual') }}" class="navbar-item">--Application-Casual</a>
                 <a href="{{ url_for('forms.application', application_type='medical') }}" class="navbar-item">--Application-Medical</a>
-                <a href="{{ url_for('leave.summary_self') }}" class="navbar-item">--Summary</a>
+                <a href="{{ url_for('leave.summary', type='self') }}" class="navbar-item">--Summary</a>
             </div>
         </div>
     {% else %}
@@ -57,7 +57,7 @@
                     <p>Leave</p>
                         <a href="{{ url_for('forms.application', application_type='casual') }}" class="navbar-item">--Application-Casual</a>
                         <a href="{{ url_for('forms.application', application_type='medical') }}" class="navbar-item">--Application-Medical</a>
-                        <a href="{{ url_for('leave.summary_self') }}" class="navbar-item">--Summary</a>
+                        <a href="{{ url_for('leave.summary', type='self') }}" class="navbar-item">--Summary</a>
                 </div>
         </div>
     {% endif %}
@@ -80,9 +80,9 @@
                             <a href="{{ url_for('forms.application', application_type='fiber_medical') }}" class="navbar-item">-- Appl Medical</a>
                         {% endif %}
                         {% if session['role'] == 'Supervisor' or session['role'] == 'Manager' %}
-                            <a href="{{ url_for('leave.summary_team') }}" class="navbar-item">-- Summary</a>
+                            <a href="{{ url_for('leave.summary', type='team') }}" class="navbar-item">-- Summary</a>
                         {% elif session['role'] == 'Head' %}
-                            <a href="{{ url_for('leave.summary_department') }}" class="navbar-item">-- Summary</a>
+                            <a href="{{ url_for('leave.summary', type='department') }}" class="navbar-item">-- Summary</a>
                         {% endif %}
                     </p>
                     <p>Attendance
@@ -111,7 +111,7 @@
                         <a href="{{ url_for('application.search', application_for='all') }}" class="navbar-item">-- Search</a>
                     </p>
                     <p>Leave
-                        <a href="{{ url_for('leave.summary_all', type='all') }}" class="navbar-item">-- Summary</a>
+                        <a href="{{ url_for('leave.summary', type='all') }}" class="navbar-item">-- Summary</a>
                         <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">-- Deduction</a>
                         <a href="{{ url_for('forms.create_leave') }}" class="navbar-item">-- Create</a>
                     </p>
