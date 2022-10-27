@@ -1,8 +1,8 @@
-from .db import Applications, ApprLeaveAttn, Employee, Team, AttendanceSummary, Attendance, Holidays
+""" from .db import Applications, ApprLeaveAttn, Employee, Team, AttendanceSummary, Attendance, Holidays
 from flask import current_app, session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_ """
 
-def check_application_dates(empid, start_date, end_date):
+""" def check_application_dates(empid, start_date, end_date):
     if not start_date:
         return 'Start date must be given'
 
@@ -20,10 +20,10 @@ def check_application_dates(empid, start_date, end_date):
         any_date_exists = Applications.query.filter(Applications.start_date>start_date, Applications.end_date<end_date, 
                             Applications.empid==empid).first()
         if any_date_exists:
-            return 'Start and/or end dates overlaps with other application'
+            return 'Start and/or end dates overlaps with other application' """
 
 
-def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
+""" def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
     if not holiday_duty_end_date:
         holiday_duty_end_date = holiday_duty_start_date
 
@@ -74,10 +74,10 @@ def check_holiday_dates(empid, holiday_duty_start_date, holiday_duty_end_date):
             approved_attendance = ApprLeaveAttn.query.filter(ApprLeaveAttn.empid==empid, ApprLeaveAttn.date==attendance.date, 
                                     or_(ApprLeaveAttn.approved=='Out', ApprLeaveAttn.approved=='Both')).one()
             if not approved_attendance:
-                return f'No attendance "Out time" for date {attendance.date}'
+                return f'No attendance "Out time" for date {attendance.date}' """
 
 
-def check_access(application_id):
+""" def check_access(application_id):
     employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
     supervisor = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
     manager = Employee.query.join(Team).filter(Team.name==employee.teams[0].name, Employee.role=='Manager').first()
@@ -90,10 +90,10 @@ def check_access(application_id):
     elif session['access'] == 'Admin':
         return True
     else:
-        return False
+        return False """
 
 
-def check_attnsummary(start_date, end_date=None):
+""" def check_attnsummary(start_date, end_date=None):
     start_date_in_summary = AttendanceSummary.query.filter(AttendanceSummary.year==start_date.year, 
                                 AttendanceSummary.month==start_date.strftime("%B")).first()
     
@@ -115,4 +115,4 @@ def check_attnsummary(start_date, end_date=None):
         msg = f'Attendance summary already prepared for {month}, {year}'
         return msg
     
-    return False
+    return False """

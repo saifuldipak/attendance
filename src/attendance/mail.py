@@ -1,4 +1,4 @@
-from smtplib import SMTP, SMTPException
+""" from smtplib import SMTP, SMTPException
 from email import message
 from datetime import datetime
 from socket import timeout
@@ -201,5 +201,5 @@ def send_mail2(sender, receiver, type, **kwargs):
     except SMTPException as e:
         return e
     else:
-        server.quit()
+        server.quit() """
         
