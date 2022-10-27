@@ -1,16 +1,13 @@
 from calendar import monthrange
 from datetime import datetime
 import os
-from re import search
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import extract, select
 import pandas as pd
-#from attendance.leave import update_apprleaveattn
-from .check import check_attnsummary
 from .forms import (Addholidays, Attnqueryusername, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
-from .functions import check_holidays, convert_team_name, get_attendance_data, check_view_permission, convert_team_name2, check_data_access
+from .functions import check_holidays, convert_team_name, get_attendance_data, check_view_permission, convert_team_name2, check_data_access, check_attendance_summary
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -347,7 +344,7 @@ def holidays(action):
             if not form.end_date.data:
                 form.end_date.data = form.start_date.data
             
-            rv = check_attnsummary(form.start_date.data, form.end_date.data)
+            rv = check_attendance_summary(form.start_date.data, form.end_date.data)
             if rv:
                 flash(rv, category='error')
                 return redirect(url_for('attendance.holidays', action='show'))
@@ -388,7 +385,7 @@ def holidays(action):
             flash('Holiday not found', category='error')
             return redirect(url_for('attendance.holidays', action='show'))
 
-        rv = check_attnsummary(holiday.start_date, holiday.end_date)
+        rv = check_attendance_summary(holiday.start_date, holiday.end_date)
         if rv:
             flash(rv, category='error')
             return redirect(url_for('attendance.holidays', action='show'))
