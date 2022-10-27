@@ -2,8 +2,7 @@ from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFib
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
 from .auth import login_required
 from .db import db, Applications, Employee, Team
-from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access
-from .mail import send_mail2
+from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail
 import datetime
 import re
 from sqlalchemy import extract
@@ -127,7 +126,7 @@ def submit(application_type):
         else:
             action = 'submitted'
     
-    rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
         current_app.logger.warning(' submit(): %s',rv)
         flash('Failed to send mail', category='warning')
@@ -233,7 +232,7 @@ def process(action, application_id=None):
     elif action == 'cancel':
         action = 'cancelled'
 
-    rv = send_mail2(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
         current_app.logger.warning(' process():', rv)
         flash('Failed to send mail', category='warning')
