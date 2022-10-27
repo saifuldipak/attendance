@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, redirect, render_template, send_from_directory, session, flash, url_for
 from sqlalchemy import and_, or_
-from .db import LeaveDeduction, db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary
+from .db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary
 from .auth import *
 from .forms import Createleave, Monthyear
 import datetime
@@ -72,10 +72,10 @@ def summary_all():
 
     return render_template('data.html', data_type='leave_summary', leaves=leaves)
 
-@leave.route('/leave/files/<name>')
+""" @leave.route('/leave/files/<name>')
 @login_required
 def files(name):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], name)
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], name) """
 
 
 ## Leave deduction function ##
@@ -93,7 +93,7 @@ def deduction():
         flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
     
-    deducted = LeaveDeduction.query.filter_by(month=form.month.data, year=form.year.data).first()
+    deducted = LeaveDeductionSummary.query.filter_by(month=form.month.data, year=form.year.data).first()
     if deducted:
         msg = f'You have already deducted leave for {form.month.data}, {form.year.data}'
         flash(msg, category='error')
@@ -219,7 +219,7 @@ def approval_batch():
     return render_template('base.html')
 
 
-@leave.route('/leave/summary')
+""" @leave.route('/leave/summary')
 @login_required     
 def summary():
     (year_start_date, year_end_date) = get_fiscal_year_start_end()
@@ -262,7 +262,7 @@ def summary():
         current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
         flash('No leave summary record found', category='warning')
 
-    return render_template('data.html', data_type='leave_summary', leaves=leaves)
+    return render_template('data.html', data_type='leave_summary', leaves=leaves) """
 
 
 @leave.route('/leave/reverse_deduction', methods=['GET', 'POST'])
