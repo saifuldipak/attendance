@@ -8,6 +8,7 @@ from .auth import admin_required, login_required
 import random
 import string
 from datetime import datetime, date, timedelta
+import functions as fn
 
 employee = Blueprint('employee', __name__)
 
@@ -300,13 +301,16 @@ def update(action):
             employee.password = generate_password_hash(password)
 
             admin = Employee.query.filter_by(username=session['username']).first()
-            send_mail(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], sender=admin.email, 
-                        receiver=employee.email, type='reset', extra=password)
-            
+            rv = fn.send_mail(sender=session['email'], receiver=employee.email, type='reset', extra=password)
+            if rv:
+                current_app.logger.error(' update(): %s', rv)
+                flash('Failed to send mail', category='error')
+                return redirect(url_for('employee.update_menu'))
+
             flash('Password reset', category='message')
 
         db.session.commit()
-
+        
     return redirect(url_for('employee.update_menu'))
 
 
