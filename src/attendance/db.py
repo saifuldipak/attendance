@@ -63,19 +63,19 @@ class Attendance(db.Model):
     in_time = db.Column(db.Time)
     out_time = db.Column(db.Time)
 
-#Date wise approved leave and attendance status of each employee
+""" #Date wise approved leave and attendance status of each employee
 class ApprLeaveAttn(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
-    approved = db.Column(db.String)
+    approved = db.Column(db.String) """
 
-#Leave deduction log
+""" #Leave deduction log
 class LeaveDeduction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.String, nullable=False)
     month = db.Column(db.String, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.DateTime, nullable=False) """
 
 #Holiday dates
 class Holidays(db.Model):
