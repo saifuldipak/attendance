@@ -3,12 +3,11 @@ from flask import Blueprint, current_app, request, flash, redirect, render_templ
 from .db import db, Employee, Team, LeaveAvailable
 from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
-from .mail import send_mail
 from .auth import admin_required, login_required
 import random
 import string
 from datetime import datetime, date, timedelta
-import functions as fn
+import attendance.functions as fn
 
 employee = Blueprint('employee', __name__)
 
