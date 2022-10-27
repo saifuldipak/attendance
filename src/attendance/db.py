@@ -18,7 +18,7 @@ class Employee(db.Model):
     applications = db.relationship('Applications', cascade='delete, merge, save-update', backref='employee', lazy=True)
     leaveavailable = db.relationship('LeaveAvailable', cascade='delete, merge, save-update', backref='employee', lazy=True)
     attendance = db.relationship('Attendance', cascade='delete, merge, save-update', backref='employee', lazy=True)
-    approved = db.relationship('ApprLeaveAttn', cascade='delete, merge, save-update', backref='employee', lazy=True)
+    #approved = db.relationship('ApprLeaveAttn', cascade='delete, merge, save-update', backref='employee', lazy=True)
     attendancesummary = db.relationship('AttendanceSummary', cascade='delete, merge, save-update', backref='employee', lazy=True)
     dutyschedule = db.relationship('DutySchedule', cascade='delete, merge, save-update', backref='employee', lazy=True)
 
