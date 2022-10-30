@@ -33,12 +33,13 @@ def submit(application_type):
     if not form.validate_on_submit():
         return render_template('forms.html', type='application', application_type=application_type, form=form)
 
+
     application_dates_exist = check_application_dates(form, application_type)
     if application_dates_exist:
         flash(application_dates_exist, category='error')
         return render_template('forms.html', type='application', application_type=application_type, form=form)
     
-    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type != 'No':
+    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data != 'No':
         holiday_dates_exist = check_holiday_dates(form, application_type)
         if holiday_dates_exist:
             flash(holiday_dates_exist, category='error')
@@ -117,7 +118,7 @@ def submit(application_type):
         else:
             action = 'submitted'
         
-        if form.holiday_duty_type != 'No':
+        if form.holiday_duty_type.data != 'No':
             application.type = 'Casual adjust'
     else:
         type = 'attendance'
