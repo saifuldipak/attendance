@@ -717,6 +717,14 @@ def check_application_dates(form, application_type):
             return 'Start and/or end dates overlaps with other application'
 
 def check_holiday_dates(form, application_type):
+    if not form.holiday_duty_start_date.data:
+        current_app.logger.error(' check_holiday_dates(): holiday_duty_start_date not given user "%s"', session['username'])
+        return f'Holiday date check failed'
+    
+    if not application_type:
+        current_app.logger.error(' check_holiday_dates(): application_type not given user "%s"', session['username'])
+        return f'Holiday date check failed'
+
     if re.search('^fiber', application_type):
         employee_id = form.empid.data
     else:
