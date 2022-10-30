@@ -117,9 +117,10 @@ def submit(application_type):
             action = 'approved'
         else:
             action = 'submitted'
-        
-        if form.holiday_duty_type.data != 'No':
-            application.type = 'Casual adjust'
+            
+        if application_type in ('casual', 'fiber_casual'):
+            if form.holiday_duty_type.data != 'No':
+                application.type = 'Casual adjust'
     else:
         type = 'attendance'
         if application_type == 'fiber_attendance':
