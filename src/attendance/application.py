@@ -75,7 +75,7 @@ def submit(application_type):
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
     
-    leave_available = LeaveAvailable.query.filter_by(empid=form.empid.data).first()
+    leave_available = LeaveAvailable.query.filter_by(empid=employee_id).first()
 
     if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data == 'No':
         if application_type == 'casual':
