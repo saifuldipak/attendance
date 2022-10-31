@@ -1,7 +1,7 @@
 from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance, Searchapplication
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
 from .auth import login_required
-from .db import db, Applications, Employee, Team
+from .db import LeaveAvailable, db, Applications, Employee, Team
 from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail
 import datetime
 import re
@@ -74,19 +74,34 @@ def submit(application_type):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
-        
-    if application_type == 'casual' and form.holiday_duty_type.data == 'No':
-        available = check_available_leave(application)
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
-            return redirect(request.url)
     
-    if application_type == 'medical':
-        available = check_available_leave(application)
+    leave_available = LeaveAvailable.query.filter_by(empid=form.empid.data).first()
+
+    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data == 'No':
+        if application_type == 'casual':
+            available = check_available_leave(leave_available, application)
+        elif application_type == 'fiber_casual':
+            available = check_available_leave(leave_available, application, 'update')
+
         if not available:
             flash('Leave not available, please check leave summary', category='error')
             return redirect(request.url)
+        else:
+            leave_available = available
 
+    
+    if application_type in ('medical', 'fiber_medical'):
+        if application_type == 'medical':
+            available = check_available_leave(leave_available, application)
+        elif application_type == 'fiber_medical':
+            available = check_available_leave(leave_available, application, 'update')
+
+        if not available:
+            flash('Leave not available, please check leave summary', category='error')
+            return redirect(request.url)
+        else:
+            leave_available = available
+    
     if application_type in ('medical', 'fiber_medical'):
         files = [form.file1.data]
         if form.file2.data is not None:
