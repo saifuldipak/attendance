@@ -298,8 +298,15 @@ def update(action):
                 password += secrets.choice(string.digits)
             
             employee.password = generate_password_hash(password)
+            
+            if not session['email']:
+                flash('Admin email not found', category='error')
+                return redirect(url_for('employee.update_menu'))
+            
+            if not employee.email:
+                flash('Employee email not found', category='error')
+                return redirect(url_for('employee.update_menu'))
 
-            admin = Employee.query.filter_by(username=session['username']).first()
             rv = fn.send_mail(sender=session['email'], receiver=employee.email, type='reset', extra=password)
             if rv:
                 current_app.logger.error(' update(): %s', rv)
