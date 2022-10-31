@@ -175,47 +175,40 @@ def approval_batch():
         leave_available = LeaveAvailable.query.filter_by(empid=employee.id).first()
         casual_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Casual', status='Approved').first() 
         medical_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Medical', status='Approved').first() 
+
+        leave_available.casual = current_app.config['CASUAL']
+        leave_available.medical = current_app.config['MEDICAL']
+        leave_available.earned = current_app.config['EARNED']
+        leave_available_casual_earned = leave_available.casual + leave_available.earned
         
-        yearly_casual = current_app.config['CASUAL']
-        yearly_medical = current_app.config['MEDICAL']
-        yearly_earned = current_app.config['EARNED']
-        yearly_casual_earned = yearly_casual + yearly_earned
-        yearly_medical_casual = yearly_casual + yearly_medical
-        yearly_all = yearly_medical_casual + yearly_earned
-
-        leave_available.casual = yearly_casual
-        leave_available.medical = yearly_medical
-        leave_available.earned = yearly_earned
-
         if casual_approved.days:
-            if casual_approved.days < yearly_casual:
-                leave_available.casual = yearly_casual - casual_approved.days
-            elif casual_approved.days > yearly_casual:
-                leave_available.earned = yearly_casual_earned - casual_approved.days
+            if casual_approved.days <= leave_available.casual:
+                leave_available.casual = leave_available.casual - casual_approved.days
+            elif casual_approved.days > leave_available.casual and casual_approved.days <= leave_available_casual_earned:
+                leave_available.earned = leave_available_casual_earned - casual_approved.days
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for %s (casual)', employee.username)
                 msg = f'Batch casual leave approval failed for {employee.fullname}'
                 flash(msg, category='warning')
-        else:
-            leave_available.casual = yearly_casual
 
+        leave_available_medical_casual = leave_available.medical + leave_available.casual
+        leave_available_all = leave_available_medical_casual + leave_available.earned
+        
         if medical_approved.days:
-            if medical_approved.days < yearly_medical:
-                leave_available.medical = yearly_medical - medical_approved.days
-            elif medical_approved.days > yearly_medical and medical_approved.days < yearly_medical_casual:
+            if medical_approved.days <= leave_available.medical:
+                leave_available.medical = leave_available.medical - medical_approved.days
+            elif medical_approved.days > leave_available.medical and medical_approved.days <= leave_available_medical_casual:
                 leave_available.medical = 0
-                leave_available.casual = yearly_medical_casual - medical_approved.days
-            elif medical_approved.days > yearly_medical_casual:
-                leave_available.earned = yearly_all - medical_approved.days
+                leave_available.casual = leave_available_medical_casual - medical_approved.days
+            elif medical_approved.days > leave_available_medical_casual and medical_approved.days <= leave_available_all:
+                leave_available.earned = leave_available_all - medical_approved.days
                 leave_available.medical = 0
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
                 msg = f'Batch medical leave approval failed for {employee.fullname}'
                 flash(msg, category='warning')
-        else:
-            leave_available.medical = yearly_medical
 
     db.session.commit()
     flash('Leave approved in batch', category='message')
