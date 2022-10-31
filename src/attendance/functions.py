@@ -461,52 +461,55 @@ def check_attendance_summary(start_date, end_date=None):
     return False
 
 
-def check_available_leave(application, update=None):
-    leave = LeaveAvailable.query.filter(LeaveAvailable.empid==application.empid, and_(LeaveAvailable.year_start < application.start_date, LeaveAvailable.year_end > application.start_date)).first()
-    if not leave:
-        current_app.logger.warning('check_leave(): no data found in leave_available table for employee %s', application.empid)
+def check_available_leave(leave_available, application, update=None):
+    if not leave_available:
+        current_app.logger.warning('check_available_leave(): leave_available argument missing, user: %s', session['username'])
+        return False
+    
+    if not application:
+        current_app.logger.warning('check_available_leave(): application argument missing, user: %s', session['username'])
         return False
 
     if type == 'Casual':
-        if leave.casual > application.duration:
+        if leave_available.casual > application.duration:
             if update:
-                casual = leave.casual - application.duration
-                leave.casual = casual
+                casual = leave_available.casual - application.duration
+                leave_available.casual = casual
         else:
-            total = leave.casual + leave.earned
+            total = leave_available.casual + leave_available.earned
             if total > application.duration:
                 if update:
                     earned = total - application.duration
-                    leave.casual = 0
-                    leave.earned = earned
+                    leave_available.casual = 0
+                    leave_available.earned = earned
             else:
                 return False
 
     if type == 'Medical':
-        if leave.medical > application.duration:
+        if leave_available.medical > application.duration:
             if update:
-                medical = leave.medical - application.duration
-                leave.medical = medical
+                medical = leave_available.medical - application.duration
+                leave_available.medical = medical
         else:
-            total = leave.medical + leave.casual
+            total = leave_available.medical + leave_available.casual
             
             if total > application.duration:
                 if update:
                     casual = total - application.duration
-                    leave.medical = 0
-                    leave.casual = casual
+                    leave_available.medical = 0
+                    leave_available.casual = casual
             else:
-                total = total + leave.earned
+                total = total + leave_available.earned
                 if total > application.duration:
                     if update:
                         earned = total - application.duration
-                        leave.medical = 0
-                        leave.casual = 0
-                        leave.earned = earned
+                        leave_available.medical = 0
+                        leave_available.casual = 0
+                        leave_available.earned = earned
                 else:
                     return False
                 
-    return True
+    return leave_available
 
 
 def check_authorization(application):
