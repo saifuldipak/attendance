@@ -306,8 +306,8 @@ def upload():
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
 #Attendance query
-class Attnqueryusername(Monthyear):
-    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+class Attnqueryfullname(Monthyear):
+    fullname = StringField('Name', render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
 @forms.route('/forms/attendance/query/<query_for>', methods=['GET', 'POST'])
 @login_required
@@ -325,7 +325,7 @@ def attendance_query(query_for):
     if query_for == 'self':
         form = Monthyear()
     elif query_for == 'others':
-        form = Attnqueryusername()
+        form = Attnqueryfullname()
 
     return render_template('forms.html', type='attendance_query', query_for=query_for, form=form)
 
