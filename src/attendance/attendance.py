@@ -4,7 +4,7 @@ import os
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import extract, select
 import pandas as pd
-from .forms import (Addholidays, Attnqueryusername, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
+from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
 from .functions import check_holidays, convert_team_name, get_attendance_data, check_view_permission, convert_team_name2, check_data_access, check_attendance_summary
@@ -421,19 +421,20 @@ def query(query_for):
     if query_for == 'self':
         form = Monthyear()
     else:
-        form = Attnqueryusername()
+        form = Attnqueryfullname()
 
     if not form.validate_on_submit():
         return render_template('forms.html', type='attendance_query', query_for=query_for, form=form)
         
     if query_for == 'self':
-        user_name = session['username']
+        fullname = session['username']
     elif query_for == 'others':
-        user_name = form.username.data
+        fullname = form.fullname.data
 
-    employee = Employee.query.filter_by(username=user_name).first()
+    fullname_string = f'%{fullname}%'
+    employee = Employee.query.filter(Employee.username.like(fullname_string)).first()
     if not employee:
-        msg = f"Employee '{user_name}' not found"
+        msg = f"Employee '{fullname}' not found"
         flash(msg, category='error')
         return redirect(url_for('forms.attendance_query', query_for=query_for))
 
