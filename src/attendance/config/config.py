@@ -3,8 +3,8 @@
 SECRET_KEY='change_me'
 
 #SMTP server details
-SMTP_HOST='120.50.31.12'
-SMTP_PORT='25'
+SMTP_HOST='127.0.0.1'
+SMTP_PORT='1025'
 
 #Yearly leave
 CASUAL=10
@@ -12,5 +12,6 @@ MEDICAL=14
 EARNED=14
 
 #Office timing
-LATE='9:15:00'
-EARLY='17:45:00'
+IN_TIME='09:00:00'
+OUT_TIME='18:00:00'
+GRACE_PERIOD=15
