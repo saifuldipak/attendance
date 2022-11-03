@@ -427,7 +427,7 @@ def query(query_for):
         return render_template('forms.html', type='attendance_query', query_for=query_for, form=form)
         
     if query_for == 'self':
-        fullname = session['username']
+        fullname = session['fullname']
     elif query_for == 'others':
         fullname = form.fullname.data
 
