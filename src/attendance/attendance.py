@@ -432,7 +432,7 @@ def query(query_for):
         fullname = form.fullname.data
 
     fullname_string = f'%{fullname}%'
-    employee = Employee.query.filter(Employee.username.like(fullname_string)).first()
+    employee = Employee.query.filter(Employee.fullname.like(fullname_string)).first()
     if not employee:
         msg = f"Employee '{fullname}' not found"
         flash(msg, category='error')
