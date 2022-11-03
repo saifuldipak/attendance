@@ -29,6 +29,7 @@ def login():
         if error is None:
             session['empid'] = employee.id
             session['username'] = employee.username
+            session['fullname'] = employee.fullname
             session['role'] = employee.role
             session['department'] = employee.department
             session['access'] = employee.access
