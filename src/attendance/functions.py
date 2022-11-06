@@ -273,16 +273,31 @@ def get_attendance_data(empid, month, year):
         
         attendance_list['day'] = datetime.strftime(attendance.date, "%A")
 
-        in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['GRACE_PERIOD'])
-        out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['GRACE_PERIOD'])
+        office_time = OfficeTime.query.filter(OfficeTime.start_date<=attendance.date, OfficeTime.end_date>=attendance.date).first()
+        if office_time:
+            if not office_time.in_grace_time:
+                in_grace_time = 0
+            else:
+                in_grace_time = office_time.in_grace_time
+            
+            if not office_time.out_grace_time:
+                out_grace_time = 0
+            else:
+                out_grace_time = office_time.out_grace_time
+
+            in_time = datetime.combine(attendance.date, office_time.in_time) + timedelta(minutes=in_grace_time)
+            out_time = datetime.combine(attendance.date, office_time.out_time) - timedelta(minutes=out_grace_time)
+        else:
+            in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['IN_GRACE_TIME'])
+            out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['OUT_GRACE_TIME'])
 
         duty_schedule = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name, DutyShift.in_time, DutyShift.out_time, DutySchedule.date).filter(DutySchedule.date==attendance.date, DutySchedule.empid==empid).first()
         if duty_schedule:
             attendance_list['duty_shift'] = duty_schedule.name
 
             if duty_schedule.name not in ('O', 'HO'):
-                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['GRACE_PERIOD'])
-                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['GRACE_PERIOD'])
+                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['IN_GRACE_TIME'])
+                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['OUT_GRACE_TIME'])
         else:
             attendance_list['duty_shift'] = None
 
