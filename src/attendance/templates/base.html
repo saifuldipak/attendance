@@ -120,13 +120,13 @@
                     <p>Attendance
                         <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
                         <a href="{{ url_for('forms.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
-                        <a href="{{ url_for('attendance.holidays', action='show') }}" class="navbar-item">-- Holidays</a> 
+                        <a href="{{ url_for('attendance.holidays', action='show') }}" class="navbar-item">-- Holidays</a>
+                        <a href="{{ url_for('attendance.office_time', action='search') }}" class="navbar-item">--Office time</a> 
                         <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
                         <a href="{{ url_for('forms.upload') }}" class="navbar-item">-- Upload</a>
                         <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='all') }}" class="navbar-item">-- Show Summary</a>
                         <a href="{{ url_for('forms.attendance_summary', action='prepare') }}" class="navbar-item">-- Prepare Summary</a> 
                         <a href="{{ url_for('attendance.summary', action='delete') }}" class="navbar-item">-- Delete Summary</a> 
-
                     </p>
                 </div>
             </div> 
