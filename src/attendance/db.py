@@ -131,3 +131,13 @@ class AttendanceSummary(db.Model):
     late = db.Column(db.Integer)
     early = db.Column(db.Integer)
     leave_deduction_summary = db.relationship('LeaveDeductionSummary', backref='attendancesummary', lazy=True)
+
+#Office timing for special cases
+class OfficeTime(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    in_time = db.Column(db.Time, nullable=False)
+    out_time = db.Column(db.Time, nullable=False)
+    in_grace_time = db.Column(db.Integer)
+    out_grace_time = db.Column(db.Integer)
