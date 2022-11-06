@@ -176,25 +176,25 @@ def process(action, application_id=None):
             current_app.logger.error(' process(): "%s" trying to approve application "%s"', session['username'], application_id)
             msg = f'You are not authorized to "{action}" this application "{application_id}"'
             flash(msg, category='error')
-            return render_template(url_for('leave.search_application', application_for=application_for))
+            return render_template(url_for('leave.search', application_for=application_for))
     elif action in ('approve', 'cancel') and session['empid'] == application.empid:
         if action == 'approve':
             current_app.logger.error(' process(): "%s" trying to approve own application "%s"', session['username'], application_id)
             flash('You cannot approve your own application', category='error')
-            return render_template(url_for('leave.search_application', application_for=application_for))
+            return render_template(url_for('leave.search', application_for=application_for))
         
         if action == 'cancel':
             if application.status.lower() == 'approved':
                 current_app.logger.error(' process(): "%s" trying to cancel own approved application "%s"', session['username'], application_id)
                 flash('You cannot cancel your own approved application', category='error')
-                return render_template(url_for('leave.search_application', application_for=application_for))
+                return render_template(url_for('leave.search', application_for=application_for))
     
 
     attendance_summary = check_attendance_summary(application.start_date, application.end_date)
     if attendance_summary:
         msg = f'Attendance summary already prepared for {application.start_date.strftime("%B")},{application.start_date.year}' 
         flash(msg, category='error')
-        return render_template(url_for('leave.search_application', application_for=application_for))
+        return render_template(url_for('leave.search', application_for=application_for))
 
     #Approve application
     if action == 'approve':            
@@ -202,7 +202,7 @@ def process(action, application_id=None):
             available = check_available_leave(application, 'update')
             if not available:
                 flash('Failed to approve application', category='error')
-                return render_template(url_for('leave.search_application', application_for=application_for))
+                return render_template(url_for('leave.search', application_for=application_for))
     
         application.status = 'Approved'
         msg = f'Application "{application_id}" approved'
@@ -256,7 +256,7 @@ def process(action, application_id=None):
 
     db.session.commit()
     flash(msg, category='message')
-    return redirect(url_for('forms.search_application', application_for=application_for))
+    return redirect(url_for('forms.search', application_for=application_for))
 
 
 @application.route('/application/search/<application_for>', methods=['GET', 'POST'])
