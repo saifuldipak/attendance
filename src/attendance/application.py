@@ -161,7 +161,7 @@ def process(action, application_id=None):
         flash('Failed to execute the function', category='error')
         return render_template('base.html')
     
-    application = Applications.query.filter_by(id=application_id).one()
+    application = Applications.query.filter_by(id=application_id).first()
 
     if session['empid'] == application.empid:
         application_for = 'self'
