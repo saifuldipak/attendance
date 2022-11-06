@@ -742,5 +742,31 @@
         </div>
     {% endif %}
 
+    {% if type == 'office_time' %}
+        <div class="form-style-2-heading">Office time</div>
+            <table class="query-result">
+                <th>Start date</th>
+                <th>End date</th>
+                <th>In time</th>
+                <th>Out time</th>
+                <th>In grace time</th>
+                <th>Out grace time</th>
+                <th>Action</th>
+                {% for office_time in office_times %}
+                    <tr>
+                        <td>{{ office_time['start_date'] }}</td>
+                        <td>{{ office_time['end_date'] }}</td>
+                        <td>{{ office_time['in_time'] }}</td>
+                        <td>{{ office_time['out_time'] }}</td>
+                        <td>{{ office_time['in_grace_time'] }}</td>
+                        <td>{{ office_time['out_grace_time'] }}</td>
+                        <td><a href={{ url_for('attendance.office_time', action='delete', office_time_id=office_time['id']) }}>Delete</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+                <p><a href={{ url_for('forms.add_office_time') }}>Add office time</a></p>
+        </div>
+    {% endif %}
+
 
 {% endblock %}

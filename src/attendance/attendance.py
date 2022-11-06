@@ -4,10 +4,10 @@ import os
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import extract, select
 import pandas as pd
-from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload)
+from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
-from .functions import check_holidays, convert_team_name, get_attendance_data, check_view_permission, convert_team_name2, check_data_access, check_attendance_summary
+from .functions import check_holidays, convert_team_name, get_attendance_data, check_view_permission, convert_team_name2, check_data_access, check_attendance_summary, check_office_time_dates
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -615,3 +615,52 @@ def prepare_summary():
     
     flash(msg)
     return redirect(url_for('forms.attendance_summary', action='prepare'))
+
+
+@attendance.route('/attendance/office_time/<action>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def office_time(action):
+    if action not in ('add', 'delete', 'search'):
+        current_app.logger.error(' office_time(): unknown <action>, user: %s', session['username'])
+        flash('Unknow <action> type', category='error')
+        return render_template('base.html')
+    
+    if action == 'search':
+        office_times = OfficeTime.query.all()
+        return render_template('data.html', type='office_time', office_times=office_times)
+
+    if action == 'add':
+        form = Officetime()
+        
+        if not form.validate_on_submit():
+            return render_template('forms.html', type='add_office_time', form=form)
+
+        date_exists = check_office_time_dates(form)
+        if date_exists:
+            flash(date_exists, category='error')
+            return render_template('base.html')
+        
+        office_time = OfficeTime(start_date=form.start_date.data, end_date=form.end_date.data, in_time=form.in_time.data, out_time=form.out_time.data, in_grace_time=form.in_grace_time.data, out_grace_time=form.out_grace_time.data)
+
+        db.session.add(office_time)
+        db.session.commit()
+        return redirect(url_for('attendance.office_time', action='search'))
+
+    if action == 'delete':
+        office_time_id = request.args.get('office_time_id')
+        if not office_time_id:
+            flash('Office time id not found', category='error')
+            return redirect(url_for('attendance.office_time', action='search'))
+
+        office_time = OfficeTime.query.filter_by(id=office_time_id).first()
+        if not office_time:
+            flash('No office time record found', category='error')
+            return redirect(url_for('attendance.office_time', action='search'))
+        
+        db.session.delete(office_time)
+        db.session.commit()
+        return redirect(url_for('attendance.office_time', action='search'))
+    
+
+
