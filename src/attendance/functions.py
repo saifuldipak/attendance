@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, date
 import re
-from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable
+from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime
 from flask import session, current_app
 from sqlalchemy import extract, and_, func, or_
 import os
@@ -884,3 +884,24 @@ def send_mail(sender, receiver, type, **kwargs):
         return e
     else:
         server.quit()
+
+
+def check_office_time_dates(form):
+    if not form.start_date.data:
+        return 'Start date must be given'
+
+    if not form.end_date.data:
+        form.end_date.data = form.start_date.data
+
+    start_date_exists = OfficeTime.query.filter(OfficeTime.start_date<=form.start_date.data, OfficeTime.end_date>=form.start_date.data).first()
+    if start_date_exists:
+        return 'Start date overlaps with another application'
+
+    if form.end_date.data:
+        end_date_exists = OfficeTime.query.filter(OfficeTime.start_date<=form.end_date.data, OfficeTime.end_date>=form.end_date.data).first()
+        if end_date_exists:
+            return 'End date overlaps with another application'
+
+        any_date_exists = OfficeTime.query.filter(OfficeTime.start_date>form.start_date.data, OfficeTime.end_date<form.end_date.data).first()
+        if any_date_exists:
+            return 'Start and/or end dates overlaps with other application'
