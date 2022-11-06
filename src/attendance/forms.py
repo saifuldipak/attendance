@@ -551,3 +551,20 @@ def search_application(application_for):
 def reverse_leave_deduction():
     form = Monthyear()
     return render_template('forms.html', type='leave_deduction', action='reverse', form=form)
+
+
+#Office time - create
+class Officetime(FlaskForm):
+    start_date = DateField('Start date:', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    end_date = DateField('End date:', render_kw={'class': 'input-field'}, validators=[Optional()])
+    in_time = TimeField('In time:', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    out_time = TimeField('Out time:', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    in_grace_time = IntegerField('In grace time(min):', render_kw={'class': 'input-field'}, validators=[Optional()])
+    out_grace_time = IntegerField('Out grace time(min):', render_kw={'class': 'input-field'}, validators=[Optional()])
+
+@forms.route('/forms/attendance/add_office_time')
+@login_required
+@admin_required
+def add_office_time():
+    form = Officetime()
+    return render_template('forms.html', type='add_office_time', form=form)

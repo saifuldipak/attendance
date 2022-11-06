@@ -624,4 +624,33 @@
             </div>
     {% endif %}
 
+    {% if type == 'add_office_time' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('attendance.office_time', action='add') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Add office time</div>
+                    <table>
+                        <tr>
+                            <td>{{ form.start_date.label }}</td><td>{{ form.start_date }}</td>
+                            <td>{{ form.end_date.label }}</td><td>{{ form.end_date }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.in_time.label }}</td><td>{{ form.in_time }}</td>
+                            <td>{{ form.out_time.label }}</td><td>{{ form.out_time }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ form.in_grace_time.label }}</td><td>{{ form.in_grace_time }}</td>
+                            <td>{{ form.out_grace_time.label }}</td><td>{{ form.out_grace_time }}</td>
+                        </tr>
+                        
+                        <tr>
+                            <td></td>
+                            <td> <input type="submit" value="Add" /></td>
+                        </tr>
+                    </table>
+                </form>
+            </div>        
+    {% endif %}
+
+
 {% endblock %}
