@@ -2,6 +2,9 @@
 # $ python -c 'import secrets; print(secrets.token_hex())'
 SECRET_KEY='change_me'
 
+#Web session timeout
+PERMANENT_SESSION_LIFETIME=600
+
 #SMTP server details
 SMTP_HOST='127.0.0.1'
 SMTP_PORT='1025'
