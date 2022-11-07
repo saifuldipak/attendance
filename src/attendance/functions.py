@@ -87,7 +87,7 @@ def check_edit_permission(application, employee):
 
     return False
 
-def get_concern_emails(empid):
+""" def get_concern_emails(empid):
     employee = Employee.query.filter_by(id=empid).first()
     emails = {}
 
@@ -142,10 +142,10 @@ def get_concern_emails(empid):
     
     emails['admin'] = admin_email
     
-    return emails 
+    return emails  """
 
 
-def find_team_leader_email(emails):
+""" def find_team_leader_email(emails):
     if session['role'] == 'Team' and emails['supervisor'] != '':
         team_leader_email = emails['supervisor']
     elif session['role'] == 'Team' and emails['manager'] != '':
@@ -163,7 +163,7 @@ def find_team_leader_email(emails):
     else:
         team_leader_email = False
 
-    return team_leader_email
+    return team_leader_email """
 
 
 def check_edit_permission2(action, application, employee):
@@ -341,7 +341,7 @@ def get_attendance_data(empid, month, year):
     return return_values
 
 
-def get_concern_emails2(empid):
+""" def get_concern_emails2(empid):
     employee = Employee.query.filter_by(id=empid).first()
     emails = {}
 
@@ -421,7 +421,7 @@ def get_concern_emails2(empid):
 
     emails['cc'] = cc
 
-    return emails
+    return emails """
 
 def get_fiscal_year_start_end():
     current_year = date.today().year
