@@ -2,29 +2,13 @@ from datetime import datetime, timedelta, date
 import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime
 from flask import session, current_app
-from sqlalchemy import extract, and_, func, or_
+from sqlalchemy import extract, func, or_
 import os
 from werkzeug.utils import secure_filename
 from email import message
 from smtplib import SMTP, SMTPException
 import socket
 
-#Convert all team names of Fiber & Support to generic name
-def convert_team_name():
-    team_name = ''
-    
-    match = re.search('^Fiber', session['team'])
-    if match:
-        team_name = 'Fiber'
-
-    match = re.search('^Support', session['team'])
-    if match:
-        team_name = 'Support'
-
-    if team_name == '':
-        team_name = session['team']
-    
-    return team_name
 
 #Check holiday in holidays table
 def check_holidays(name, start_date, end_date=None):
@@ -225,7 +209,7 @@ def check_view_permission(show_type):
     return False
 
 #Convert all team names of Fiber & Support to generic name
-def convert_team_name2(team_name):    
+def convert_team_name(team_name):    
     match = re.search('^Fiber', team_name)
     if match:
         team_name = 'Fiber'
