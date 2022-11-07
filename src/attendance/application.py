@@ -235,7 +235,7 @@ def process(action, application_id=None):
     if emails['error']:
         current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
         flash('Failed to get email addresses for sending email', category=error)
-        return redirect(url_for('leave.search_application', application_for=application_for))
+        return redirect(url_for('leave.search', application_for=application_for))
     
     if application.type in ('Casual', 'Medical', 'Casual adjust'):
         type = 'leave'
@@ -256,7 +256,7 @@ def process(action, application_id=None):
 
     db.session.commit()
     flash(msg, category='message')
-    return redirect(url_for('forms.search', application_for=application_for))
+    return redirect(url_for('leave.search', application_for=application_for))
 
 
 @application.route('/application/search/<application_for>', methods=['GET', 'POST'])
