@@ -7,7 +7,7 @@ import pandas as pd
 from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
-from .functions import check_holidays, convert_team_name, get_attendance_data, check_view_permission, convert_team_name2, check_data_access, check_attendance_summary, check_office_time_dates
+from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -110,7 +110,7 @@ def duty_schedule(action):
         elif session['access'] == 'Admin':
             employees = Employee.query.join(Team).filter(Employee.department=='Technical').order_by(Team.name).all()
         elif session['role'] in ('Supervisor', 'Manager'):
-            team_name = convert_team_name()
+            team_name = convert_team_name(session['team'])
             team_name_string = f'{team_name}' + '%'
             employees = Employee.query.join(Team).filter(Team.name.like(team_name_string)).all()
         else:
@@ -160,7 +160,7 @@ def duty_schedule(action):
 
             team_leader_teams = []
             for team in team_leader.teams:
-                team_leader_teams.append(convert_team_name2(team.name))
+                team_leader_teams.append(convert_team_name(team.name))
 
         if session['role'] == 'Head':
             head = Employee.query.filter_by(id=session['empid']).first()
@@ -182,7 +182,7 @@ def duty_schedule(action):
                 flash(msg, category='error')
                 return redirect(url_for('forms.duty_schedule', action='upload'))
             
-            team_name = convert_team_name2(employee.teams[0].name)
+            team_name = convert_team_name(employee.teams[0].name)
 
             if session['role'] in ('Supervisor', 'Manager'):
                 if team_name not in team_leader_teams:
@@ -238,7 +238,7 @@ def duty_schedule(action):
             flash(msg, category='error')
             return redirect(url_for('forms.duty_schedule', action='delete'))
 
-        team_name = convert_team_name2(session['team'])
+        team_name = convert_team_name(session['team'])
         duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team_name).all()
         
         if not duty_schedules:
@@ -267,7 +267,7 @@ def duty_shift(action):
         if session['role'] == 'Head' or session['access'] == 'Admin':
             shifts = DutyShift.query.all()
         elif session['role'] in ('Supervisor', 'Manager'):
-            team_name = convert_team_name()
+            team_name = convert_team_name(session['team'])
             shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
         else:
             flash('You are not authorized to access this function', category='error')
@@ -284,7 +284,7 @@ def duty_shift(action):
         if not form.validate_on_submit():
             return redirect('forms.html', type='duty_shift_create', form=form)
 
-        team_name = convert_team_name2(session['team'])
+        team_name = convert_team_name(session['team'])
 
         shift_name_exist = DutyShift.query.filter_by(team=team_name, name=form.shift_name.data).first()
         if shift_name_exist:
