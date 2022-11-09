@@ -272,25 +272,32 @@ def get_attendance_data(empid, month, year):
             in_time = datetime.combine(attendance.date, office_time.in_time) + timedelta(minutes=in_grace_time)
             out_time = datetime.combine(attendance.date, office_time.out_time) - timedelta(minutes=out_grace_time)
         else:
-            in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=current_app.config['IN_GRACE_TIME'])
-            out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=current_app.config['OUT_GRACE_TIME'])
+            in_grace_time = current_app.config['IN_GRACE_TIME']
+            out_grace_time = current_app.config['OUT_GRACE_TIME']
+
+            in_time = datetime.strptime(current_app.config['IN_TIME'], "%H:%M:%S") + timedelta(minutes=in_grace_time)
+            out_time = datetime.strptime(current_app.config['OUT_TIME'], "%H:%M:%S") - timedelta(minutes=out_grace_time)
 
         duty_schedule = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name, DutyShift.in_time, DutyShift.out_time, DutySchedule.date).filter(DutySchedule.date==attendance.date, DutySchedule.empid==empid).first()
         if duty_schedule:
             attendance_list['duty_shift'] = duty_schedule.name
 
             if duty_schedule.name not in ('O', 'HO'):
-                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=current_app.config['IN_GRACE_TIME'])
-                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=current_app.config['OUT_GRACE_TIME'])
+                in_time = datetime.combine(duty_schedule.date, duty_schedule.in_time) + timedelta(minutes=in_grace_time)
+                out_time = datetime.combine(duty_schedule.date, duty_schedule.out_time) - timedelta(minutes=out_grace_time)
         else:
             attendance_list['duty_shift'] = None
 
         application = Applications.query.filter(Applications.empid==empid, Applications.start_date<=attendance.date, Applications.end_date>=attendance.date).first()
         application_type = ''
         if  application:
-            application_type = application.type
-            attendance_list['application_type'] = application.type
-            attendance_list['application_id'] = application.id
+            if application.status.lower() == 'approved': 
+                application_type = application.type
+                attendance_list['application_type'] = application.type
+                attendance_list['application_id'] = application.id
+            else:
+                attendance_list['application_type'] = None
+                attendance_list['application_id'] = None
         else:
             attendance_list['application_type'] = None
             attendance_list['application_id'] = None
@@ -305,11 +312,17 @@ def get_attendance_data(empid, month, year):
 
         no_attendance = datetime.strptime('00:00:00', "%H:%M:%S").time()
 
-        if application_type in ('Casual', 'Medical', 'Both', 'Casual adjust') or attendance_list['duty_shift'] in ('O', 'HO') or holiday_name != '' or attendance_list['day'] in ('Friday', 'Saturday'):
+        if application_type in ('Casual', 'Medical', 'Both', 'Casual adjust') and application.status.lower() == 'approved':
+            attendance_list['in_flag'] = None
+            attendance_list['out_flag'] = None
+        elif attendance_list['duty_shift'] in ('O', 'HO'):
+            attendance_list['in_flag'] = None
+            attendance_list['out_flag'] = None
+        elif holiday_name != '' or attendance_list['day'] in ('Friday', 'Saturday'):
             attendance_list['in_flag'] = None
             attendance_list['out_flag'] = None
         else:
-            if application_type == 'In':
+            if application_type == 'In' and application.status.lower() == 'approved':
                 attendance_list['in_flag'] = None
             elif attendance_list['in_time'] == no_attendance:
                 attendance_list['in_flag'] = 'NI'
@@ -320,7 +333,7 @@ def get_attendance_data(empid, month, year):
             else:
                 attendance_list['in_flag'] = None
 
-            if application_type == 'Out':
+            if application_type == 'Out' and application.status.lower() == 'approved':
                 attendance_list['out_flag'] = None
             elif attendance_list['out_time'] == no_attendance:
                 attendance_list['out_flag'] = 'NO'
