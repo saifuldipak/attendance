@@ -111,11 +111,13 @@ def duty_schedule(action):
         if session['role'] == 'Head':
             employees = Employee.query.join(Team).filter(Employee.department==session['department']).order_by(Team.name).all()
         elif session['access'] == 'Admin':
-            employees = Employee.query.join(Team).filter(Employee.department=='Technical').order_by(Team.name).all()
+            employees = Employee.query.join(Team).order_by(Team.name).all()
         elif session['role'] in ('Supervisor', 'Manager'):
-            team_name = convert_team_name(session['team'])
-            team_name_string = f'{team_name}' + '%'
-            employees = Employee.query.join(Team).filter(Team.name.like(team_name_string)).all()
+            team_leader = Employee.query.filter_by(id=session['empid']).first()
+            employees = []
+            for team in team_leader.teams:
+                team_employees = Employee.query.join(Team).filter(Team.name==team.name).all()
+                employees.extend(team_employees)
         else:
             flash('You are not authorized to access this function', category='error')
             return redirect(url_for('forms.duty_schedule', action='query'))
