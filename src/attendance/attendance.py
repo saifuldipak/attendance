@@ -93,7 +93,11 @@ def duty_schedule(action):
         current_app.logger.error(' duty_schedule() - action unknown')
         flash('Unknown action', category='error')
         return render_template('base.html')
-       
+    
+    if session['role'] == 'Team' and session['access'] != 'Admin':
+        flash('You are not authorized to access this function', category='error')
+        return render_template('base.html')
+
     if action == 'query':
         form = Monthyear()
 
@@ -235,16 +239,18 @@ def duty_schedule(action):
             flash(msg, category='error')
             return redirect(url_for('forms.duty_schedule', action='delete'))
 
-        team_name = convert_team_name(session['team'])
-        duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team_name).all()
+        team_leader = Employee.query.filter_by(id=session['empid']).first()
+
+        for team in team_leader.teams:
+            duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team.name).all()
         
-        if not duty_schedules:
-            msg = f'Schedule does not exist for {form.month.data}, {form.year.data}'
-            flash(msg, category='error')
-            return redirect(url_for('forms.duty_schedule', action='delete'))
+            if not duty_schedules:
+                msg = f'Schedule does not exist for {form.month.data}, {form.year.data}'
+                flash(msg, category='error')
+                return redirect(url_for('forms.duty_schedule', action='delete'))
         
-        for duty_schedule in duty_schedules:
-            db.session.delete(duty_schedule)
+            for duty_schedule in duty_schedules:
+                db.session.delete(duty_schedule)
  
         db.session.commit()
         
