@@ -94,7 +94,6 @@ def duty_schedule(action):
         flash('Unknown action', category='error')
         return render_template('base.html')
        
-
     if action == 'query':
         form = Monthyear()
 
@@ -160,7 +159,7 @@ def duty_schedule(action):
 
             team_leader_teams = []
             for team in team_leader.teams:
-                team_leader_teams.append(convert_team_name(team.name))
+                team_leader_teams.append(team.name)
 
         if session['role'] == 'Head':
             head = Employee.query.filter_by(id=session['empid']).first()
@@ -182,10 +181,8 @@ def duty_schedule(action):
                 flash(msg, category='error')
                 return redirect(url_for('forms.duty_schedule', action='upload'))
             
-            team_name = convert_team_name(employee.teams[0].name)
-
             if session['role'] in ('Supervisor', 'Manager'):
-                if team_name not in team_leader_teams:
+                if employee.teams[0].name not in team_leader_teams:
                     msg = f'Employee "{fullname}" is not in your team'
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
@@ -202,7 +199,7 @@ def duty_schedule(action):
 
                 date = datetime(form.year.data, form.month.data, j).date()
 
-                duty_schedule = DutySchedule.query.filter_by(empid=employee.id, date=date, team=team_name).first()
+                duty_schedule = DutySchedule.query.filter_by(empid=employee.id, date=date, team=employee.teams[0].name).first()
                 if duty_schedule:
                     msg = f'Duty schedule exist for {fullname} on date {date}'
                     flash(msg, category='error')
@@ -213,13 +210,13 @@ def duty_schedule(action):
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
 
-                duty_shift = DutyShift.query.filter_by(name=str(df.iat[i, j]).upper(), team=team_name).first()
+                duty_shift = DutyShift.query.filter_by(name=str(df.iat[i, j]).upper(), team=employee.teams[0].name).first()
                 if not duty_shift:
-                    msg = f'Duty shift "{df.iat[i, j]}" not found'
+                    msg = f'Duty shift "{df.iat[i, j]}" for team "{employee.teams[0].name}" not found'
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
                 
-                duty_schedule = DutySchedule(empid=employee.id, team=team_name, date=date, duty_shift=duty_shift.id)
+                duty_schedule = DutySchedule(empid=employee.id, team=employee.teams[0].name, date=date, duty_shift=duty_shift.id)
                 db.session.add(duty_schedule)
 
         db.session.commit()
