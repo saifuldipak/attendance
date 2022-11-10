@@ -293,19 +293,32 @@ def duty_shift(action):
         if not form.validate_on_submit():
             return redirect('forms.html', type='duty_shift_create', form=form)
 
-        team_name = convert_team_name(session['team'])
+        if form.start_date.data and not form.end_date.data:
+            form.end_date.data = form.start_date.data
 
-        shift_name_exist = DutyShift.query.filter_by(team=team_name, name=form.shift_name.data).first()
-        if shift_name_exist:
-            flash('Shift name exists', category='error')
-            return redirect(url_for('forms.duty_shift_create', form=form))
+        if not form.start_date.data:
+            shift_exists = DutyShift.query.filter_by(team=form.team.data, name=form.shift_name.data, start_date=None, end_date=None).first()
+            if shift_exists:
+                flash('Shift exists', category='error')
+                return redirect(url_for('forms.duty_shift_create', form=form))
+        else:
+            start_date_exists = DutyShift.query.filter(DutyShift.team==form.team.data, DutyShift.name==form.shift_name.data, DutyShift.start_date<=form.start_date.data, DutyShift.end_date>=form.start_date.data).first()
+            if start_date_exists:
+                flash('Start date exists', category='error')
+                return redirect(url_for('forms.duty_shift_create', form=form))
 
-        shift_date_exist = DutyShift.query.filter(DutyShift.in_time==form.in_time.data, DutyShift.out_time==form.out_time.data, DutyShift.team==team_name).all()
-        if shift_date_exist:
-            flash('Shift date exists', category='error')
-            return redirect(url_for('forms.duty_shift_create', form=form))
+            end_date_exists = DutyShift.query.filter(DutyShift.team==form.team.data, DutyShift.name==form.shift_name.data, DutyShift.start_date<=form.end_date.data, DutyShift.end_date>=form.end_date.data).first()
+            if end_date_exists:
+                flash('End date exists', category='error')
+                return redirect(url_for('forms.duty_shift_create', form=form))
 
-        duty_shift = DutyShift(team=team_name, name=form.shift_name.data, in_time=form.in_time.data, out_time=form.out_time.data)
+            any_date_exists = DutyShift.query.filter(DutyShift.team==form.team.data, DutyShift.name==form.shift_name.data, DutyShift.start_date>=form.start_date.data, DutyShift.end_date<=form.end_date.data).first()
+
+            if any_date_exists:
+                flash('Start date and end date overlaps with other shifts', category='error')
+                return redirect(url_for('forms.duty_shift_create', form=form))
+
+        duty_shift = DutyShift(team=form.team.data, name=form.shift_name.data, in_time=form.in_time.data, out_time=form.out_time.data, start_date=form.start_date.data, end_date=form.end_date.data)
         
         db.session.add(duty_shift)
         db.session.commit()
