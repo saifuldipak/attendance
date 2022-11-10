@@ -512,13 +512,22 @@ def duty_schedule(action):
 
 #Duty shift - create
 shifts = [('M', 'Morning'), ('E', 'Evening'), ('N', 'Night'), ('R', 'Regular'), ('O', 'Offday'), ('HO', 'Home office'), ('CS1', 'Custom shift 1'), ('CS2', 'Custom shift 2')]
+
 class Dutyshiftcreate(FlaskForm):
     team = SelectField('Team', render_kw={'class' : 'input-field'}, choices=[], validate_choice=False)
     shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
-    in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
-    out_time = TimeField('Out time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[Optional()])
+    out_time = TimeField('Out time', render_kw={'class' : 'input-field'}, validators=[Optional()])
     start_date = DateField('Start date', render_kw={'class' : 'input-field'}, validators=[Optional()])
     end_date = DateField('End date', render_kw={'class' : 'input-field'}, validators=[Optional()])
+
+    def validate_shift_name(self, field):
+        if field.data not in ('O', 'HO'):
+            if not self.in_time.data:
+                raise ValidationError('Must give in time')
+            
+            if not self.out_time.data:
+                raise ValidationError('Must give out time')
 
 class Dutyshiftquery(FlaskForm):
     month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
