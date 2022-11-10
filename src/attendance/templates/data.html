@@ -573,8 +573,11 @@
     {% if type == 'duty_shift' %}
         <div class="form-style-2-heading">Duty Shift</div>
             <table class="query-result">
+                <th>Shift ID</th>
                 <th>Team</th>
                 <th>Shift</th>
+                <th>Start date</th>
+                <th>End date</th>
                 <th>In time</th>
                 <th>Out time</th>
                 {% if session['access'] != 'Admin' %}
@@ -582,8 +585,11 @@
                 {% endif %}
                 {% for shift in shifts %}
                     <tr>
+                        <td>{{ shift['id'] }}</td>
                         <td>{{ shift['team'] }}</td>
                         <td>{{ shift['name'] }}</td>
+                        <td>{{ shift['start_date'] }}</td>
+                        <td>{{ shift['end_date'] }}</td>
                         <td>{{ shift['in_time'] }}</td>
                         <td>{{ shift['out_time'] }}</td>
                         {% if session['access'] != 'Admin' %}
