@@ -513,10 +513,12 @@ def duty_schedule(action):
 #Duty shift - create
 shifts = [('M', 'Morning'), ('E', 'Evening'), ('N', 'Night'), ('R', 'Regular'), ('O', 'Offday'), ('HO', 'Home office'), ('CS1', 'Custom shift 1'), ('CS2', 'Custom shift 2')]
 class Dutyshiftcreate(FlaskForm):
-    team = SelectField('Team', render_kw={'class' : 'input-field'}, choices=[], coerce=int, validate_choice=False)
+    team = SelectField('Team', render_kw={'class' : 'input-field'}, choices=[], validate_choice=False)
     shift_name = SelectField('Shift name', render_kw={'class' : 'input-field'}, choices=shifts)
     in_time = TimeField('In time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
     out_time = TimeField('Out time', render_kw={'class' : 'input-field'}, validators=[InputRequired()])
+    start_date = DateField('Start date', render_kw={'class' : 'input-field'}, validators=[Optional()])
+    end_date = DateField('End date', render_kw={'class' : 'input-field'}, validators=[Optional()])
 
 class Dutyshiftquery(FlaskForm):
     month = IntegerField('Month', render_kw={'class' : 'input-field'}, default=datetime.now().month, validators=[InputRequired()])
@@ -528,7 +530,7 @@ class Dutyshiftquery(FlaskForm):
 def duty_shift_create():
     form = Dutyshiftcreate()
     teams = Team.query.filter_by(empid=session['empid']).all()
-    form.team.choices = [(team.id, team.name) for team in teams]
+    form.team.choices = [(team.name) for team in teams]
     return render_template('forms.html', type='duty_shift_create', form=form)
 
 
