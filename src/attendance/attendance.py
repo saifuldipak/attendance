@@ -216,11 +216,13 @@ def duty_schedule(action):
                     flash(msg, category='error')
                     return redirect(url_for('forms.duty_schedule', action='upload'))
 
-                duty_shift = DutyShift.query.filter_by(name=str(df.iat[i, j]).upper(), team=employee.teams[0].name).first()
+                duty_shift = DutyShift.query.filter(DutyShift.name==str(df.iat[i, j]).upper(), DutyShift.team==employee.teams[0].name, DutyShift.start_date<=date, DutyShift.end_date>=date).first()
                 if not duty_shift:
-                    msg = f'Duty shift "{df.iat[i, j]}" for team "{employee.teams[0].name}" not found'
-                    flash(msg, category='error')
-                    return redirect(url_for('forms.duty_schedule', action='upload'))
+                    duty_shift = DutyShift.query.filter(DutyShift.name==str(df.iat[i, j]).upper(), DutyShift.team==employee.teams[0].name, DutyShift.start_date==None, DutyShift.end_date==None).first()
+                    if not duty_shift:
+                        msg = f'Duty shift "{df.iat[i, j]}" for team "{employee.teams[0].name}" for date "{date}" not found'
+                        flash(msg, category='error')
+                        return redirect(url_for('forms.duty_schedule', action='upload'))
                 
                 duty_schedule = DutySchedule(empid=employee.id, team=employee.teams[0].name, date=date, duty_shift=duty_shift.id)
                 db.session.add(duty_schedule)
@@ -291,7 +293,7 @@ def duty_shift(action):
         
         form = Dutyshiftcreate()
         if not form.validate_on_submit():
-            return redirect('forms.html', type='duty_shift_create', form=form)
+            return render_template('forms.html', type='duty_shift_create', form=form)
 
         if form.start_date.data and not form.end_date.data:
             form.end_date.data = form.start_date.data
@@ -333,7 +335,7 @@ def duty_shift(action):
 
         shift_id = request.args.get('shift_id')
         
-        shift = DutyShift.query.filter_by(id=shift_id).one()
+        shift = DutyShift.query.filter_by(id=shift_id).first()
         if not shift:
             flash('Shift not found', category='error')
             current_app.logger.warning('duty_shift(action="delete"): Shift id not found')
