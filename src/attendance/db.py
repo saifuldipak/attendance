@@ -77,6 +77,8 @@ class DutyShift(db.Model):
     name = db.Column(db.String, nullable=False)
     in_time = db.Column(db.Time, nullable=False)
     out_time = db.Column(db.Time, nullable=False)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
     dutyschedule = db.relationship('DutySchedule', cascade='delete, merge, save-update', backref='dutyshift', lazy=True)
 
 class DutySchedule(db.Model):
