@@ -268,12 +268,16 @@ def duty_shift(action):
         flash('Unknown action', category='error')
         return render_template('base.html')
 
+    employee = Employee.query.filter_by(id=session['empid']).first()
+
     if action == 'query':
         if session['role'] == 'Head' or session['access'] == 'Admin':
             shifts = DutyShift.query.all()
         elif session['role'] in ('Supervisor', 'Manager'):
-            team_name = convert_team_name(session['team'])
-            shifts = DutyShift.query.filter(DutyShift.team==team_name).all() 
+            shifts = []
+            for team in employee.teams:
+                team_shifts = DutyShift.query.filter(DutyShift.team==team.name).all()
+                shifts.extend(team_shifts)
         else:
             flash('You are not authorized to access this function', category='error')
             return render_template('base.html')
