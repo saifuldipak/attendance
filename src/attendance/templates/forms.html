@@ -426,8 +426,9 @@
             <tr><td> {{ form.shift_name.label }}</td><td> {{ form.shift_name}}</td></tr>
             <tr><td>{{ form.in_time.label }}</td><td>{{ form.in_time }}</td><td>{{ form.out_time.label }}</td><td>{{ form.out_time }}</td></tr>
             <tr><td>{{ form.start_date.label }}</td><td>{{form.start_date}}</td><td>{{form.end_date.label}}</td><td>{{form.end_date}}</td></tr>
-            <tr><td></td><td><input type="submit" value="Add" /></td></tr>
+            <tr><td></td><td><input type="submit" value="Add" /></td></tr> 
         </table>
+        <p class="footnote">Note: Create default shift keeping start date and end date blank</p>
     {% endif %}
 
     {% if type == 'attendance_query' %}

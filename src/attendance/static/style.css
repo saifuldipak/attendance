@@ -320,3 +320,9 @@ td.data-late-early {
 td.data-weekend {
     color: rgb(234, 0, 255);
 }
+
+p.footnote {
+    color: black;
+    background-color: rgb(196, 240, 194);
+    padding: 5px;
+}
