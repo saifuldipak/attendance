@@ -324,5 +324,10 @@ td.data-weekend {
 p.footnote {
     color: black;
     background-color: rgb(196, 240, 194);
-    padding: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-style: italic;
+    border-radius: 7px;
 }
