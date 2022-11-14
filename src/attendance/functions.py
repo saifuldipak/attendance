@@ -370,10 +370,8 @@ def get_attendance_data(empid, month, year):
         attendances_list.append(attendance_list)  
 
     attendances = attendances_list
-    
     return_values['attendances'] = attendances
     return_values['summary'] = summary
-
     return return_values
 
 
