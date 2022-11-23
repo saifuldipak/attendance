@@ -195,7 +195,7 @@ def process(action, application_id=None):
             available = check_available_leave(application, 'update')
             if not available:
                 flash('Failed to approve application', category='error')
-                return render_template(url_for('application.search', application_for=application_for))
+                return redirect(url_for('application.search', application_for=application_for))
     
         application.status = 'Approved'
         msg = f'Application "{application_id}" approved'
