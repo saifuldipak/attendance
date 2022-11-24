@@ -1,4 +1,5 @@
 graft src/attendance/static
 graft src/attendance/templates
 graft src/attendance/config
+graft src/attendance/doc
 global-exclude *.pyc
