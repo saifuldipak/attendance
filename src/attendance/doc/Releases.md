@@ -1,3 +1,3 @@
- ### 1.0.0 (__-Nov-2022)
+ ### 1.0.0 (27-Nov-2022)
 First production release
 
