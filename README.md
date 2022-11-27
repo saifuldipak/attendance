@@ -19,15 +19,14 @@ $ source venv/bin/activate
 
 2. Copy attendance-x.x.x-py3-none-any.whl to directory created in step one and install
 ```bash
-(venv)$ pip install attendnace-x.x.x-py3-none-any.whl
+(venv)$ python3 -m pip install attendnace-x.x.x-py3-none-any.whl
 ```
 
 3. Run the app to create instance directory
 ```bash
 (venv)$ export FLASK_APP=attendance
 (venv)$ flask run
-#to exit type
-(venv)$ CTRL+c
+(venv)$ CTRL+c #exit app
 ```
 
 4. Edit the config file 'config.py' and 'logging.yaml' 
@@ -67,7 +66,6 @@ $ sudo cp attendance.service /etc/systemd/system/
 $ sudo nano /etc/systemd/system/attendance.service
 
 #start attendance service
-$ mkdir /tmp/attendance
 $ sudo systemctl enable --now attendance
 
 #check the status, it should be showing status 'active(running)'
