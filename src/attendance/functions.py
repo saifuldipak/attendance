@@ -273,7 +273,10 @@ def get_attendance_data(empid, month, year):
             if attendance_list['duty_shift'] == 'N':
                 next_date = attendance.date + timedelta(days=1)
                 attendance = Attendance.query.filter_by(empid=empid, date=next_date).first()
-                attendance_list['out_time'] = datetime.combine(attendance.date, attendance.out_time)
+                if not attendance:
+                    attendance_list['out_time'] = no_attendance
+                else:
+                    attendance_list['out_time'] = datetime.combine(attendance.date, attendance.out_time)
 
             if application_type == 'Out' and application.status.lower() == 'approved':
                 attendance_list['out_flag'] = None
