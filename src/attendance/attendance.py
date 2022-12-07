@@ -536,7 +536,7 @@ def summary(action):
             attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary, Team, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Team.name, Employee.fullname).all()
 
         if summary_for == 'all':
-            stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee). join(LeaveDeductionSummary, isouter=True).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
+            stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
             
             attendance_summary = db.session.execute(stmt).all()
 
