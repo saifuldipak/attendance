@@ -179,11 +179,11 @@ def get_attendance_data(empid, month, year):
 
     employee = Employee.query.filter_by(id=empid).first()
     if not employee:
-        current_app.logger.error(' get_attendance_date(): employe not found for %', empid)
+        current_app.logger.warning(' get_attendance_date(): employee not found for %s', empid)
         return False
 
-    if not employee.teams[0]:
-        current_app.logger.error(' get_attendance_date(): employe team not found for %', employee.username)
+    if not employee.teams:
+        current_app.logger.warning(' get_attendance_date(): employee team not found for %s', employee.username)
         return False
 
     fiber_team = re.search('^Fiber', employee.teams[0].name)
