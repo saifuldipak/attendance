@@ -301,8 +301,10 @@ def get_attendance_data(empid, month, year):
             if application_type == 'Out' and application.status.lower() == 'approved':
                 attendance_list['out_flag'] = None
             elif attendance_list['out_time'] == no_attendance:
-                attendance_list['out_flag'] = 'NO'
-                summary['NO'] += 1
+                #to avoid counting no out('NO') if the person is absent
+                if attendance_list['in_flag'] != 'NI':
+                    attendance_list['out_flag'] = 'NO'
+                    summary['NO'] += 1
             elif attendance_list['out_time'] < out_time:
                 attendance_list['out_flag'] = 'E'
                 summary['E'] += 1
