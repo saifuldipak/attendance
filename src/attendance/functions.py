@@ -165,7 +165,27 @@ def check_data_access(employee_id):
 
 
 def get_attendance_data(empid, month, year):
+    if not empid:
+        current_app.logger.error(' get_attendance_date(): empid not given')
+        return False
+
+    if not month:
+        current_app.logger.error(' get_attendance_date(): month not given')
+        return False
+
+    if not year:
+        current_app.logger.error(' get_attendance_date(): year not given')
+        return False
+
     employee = Employee.query.filter_by(id=empid).first()
+    if not employee:
+        current_app.logger.error(' get_attendance_date(): employe not found for %', empid)
+        return False
+
+    if not employee.teams[0]:
+        current_app.logger.error(' get_attendance_date(): employe team not found for %', employee.username)
+        return False
+
     fiber_team = re.search('^Fiber', employee.teams[0].name)
 
     attendances = Attendance.query.filter(Attendance.empid==empid, extract('month', Attendance.date)==month, extract('year', Attendance.date)==year).order_by(Attendance.date).all()
