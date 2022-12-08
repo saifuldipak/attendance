@@ -518,14 +518,14 @@ def summary(action):
         file_name = ''
 
         if summary_for == 'self':
-            attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary, isouter=True).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+            attendance_summary = AttendanceSummary.query.join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
         
         if summary_for == 'team':
             teams = Team.query.filter_by(empid=session['empid']).all()
             attendance_summary_list = []
             
             for team in teams:
-                team_attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary, isouter=True).join(Team, AttendanceSummary.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Employee.fullname).all()
+                team_attendance_summary = AttendanceSummary.query.join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).join(Team, AttendanceSummary.empid==Team.empid, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Employee.fullname).all()
 
                 for attendance_summary in team_attendance_summary:
                     attendance_summary_list.append(attendance_summary)
@@ -533,7 +533,7 @@ def summary(action):
             attendance_summary = attendance_summary_list
 
         if summary_for == 'department':
-            attendance_summary = AttendanceSummary.query.join(Employee, LeaveDeductionSummary, Team, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Team.name, Employee.fullname).all()
+            attendance_summary = AttendanceSummary.query.join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).join(Employee, Team, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Team.name, Employee.fullname).all()
 
         if summary_for == 'all':
             stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
