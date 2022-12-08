@@ -4,7 +4,6 @@ from .db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSumm
 from .auth import *
 from .forms import Createleave, Monthyear
 import datetime
-#from .functions import get_fiscal_year_start_end
 
 leave = Blueprint('leave', __name__)
 
@@ -30,12 +29,14 @@ def deduction():
         return redirect(url_for('forms.leave_deduction'))
 
     for summary in all_summary:
+        total_deduct = 0
+        salary_deduct = 0
+                
         if summary.late > 2 or summary.early > 2:
             leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
             leave_available_casual_earned = leave_available.casual + leave_available.earned
             total_deduct = int(summary.late/3) + int(summary.early/3)
             
-            salary_deduct = summary.absent
             if leave_available.casual >= total_deduct:
                 leave_available.casual = leave_available.casual - total_deduct
             elif leave_available_casual_earned >= total_deduct:
@@ -44,11 +45,11 @@ def deduction():
             else:    
                 leave_available.casual = 0
                 leave_available.earned = 0
-                salary_deduct = total_deduct - leave_available_casual_earned
-        else:
-            total_deduct = 0
-            salary_deduct = 0
-        
+                salary_deduct = (total_deduct - leave_available_casual_earned)
+
+        if summary.absent > 0:
+            salary_deduct += summary.absent
+
         deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, late_early=total_deduct, salary_deduct=salary_deduct, year=form.year.data, month=form.month.data)
         db.session.add(deduction)
     
