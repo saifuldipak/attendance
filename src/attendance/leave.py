@@ -148,52 +148,6 @@ def approval_batch():
     return render_template('base.html')
 
 
-""" @leave.route('/leave/summary')
-@login_required     
-def summary():
-    (year_start_date, year_end_date) = get_fiscal_year_start_end()
-
-    approved_casual = Applications.query.filte(Applications.empid==session['empid'], Applications.start_date >= year_start_date, Applications.start_date <= year_end_date, Applications.type == 'Casual').first()
-    approved_medical = Applications.query.filte(Applications.empid==session['empid'], Applications.start_date >= year_start_date, Applications.start_date <= year_end_date, Applications.type == 'Medical').first()
-
-    yearly_casual = current_app.config['CASUAL']
-    yearly_earned = current_app.config['EARNED']
-    yearly_medical = current_app.config['MEDICAL']
-    yearly_casual_earned = yearly_casual + yearly_earned
-    yearly_all = yearly_medical + yearly_casual + yearly_earned
-
-    if yearly_casual > approved_casual:
-        leave_available_casual = yearly_casual - approved_casual
-    elif approved_casual > yearly_casual and approved_casual < yearly_casual_earned:
-        leave_available_casual = 0
-        leave_available_earned = yearly_casual_earned - approved_casual
-    elif approved_casual > yearly_casual_earned:
-        current_app.logger.error(' summary(): approved casual leave is greater than yearly casual+earned leave')
-        flash('Failed to get leave summary', category='error')
-        return render_template('base.html')
-
-    yearly_medical_casual = yearly_medical + leave_available_casual
-
-    if yearly_medical > approved_medical:
-        leave_available_medical = yearly_medical - approved_medical
-    elif approved_medical > yearly_medical and approved_medical < yearly_medical_casual:
-        leave_available_medical = 0
-        leave_available_casual = yearly_medical_casual - approved_medical
-    elif approved_medical > yearly_medical_casual and approved_medical < yearly_all:
-        leave_available = yearly_all - approved_medical
-    elif approved_medical > yearly_all:
-        current_app.logger.error(' summary(): approved medical leave is greater than yearly medical+casual+earned leave')
-        flash('Failed to get leave summary', category='error')
-        return render_template('base.html')
-
-    leaves = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
-    if not leaves:
-        current_app.logger.warning('summary_self(): No data found in leave_available table for %s', session['empid'])
-        flash('No leave summary record found', category='warning')
-
-    return render_template('data.html', data_type='leave_summary', leaves=leaves) """
-
-
 @leave.route('/leave/reverse_deduction', methods=['GET', 'POST'])
 @login_required
 @admin_required
