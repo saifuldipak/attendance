@@ -490,6 +490,9 @@ def add_holiday():
 class Dutyscheduleupload(Monthyear):
     file = FileField('Upload File', validators=[FileAllowed(['xls', 'xlsx'], '.xls & .xlsx only!'), FileRequired()])
 
+class Dutyscheduledelete(Monthyear):
+    teams = SelectField('Team', render_kw={'class': 'input-field'}, choices=[], validate_choice=False)
+
 @forms.route('/forms/duty_schedule/<action>', methods=['GET', 'POST'])
 @login_required
 @team_leader_required
@@ -506,7 +509,9 @@ def duty_schedule(action):
         form = Dutyscheduleupload()
         return render_template('forms.html', type='duty_schedule', action='upload', form=form)
     elif action == 'delete':
-        form = Monthyear()
+        form = Dutyscheduledelete()
+        teams = Team.query.filter_by(empid=session['empid']).all()
+        form.teams.choices = [(team.name) for team in teams]
         return render_template('forms.html', type='duty_schedule', action='delete', form=form)
         
 
