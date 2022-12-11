@@ -2,7 +2,7 @@ from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFib
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
 from .auth import login_required
 from .db import LeaveAvailable, db, Applications, Employee, Team
-from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail
+from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end_2, update_leave_summary
 import datetime
 import re
 from sqlalchemy import extract
@@ -203,9 +203,6 @@ def process(action, application_id=None):
     #Cancel application
     if action == 'cancel':
         if application.status == 'Approved':
-            if application.type in ('Casual', 'Medical'):
-                return_leave(application)
-        
             if application.type == 'Medical':
                 files = application.file_url.split(';')
                 error = ''
@@ -219,8 +216,20 @@ def process(action, application_id=None):
             
                 if error != '':
                     flash(error, category='error')
-            
-        db.session.delete(application)
+
+            application_start_date = application.start_date
+            employees = Employee.query.filter_by(id=application.empid).all()
+
+            db.session.delete(application)
+            db.session.commit()
+
+            if application.type in ('Casual', 'Medical'):
+                (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application_start_date)
+                rv = update_leave_summary(employees, year_start_date, year_end_date)
+                if rv:
+                    flash('Failed to update leave summary', category='warning')
+                    return redirect(url_for('application.search', application_for=application_for))
+
         msg = f'Application "{application_id}" cancelled'
     
     #Send mail to all concerned
