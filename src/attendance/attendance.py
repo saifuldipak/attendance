@@ -4,7 +4,7 @@ import os
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import extract, select
 import pandas as pd
-from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime, Deleteattendance)
+from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime, Deleteattendance, Dutyscheduledelete)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
 from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates
@@ -232,7 +232,7 @@ def duty_schedule(action):
         return redirect(url_for('attendance.duty_schedule', action='query'))
     
     if action == 'delete':
-        form = Monthyear()
+        form = Dutyscheduledelete()
 
         if not form.validate_on_submit():
             return render_template('forms.html', type='duty_schedule', action='delete', form=form)
@@ -243,18 +243,20 @@ def duty_schedule(action):
             flash(msg, category='error')
             return redirect(url_for('forms.duty_schedule', action='delete'))
 
-        team_leader = Employee.query.filter_by(id=session['empid']).first()
+        team_leader = Team.query.filter_by(empid=session['empid'], name=form.teams.data).first()
+        if not team_leader:
+            msg = f'You are not the team leader of "{form.teams.data}"'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='delete'))
 
-        for team in team_leader.teams:
-            duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==team.name).all()
+        duty_schedules = DutySchedule.query.filter(extract('month', DutySchedule.date)==form.month.data, extract('year', DutySchedule.date)==form.year.data, DutySchedule.team==form.teams.data).all()
+        if not duty_schedules:
+            msg = f'Schedule does not exist for Month:{form.month.data}, Year:{form.year.data} and Team:{form.teams.data}'
+            flash(msg, category='error')
+            return redirect(url_for('forms.duty_schedule', action='delete'))
         
-            if not duty_schedules:
-                msg = f'Schedule does not exist for {form.month.data}, {form.year.data}'
-                flash(msg, category='error')
-                return redirect(url_for('forms.duty_schedule', action='delete'))
-        
-            for duty_schedule in duty_schedules:
-                db.session.delete(duty_schedule)
+        for duty_schedule in duty_schedules:
+            db.session.delete(duty_schedule)
  
         db.session.commit()
         
