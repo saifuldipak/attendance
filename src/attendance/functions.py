@@ -810,11 +810,12 @@ def check_office_time_dates(form):
 
 
 def update_leave_summary(employees, year_start_date, year_end_date):
+    error = 0
     for employee in employees:
         leave_available = LeaveAvailable.query.filter_by(empid=employee.id, year_start=year_start_date, year_end=year_end_date).first()
         if not leave_available:
             current_app.logger.error('Leave not found for %s', employee.username)
-            return True
+            error += 1
        
         casual_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter(Applications.start_date>=year_start_date, Applications.start_date<=year_end_date, Applications.empid==employee.id, Applications.type=='Casual', Applications.status=='Approved').first()
         if not casual_approved.days:
@@ -855,6 +856,7 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for %s (casual)', employee.username)
+                error += 1
         
         leave_available.medical = current_app.config['MEDICAL']
         leave_available_medical_casual = leave_available.medical + leave_available.casual
@@ -872,8 +874,12 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
+                error += 1
 
     db.session.commit()
+    
+    if error > 0:
+        return True
     
 
 def get_fiscal_year_start_end_2(supplied_date):
