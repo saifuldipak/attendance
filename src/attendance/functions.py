@@ -810,8 +810,6 @@ def check_office_time_dates(form):
 
 
 def update_leave_summary(employees, year_start_date, year_end_date):
-    #logging
-    current_app.logger.warning('start_year:%s, end_year:%s', year_start_date.year, year_end_date.year)
     for employee in employees:
         leave_available = LeaveAvailable.query.filter_by(empid=employee.id, year_start=year_start_date, year_end=year_end_date).first()
         if not leave_available:
@@ -874,8 +872,7 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.casual = 0
             else:
                 current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
-        #logging
-        current_app.logger.warning('username:%s, casual_approved:%s, medical_approved:%s, leave_deducted:%s, casual:%s, medical:%s, earned:%s', employee.username, casual_approved_days, medical_approved_days, casual_deducted_days, leave_available.casual, leave_available.medical, leave_available.earned)       
+
     db.session.commit()
     
 
