@@ -582,3 +582,15 @@ class Officetime(FlaskForm):
 def add_office_time():
     form = Officetime()
     return render_template('forms.html', type='add_office_time', form=form)
+
+
+#Delete attendance
+class Deleteattendance(Dates):
+    pass
+
+@forms.route('/forms/attendance/delete')
+@login_required
+@admin_required
+def delete_attendance():
+    form = Deleteattendance()
+    return render_template('forms.html', type='delete_attendance', form=form)

@@ -4,7 +4,7 @@ import os
 from flask import Blueprint, current_app, request, flash, redirect, render_template, send_from_directory, session, url_for
 from sqlalchemy import extract, select
 import pandas as pd
-from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime)
+from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime, Deleteattendance)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
 from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates
@@ -688,3 +688,28 @@ def office_time(action):
     
 
 
+@attendance.route('/attendance/delete', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def delete_attendance():
+    form = Deleteattendance()
+
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='delete_attendance', form=form)
+    
+    if not form.end_date.data:
+        form.end_date.data = form.start_date.data
+    
+    attendances = Attendance.query.filter(Attendance.date>=form.start_date.data, Attendance.date<=form.end_date.data).all()
+    if not attendances:
+        msg = f'No attendance found from {form.start_date.data} to {form.end_date.data}'
+        flash(msg, category='error')
+        return redirect(url_for('forms.delete_attendance'))
+    
+    for attendance in attendances:
+        db.session.delete(attendance)
+
+    db.session.commit()
+    msg = f'Attendnace deleted from {form.start_date.data} to {form.end_date.data}'    
+    flash(msg)
+    return redirect(url_for('forms.delete_attendance'))

@@ -640,5 +640,26 @@
             </div>        
     {% endif %}
 
+    {% if type == 'delete_attendance' %}
+        <div class="form-style-2">
+            <form method="post" action="{{ url_for('attendance.delete_attendance') }}">
+                {{ form.csrf_token }}
+                <div class="form-style-2-heading">Delete Attendance</div>
+                <table>
+                    <tr>
+                        <td>{{ form.start_date.label }}</td><td>{{ form.start_date }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.end_date.label }}</td><td>{{ form.end_date }}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td> <input type="submit" value="Delete" /></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    {% endif %}
+            
 
 {% endblock %}
