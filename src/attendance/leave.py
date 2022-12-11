@@ -207,29 +207,22 @@ def reverse_deduction():
         msg = f'No leave deduction record found for {form.month.data}, {form.year.data}'
         flash(msg, category='error')
         return redirect(url_for('forms.reverse_leave_deduction'))
-    
-    yearly_earned_leave = current_app.config['EARNED']
-    
+        
     for deducted in all_deducted:
-        leave_available = LeaveAvailable.query.filter_by(empid=deducted.empid).first()
-
-        if deducted.casual_overlap:
-            total_deducted = deducted.late_early + deducted.casual_overlap
-        else:
-            total_deducted = deducted.late_early
-
-        if leave_available.earned < yearly_earned_leave:
-            earned_deducted = yearly_earned_leave - leave_available.earned
-            casual_deducted = total_deducted - earned_deducted
-            leave_available.earned = yearly_earned_leave
-            leave_available.casual = leave_available.casual + casual_deducted
-        else:
-            leave_available.casual = leave_available.casual + total_deducted
-
         db.session.delete(deducted)
-             
+    
     db.session.commit()
-    flash('Leave deduction reversed')
+
+    deduction_date = date(form.year.data, form.month.data, 1)
+    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(deduction_date)
+    employees = Employee.query.all()
+   
+    rv = update_leave_summary(employees, year_start_date, year_end_date)
+    if rv:
+        flash('Leave summary update failed, Please check log', category='error')
+    else:
+        flash('Leave deduction reversed')
+   
     return redirect(url_for('forms.reverse_leave_deduction'))
 
 
@@ -301,3 +294,4 @@ def update_leave():
         flash('Leave updated successfully')
 
     return render_template('base.html')
+
