@@ -300,10 +300,16 @@ def search(application_for):
         
     if application_for == 'team':
         teams = Team.query.filter_by(empid=session['empid']).all()
+        if session['role'].lower() == 'supervisor': 
+            exclude_role = 'Manager'
+        
+        if session['role'].lower() == 'manager': 
+            exclude_role = 'Manager'
+        
         applications = []
 
         for team in teams:
-            team_applications = Applications.query.select_from(Applications).join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], Applications.type.like(application_type_string), Employee.fullname.like(name_string)).order_by(Applications.status, Applications.start_date.desc()).all()
+            team_applications = Applications.query.select_from(Applications).join(Employee).join(Team, Applications.empid==Team.empid).with_entities(Employee.fullname, Team.name.label('team'), Applications.id, Applications.type, Applications.start_date, Applications.duration, Applications.status).filter(Team.name==team.name, extract('month', Applications.start_date)==form.month.data, extract('year', Applications.start_date)==form.year.data, Applications.empid!=session['empid'], Employee.role!= exclude_role, Applications.type.like(application_type_string), Employee.fullname.like(name_string)).order_by(Applications.status, Applications.start_date.desc()).all()
 
             for team_application in team_applications:
                 applications.append(team_application)
