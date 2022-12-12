@@ -199,56 +199,56 @@ def process(action, application_id=None):
                 return redirect(url_for('application.search', application_for=application_for))
     
         application.status = 'Approved'
+        db.session.commit()
         msg = f'Application "{application_id}" approved'
     
-    #Cancel application
+    #Delete attachments 
     if action == 'cancel':
-        #Delete attachments 
         if application.type == 'Medical':
-                files = application.file_url.split(';')
-                error = ''
-            
-                if not files:
-                    error = 'File name not found in database'
-                else:
-                    file_list = delete_files(files)
-                    if file_list != '':
-                        error = 'Files not found in OS: ' + file_list
-            
-                if error != '':
-                    flash(error, category='error')
+            files = application.file_url.split(';')
+            error = ''
         
-        #Send mail to all concerned
-        emails = get_emails(application, action)
-        if emails['error']:
-            current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
-            flash('Failed to get email addresses for sending email', category=error)
-            return redirect(url_for('application.search', application_for=application_for))
+            if not files:
+                error = 'File name not found in database'
+            else:
+                file_list = delete_files(files)
+                if file_list != '':
+                    error = 'Files not found in OS: ' + file_list
         
-        if application.type in ('Casual', 'Medical', 'Casual adjust'):
-            type = 'leave'
-        elif application.type in ('In', 'Out', 'Both'):
-            type = 'attendance'
-        else:
-            type = ''
+            if error != '':
+                flash(error, category='error')
         
-        if action == 'approve':
-            action = 'approved'
-        elif action == 'cancel':
-            action = 'cancelled'
+    #Send mail to all concerned
+    emails = get_emails(application, action)
+    if emails['error']:
+        current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
+        flash('Failed to get email addresses for sending email', category=error)
+        return redirect(url_for('application.search', application_for=application_for))
+    
+    if application.type in ('Casual', 'Medical', 'Casual adjust'):
+        type = 'leave'
+    elif application.type in ('In', 'Out', 'Both'):
+        type = 'attendance'
+    else:
+        type = ''
+    
+    if action == 'approve':
+        action = 'approved'
+    elif action == 'cancel':
+        action = 'cancelled'
 
-        rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
-        if rv:
-            current_app.logger.warning(' process():', rv)
-            flash('Failed to send mail', category='warning')
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+    if rv:
+        current_app.logger.warning(' process():', rv)
+        flash('Failed to send mail', category='warning')
 
-        #Delete application
+    #Delete application and update leave summary
+    if action == 'cancel':
         application_start_date = application.start_date
         employees = Employee.query.filter_by(id=application.empid).all()
         db.session.delete(application)
         db.session.commit()
 
-        #Update leave summary
         if application.status == 'Approved' and application.type in ('Casual', 'Medical'):
             (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application_start_date)
             rv = update_leave_summary(employees, year_start_date, year_end_date)
