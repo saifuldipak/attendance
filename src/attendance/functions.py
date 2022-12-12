@@ -481,31 +481,63 @@ def get_emails(application, action):
             return emails        
     elif action == 'cancel'and application.status.lower() == 'approval pending':
         if session['empid'] == application.empid:
-            if supervisor:
-                if supervisor.email:
-                    emails['receiver'] = supervisor.email
+            if employee.role.lower() == 'team':
+                if supervisor:
+                    if supervisor.email:
+                        emails['receiver'] = supervisor.email
+                    else:
+                        current_app.logger.error(' get_emails: supervisor email not found')
+                        emails['error'] = True
+                        return emails
+                elif manager:
+                    if manager.email:
+                        emails['receiver'] = manager.email
+                    else:
+                        current_app.logger.error(' get_emails: manager email not found')
+                        emails['error'] = True
+                        return emails
+                elif head:
+                    if head.email:
+                        emails['receiver'] = head.email
+                    else:
+                        current_app.logger.error(' get_emails: head email not found')
+                        emails['error'] = True
+                        return emails
                 else:
-                    current_app.logger.error(' get_emails: supervisor email not found')
+                    current_app.logger.error(' get_emails: team leader email not found')
                     emails['error'] = True
                     return emails
-            elif manager:
-                if manager.email:
-                    emails['receiver'] = manager.email
+            elif employee.role.lower() == 'supervisor':
+                if manager:
+                    if manager.email:
+                        emails['receiver'] = manager.email
+                    else:
+                        current_app.logger.error(' get_emails: manager email not found')
+                        emails['error'] = True
+                        return emails
+                elif head:
+                    if head.email:
+                        emails['receiver'] = head.email
+                    else:
+                        current_app.logger.error(' get_emails: head email not found')
+                        emails['error'] = True
+                        return emails
                 else:
-                    current_app.logger.error(' get_emails: manager email not found')
+                    current_app.logger.error(' get_emails: team leader email not found')
                     emails['error'] = True
                     return emails
-            elif head:
-                if head.email:
-                    emails['receiver'] = head.email
+            elif employee.role.lower() == 'manager':
+                if head:
+                    if head.email:
+                        emails['receiver'] = head.email
+                    else:
+                        current_app.logger.error(' get_emails: head email not found')
+                        emails['error'] = True
+                        return emails
                 else:
-                    current_app.logger.error(' get_emails: head email not found')
+                    current_app.logger.error(' get_emails: team leader email not found')
                     emails['error'] = True
                     return emails
-            else:
-                current_app.logger.error(' get_emails: team leader email not found')
-                emails['error'] = True
-                return emails    
         else:
             if employee.email:
                 emails['receiver'] = employee.email
