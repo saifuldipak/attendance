@@ -202,6 +202,10 @@ def process(action, application_id=None):
     
     #Cancel application
     if action == 'cancel':
+        if application.status == 'Approval Pending':
+            db.session.delete(application)
+            db.session.commit()
+
         if application.status == 'Approved':
             if application.type == 'Medical':
                 files = application.file_url.split(';')
