@@ -6,6 +6,7 @@ from .functions import check_authorization, check_attendance_summary, check_avai
 import datetime
 import re
 from sqlalchemy import extract
+import copy
 
 application = Blueprint('application', __name__)
 
@@ -202,12 +203,8 @@ def process(action, application_id=None):
     
     #Cancel application
     if action == 'cancel':
-        if application.status == 'Approval Pending':
-            db.session.delete(application)
-            db.session.commit()
-
-        if application.status == 'Approved':
-            if application.type == 'Medical':
+        #Delete attachments 
+        if application.type == 'Medical':
                 files = application.file_url.split(';')
                 error = ''
             
@@ -220,47 +217,47 @@ def process(action, application_id=None):
             
                 if error != '':
                     flash(error, category='error')
+        
+        #Send mail to all concerned
+        emails = get_emails(application, action)
+        if emails['error']:
+            current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
+            flash('Failed to get email addresses for sending email', category=error)
+            return redirect(url_for('application.search', application_for=application_for))
+        
+        if application.type in ('Casual', 'Medical', 'Casual adjust'):
+            type = 'leave'
+        elif application.type in ('In', 'Out', 'Both'):
+            type = 'attendance'
+        else:
+            type = ''
+        
+        if action == 'approve':
+            action = 'approved'
+        elif action == 'cancel':
+            action = 'cancelled'
 
-            application_start_date = application.start_date
-            employees = Employee.query.filter_by(id=application.empid).all()
+        rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+        if rv:
+            current_app.logger.warning(' process():', rv)
+            flash('Failed to send mail', category='warning')
 
-            db.session.delete(application)
-            db.session.commit()
+        #Delete application
+        application_start_date = application.start_date
+        employees = Employee.query.filter_by(id=application.empid).all()
+        db.session.delete(application)
+        db.session.commit()
 
-            if application.type in ('Casual', 'Medical'):
-                (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application_start_date)
-                rv = update_leave_summary(employees, year_start_date, year_end_date)
-                if rv:
-                    flash('Failed to update leave summary', category='warning')
-                    return redirect(url_for('application.search', application_for=application_for))
+        #Update leave summary
+        if application.status == 'Approved' and application.type in ('Casual', 'Medical'):
+            (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application_start_date)
+            rv = update_leave_summary(employees, year_start_date, year_end_date)
+            if rv:
+                flash('Failed to update leave summary', category='warning')
+                return redirect(url_for('application.search', application_for=application_for))
 
         msg = f'Application "{application_id}" cancelled'
     
-    #Send mail to all concerned
-    emails = get_emails(application, action)
-    if emails['error']:
-        current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
-        flash('Failed to get email addresses for sending email', category=error)
-        return redirect(url_for('application.search', application_for=application_for))
-    
-    if application.type in ('Casual', 'Medical', 'Casual adjust'):
-        type = 'leave'
-    elif application.type in ('In', 'Out', 'Both'):
-        type = 'attendance'
-    else:
-        type = ''
-    
-    if action == 'approve':
-        action = 'approved'
-    elif action == 'cancel':
-        action = 'cancelled'
-
-    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
-    if rv:
-        current_app.logger.warning(' process():', rv)
-        flash('Failed to send mail', category='warning')
-
-    db.session.commit()
     flash(msg, category='message')
     return redirect(url_for('application.search', application_for=application_for))
 
