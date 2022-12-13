@@ -107,13 +107,26 @@ def submit(application_type):
         application.file_url = filenames
 
     db.session.add(application)
+    db.session.commit()
     flash('Application submitted', category='message')
+
+     #creating dict to use in get_emails() & send_email()
+    application_dict = { 
+        'id' : application.id,
+        'empid' : application.empid,
+        'type' : application.type,
+        'start_date' : application.start_date,
+        'end_date' : application.end_date,
+        'status' : application.status,
+        'remark' : application.remark,
+        'employee_fullname' : application.employee.fullname
+    }
 
     #Send mail to all concerned
     if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
-        emails = get_emails(application, action='approve')
+        emails = get_emails(application_dict, action='approve')
     else:
-        emails = get_emails(application, action='submit')
+        emails = get_emails(application_dict, action='submit')
     
     if emails['error']:
         current_app.logger.error('Failed to get emails for submitted application for "%s"', session['username'])
@@ -137,25 +150,33 @@ def submit(application_type):
         else:
             action = 'submitted'
     
-    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application_dict, type=type, action=action)
     if rv:
         current_app.logger.warning(' submit(): %s',rv)
         flash('Failed to send mail', category='warning')
 
-    db.session.commit()
     return redirect(url_for('forms.application', application_type=application_type, form=form))
 
 
 @application.route('/application/<action>/<application_id>')
 @login_required
-def process(action, application_id=None):
+def process(action, application_id):
     #Checks
-    if action not in ('approve', 'cancel', 'submit'):
+    if action not in ('approve', 'cancel'):
         current_app.logger.error('<action> value %s unknown, session user %s', action, session['username'])
-        flash('Failed to execute the function', category='error')
+        flash('Unknown action', category='error')
+        return render_template('base.html')
+    
+    if not application_id:
+        current_app.logger.error(' process(): No application id given, username:%s', session['username'])
+        flash('No application id', category='error')
         return render_template('base.html')
     
     application = Applications.query.filter_by(id=application_id).first()
+    if not application:
+        current_app.logger.error(' process(): Application not found, application:%s, username:%s', application_id, session['username'])
+        flash('No application id', category='error')
+        return render_template('base.html')
 
     if session['empid'] == application.empid:
         application_for = 'self'
@@ -190,6 +211,18 @@ def process(action, application_id=None):
         flash(msg, category='error')
         return redirect(url_for('application.search', application_for=application_for))
 
+    #creating dict to use in get_emails() & send_email()
+    application_dict = { 
+        'id' : application.id,
+        'empid' : application.empid,
+        'type' : application.type,
+        'start_date' : application.start_date,
+        'end_date' : application.end_date,
+        'status' : application.status,
+        'remark' : application.remark,
+        'employee_fullname' : application.employee.fullname
+    } 
+
     #Approve application
     if action == 'approve':            
         if application.type == 'Casual' or application.type == 'Medical':
@@ -200,10 +233,10 @@ def process(action, application_id=None):
     
         application.status = 'Approved'
         db.session.commit()
-        msg = f'Application "{application_id}" approved'
+        msg = f'Application:{application_dict["id"]} approved'
     
     #Delete attachments 
-    if action == 'cancel':
+    if action == 'cancel':              
         if application.type == 'Medical':
             files = application.file_url.split(';')
             error = ''
@@ -218,10 +251,24 @@ def process(action, application_id=None):
             if error != '':
                 flash(error, category='error')
         
+        employees = Employee.query.filter_by(id=application.empid).all() 
+        (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application.start_date)
+
+        db.session.delete(application)
+        db.session.commit()
+
+        if application.status == 'Approved' and application.type in ('Casual', 'Medical'):
+            rv = update_leave_summary(employees, year_start_date, year_end_date)
+            if rv:
+                flash('Failed to update leave summary', category='warning')
+                return redirect(url_for('application.search', application_for=application_for))
+        
+        msg = f'Application: {application_dict["id"]} cancelled'
+
     #Send mail to all concerned
-    emails = get_emails(application, action)
+    emails = get_emails(application_dict, action)
     if emails['error']:
-        current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
+        current_app.logger.error('Failed to get emails for application "%s" %s', application_dict['id'], action)
         flash('Failed to get email addresses for sending email', category=error)
         return redirect(url_for('application.search', application_for=application_for))
     
@@ -237,26 +284,10 @@ def process(action, application_id=None):
     elif action == 'cancel':
         action = 'cancelled'
 
-    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application_dict, type=type, action=action)
     if rv:
         current_app.logger.warning(' process():', rv)
-        flash('Failed to send mail', category='warning')
-
-    #Delete application and update leave summary
-    if action == 'cancel':
-        application_start_date = application.start_date
-        employees = Employee.query.filter_by(id=application.empid).all()
-        db.session.delete(application)
-        db.session.commit()
-
-        if application.status == 'Approved' and application.type in ('Casual', 'Medical'):
-            (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application_start_date)
-            rv = update_leave_summary(employees, year_start_date, year_end_date)
-            if rv:
-                flash('Failed to update leave summary', category='warning')
-                return redirect(url_for('application.search', application_for=application_for))
-
-        msg = f'Application "{application_id}" cancelled'
+        flash('Failed to send mail', category='warning')        
     
     flash(msg, category='message')
     return redirect(url_for('application.search', application_for=application_for))
