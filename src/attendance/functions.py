@@ -448,18 +448,19 @@ def check_authorization(application):
 
 
 def get_emails(application, action):
-    employee = Employee.query.filter_by(id=application.empid).first()
+    emails = {}
+    
+    employee = Employee.query.filter_by(id=application['empid']).first()
     if not employee:
-        current_app.logger.error(' get_emails(): employee record not found for application "%s" and user "%s"', application.id, application.empid)
-        error = True
-        return error
+        current_app.logger.error(' get_emails(): employee record not found for application "%s" and user "%s"', application['id'], application['empid'])
+        emails['error'] = True
+        return emails
 
     admin = Employee.query.join(Team).filter(Employee.access=='Admin', Team.name=='HR', Employee.email!=None).first()
     supervisor = Employee.query.join(Team).filter(Employee.role=='Supervisor', Team.name==employee.teams[0].name, Employee.email!=None).first()
     manager = Employee.query.join(Team).filter(Employee.role=='Manager', Team.name==employee.teams[0].name, Employee.email!=None).first()
     head = Employee.query.filter(Employee.department==employee.department, Employee.role=='Head', Employee.email!=None).first()
 
-    emails = {}
     cc = []
 
     if session['email']:
@@ -479,8 +480,8 @@ def get_emails(application, action):
         else:
             emails['error'] = True
             return emails        
-    elif action == 'cancel'and application.status.lower() == 'approval pending':
-        if session['empid'] == application.empid:
+    elif action == 'cancel'and application['status'].lower() == 'approval pending':
+        if session['empid'] == application['empid']:
             if employee.role.lower() == 'team':
                 if supervisor:
                     if supervisor.email:
@@ -755,9 +756,9 @@ def send_mail(sender, receiver, type, **kwargs):
 
     #creating email subject
     if type == 'leave':
-        subject = f"[{application.employee.fullname}] {application.type} leave application id -'{application.id}' {action}"
+        subject = f"[{application['employee_fullname']}] {application['type']} leave application id -'{application['id']}' {action}"
     elif type == 'attendance':
-        subject = f"[{application.employee.fullname}] {application.type} attendance application id - '{application.id}' {action}"
+        subject = f"[{application['employee_fullname']}] {application['type']} attendance application id - '{application['id']}' {action}"
     elif type == 'reset':
         subject = 'Your Attendance app password has been reset'
     else:
@@ -767,20 +768,20 @@ def send_mail(sender, receiver, type, **kwargs):
     #creating email body for leave and attendance
     if type == 'leave' or type == 'attendance':
         if type == 'leave':
-            name = f'Leave: {application.type}'
+            name = f"Leave: {application['type']}"
 
         if type == 'attendance':
-            name = f'Attendance: {application.type}'
+            name = f"Attendance: {application['type']}"
 
-        body = f'''
-        Application ID: {application.id}
-        Name: {application.employee.fullname}
+        body = f"""
+        Application ID: {application['id']}
+        Name: {application['employee_fullname']}
         {name}
-        Start date: {application.start_date}
-        End date: {application.end_date}
-        Remark: {application.remark}
-        Status: {application.status}
-        '''
+        Start date: {application['start_date']}
+        End date: {application['end_date']}
+        Remark: {application['remark']}
+        Status: {application['status']}
+        """
     
     #creating email body for password reset
     if type == 'reset':
