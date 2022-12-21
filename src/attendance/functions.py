@@ -888,7 +888,10 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.earned = leave_available_casual_earned - casual_consumed
                 leave_available.casual = 0
             else:
-                current_app.logger.error(' update_leave_summary(): Failed to update leave_available table for %s (casual)', employee.username)
+                leave_available.casual = 0
+                leave_available.earned = 0
+                salary_deduct = casual_consumed - leave_available_casual_earned
+                current_app.logger.warning(' update_leave_summary():(casual) Salary deduct days:%s for employee:%s', salary_deduct, employee.username)
                 error += 1
         
         leave_available.medical = current_app.config['MEDICAL']
@@ -906,7 +909,11 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.medical = 0
                 leave_available.casual = 0
             else:
-                current_app.logger.error(' update_leave_summary(): Failed to update leave_available table for of %s (medical)', employee.username)
+                leave_available.medical = 0
+                leave_available.casual = 0
+                leave_available.earned = 0
+                salary_deduct = casual_consumed - leave_available_all
+                current_app.logger.warning(' update_leave_summary(): (medical) Salary deduct days:%s days for employee:%s', salary_deduct, employee.username)
                 error += 1
 
     db.session.commit()
