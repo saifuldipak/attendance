@@ -888,7 +888,7 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.earned = leave_available_casual_earned - casual_consumed
                 leave_available.casual = 0
             else:
-                current_app.logger.error('Failed to update leave_available table for %s (casual)', employee.username)
+                current_app.logger.error(' update_leave_summary(): Failed to update leave_available table for %s (casual)', employee.username)
                 error += 1
         
         leave_available.medical = current_app.config['MEDICAL']
@@ -906,7 +906,7 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.medical = 0
                 leave_available.casual = 0
             else:
-                current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
+                current_app.logger.error(' update_leave_summary(): Failed to update leave_available table for of %s (medical)', employee.username)
                 error += 1
 
     db.session.commit()
