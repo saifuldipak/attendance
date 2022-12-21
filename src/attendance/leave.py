@@ -243,7 +243,7 @@ def update_leave():
     
     rv = update_leave_summary(employees, year_start_date, year_end_date)
     if rv:
-        flash('Failed to update leave', category='error')
+        flash('Failed to update leave for some employees, please check log', category='warning')
     else:
         flash('Leave updated successfully')
 
