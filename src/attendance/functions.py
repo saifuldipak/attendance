@@ -5,7 +5,7 @@ from flask import session, current_app
 from sqlalchemy import extract, func, or_
 import os
 from werkzeug.utils import secure_filename
-from email import message
+from email.message import EmailMessage
 from smtplib import SMTP, SMTPException
 import socket
 
@@ -791,7 +791,7 @@ def send_mail(sender, receiver, type, **kwargs):
             body = f"New password : {kwargs['extra']}"
     
     #creating email with header and body
-    msg = message.Message()
+    msg = EmailMessage()
     msg.add_header('from', sender)
     msg.add_header('to', receiver)
     
@@ -802,7 +802,7 @@ def send_mail(sender, receiver, type, **kwargs):
     
     msg.add_header('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     msg.add_header('subject', subject)
-    msg.set_payload(body)
+    msg.set_content(body)
     
     #connecting to host
     try: 
