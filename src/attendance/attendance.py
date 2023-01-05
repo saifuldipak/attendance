@@ -479,7 +479,6 @@ def query(query_for):
 @attendance.route('/attendance/summary/<action>', methods=['GET', 'POST'])
 @login_required
 def summary(action):
-
     if action not in ('show', 'prepare', 'delete'):
         current_app.logger.error(' summary(): Unknown <action> %s', action)
         flash('Failed to perform this action', category='error')
@@ -554,7 +553,7 @@ def summary(action):
         current_month = datetime.now().month
         current_year = datetime.now().year
 
-        if form.month.data >= current_month and current_year >= form.year.data:
+        if form.month.data >= current_month and form.year.data >= current_year:
             flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
             return redirect(url_for('forms.attendance_summary', action='prepare'))
             
@@ -568,7 +567,7 @@ def summary(action):
         count = 0
         for employee in employees:
             attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
-            if attendance['returned']:
+            if attendance:
                 early = attendance['summary']['NO'] + attendance['summary']['E']
                 attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early)
                 db.session.add(attendance_summary)
@@ -605,7 +604,7 @@ def summary(action):
         return redirect(url_for('forms.attendance_summary', action='delete'))
                 
 
-@attendance.route('/attendance/summary/prepare', methods=['GET', 'POST'])
+""" @attendance.route('/attendance/summary/prepare', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def prepare_summary():
@@ -641,7 +640,7 @@ def prepare_summary():
     
     flash(msg)
     return redirect(url_for('forms.attendance_summary', action='prepare'))
-
+ """
 
 @attendance.route('/attendance/office_time/<action>', methods=['GET', 'POST'])
 @login_required
