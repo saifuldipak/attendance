@@ -2,12 +2,13 @@ from datetime import datetime, timedelta, date
 import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary
 from flask import session, current_app
-from sqlalchemy import extract, func, or_
+from sqlalchemy import extract, func, or_, and_
 import os
 from werkzeug.utils import secure_filename
 from email.message import EmailMessage
 from smtplib import SMTP, SMTPException
 import socket
+import calendar
 
 
 #Check holiday in holidays table
@@ -934,3 +935,58 @@ def get_fiscal_year_start_end_2(supplied_date):
         year_end_date = date((year + 1), 6, 30)
     
     return year_start_date, year_end_date
+
+
+def find_holiday_leaves(month, year):
+    if not month or not year:
+        raise Exception('Must provide "month" & "year"')
+
+    class HolidayLeaves():
+        def __init__(self, empid, days):
+            self.empid = empid
+            self.days = days
+
+    (weekday, days) = calendar.monthrange(year, month)
+
+    #Creating holiday date list for weekly holidays
+    dates_around_holidays= []
+    for day in range(days):
+        date_obj = date(year, month, day + 1)
+        day_name = date_obj.strftime('%A')
+        if day_name == 'Friday':
+            before_holiday = date_obj - timedelta(1)
+            after_holiday = date_obj + timedelta(2)
+            date_around_holiday = [before_holiday, after_holiday]
+            dates_around_holidays.append(date_around_holiday)
+        
+    #Creating holiday date list from holidays table
+    holidays = Holidays.query.filter(Holidays.start_date >= date(year, month, 1), Holidays.end_date <= date(year, month, days)).all()
+    if holidays:
+        for holiday in holidays:
+            before_holiday = holiday.start_date - timedelta(1)
+            after_holiday = holiday.end_date + timedelta(1)
+            date_around_holiday = [before_holiday, after_holiday]
+            dates_around_holidays.append(date_around_holiday)
+
+    #Creating list of empid & holidays count
+    employee_list = []
+    for date_around_holiday in dates_around_holidays:
+        applications = Applications.query.filter(or_(Applications.end_date == date_around_holiday[0], Applications.start_date == date_around_holiday[1]), or_(Applications.type == 'Casual', Applications.type == 'Medical')).all()
+
+        empid_list = []
+        for application in applications:
+            empid_list.append(application.empid)
+
+        empids_duplicate = [empid for empid in empid_list if empid_list.count(empid) > 1]
+        empids = list(set(empids_duplicate))
+        for empid in empids:
+            employee_exits = False
+            for employee in employee_list:
+                if employee.empid == empid:
+                    employee.days += 2
+                    employee_exits = True
+            
+            if not employee_exits:
+                employee_list.append(HolidayLeaves(empid, 2))
+    current_app.logger.warning('%s', employee_list)
+    return employee_list
