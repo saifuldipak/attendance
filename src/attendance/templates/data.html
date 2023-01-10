@@ -692,6 +692,7 @@
             <th>Abset</th>
             <th>Late</th>
             <th>Early</th>
+            <th>Holidays inside leaves</th>
             <th>Leave deducted</th>
             <th>Salary deducted</th>
             {% for row in attendance_summary %}
@@ -701,8 +702,9 @@
                     <td>{{ row['absent'] }}</td>
                     <td>{{ row['late'] }}</td>
                     <td>{{ row['early'] }}</td>
-                    <td>{{ row['late_early'] }}</td>
-                    <td>{{ row['salary_deduct'] }}</td>
+                    <td>{{ row['holiday_leave'] }}</td>
+                    <td>{{ row['leave_deducted'] }}</td>
+                    <td>{{ row['salary_deducted'] }}</td>
                 </tr>
             {% endfor %}
         </table>
