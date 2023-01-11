@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time
 import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary
 from flask import session, current_app
@@ -945,48 +945,84 @@ def find_holiday_leaves(month, year):
         def __init__(self, empid, days):
             self.empid = empid
             self.days = days
+    
+    class DateAroundHolidays():
+        def __init__(self, date_before_holiday, date_after_holiday):
+            self.date_before_holiday = date_before_holiday
+            self.date_after_holiday = date_after_holiday
 
     (weekday, days) = calendar.monthrange(year, month)
 
-    #Creating holiday date list for weekly holidays
+    #Creating holiday date list for weekly & other holidays
     dates_around_holidays= []
+    holiday_start_date = False
     for day in range(days):
         date_obj = date(year, month, day + 1)
-        day_name = date_obj.strftime('%A')
-        if day_name == 'Friday':
-            before_holiday = date_obj - timedelta(1)
-            after_holiday = date_obj + timedelta(2)
-            date_around_holiday = [before_holiday, after_holiday]
-            dates_around_holidays.append(date_around_holiday)
+        day_name = datetime.strftime(date_obj, '%A')
+        holiday = Holidays.query.filter(Holidays.start_date >= date_obj, Holidays.end_date <= date_obj).first()
         
-    #Creating holiday date list from holidays table
-    holidays = Holidays.query.filter(Holidays.start_date >= date(year, month, 1), Holidays.end_date <= date(year, month, days)).all()
-    if holidays:
-        for holiday in holidays:
-            before_holiday = holiday.start_date - timedelta(1)
-            after_holiday = holiday.end_date + timedelta(1)
-            date_around_holiday = [before_holiday, after_holiday]
-            dates_around_holidays.append(date_around_holiday)
+        if day_name in ('Friday', 'Saturday') or holiday:
+            if not holiday_start_date:
+                holiday_start_date = date_obj
+        else:
+            if holiday_start_date:
+                holiday_end_date = date_obj
+                date_around_holiday = DateAroundHolidays(holiday_start_date - timedelta(1), holiday_end_date)
+                dates_around_holidays.append(date_around_holiday)
+                holiday_start_date = False
+
 
     #Creating list of empid & holidays count
     employee_list = []
     for date_around_holiday in dates_around_holidays:
-        applications = Applications.query.filter(or_(Applications.end_date == date_around_holiday[0], Applications.start_date == date_around_holiday[1]), or_(Applications.type == 'Casual', Applications.type == 'Medical')).all()
-
+        applications = Applications.query.filter(Applications.end_date == date_around_holiday.date_before_holiday, or_(Applications.type == 'Casual', Applications.type == 'Medical')).all()
+        attendances = Attendance.query.filter(Attendance.date == date_around_holiday.date_before_holiday, Attendance.in_time == time(0, 0)).all()
+        
         empid_list = []
         for application in applications:
             empid_list.append(application.empid)
+            
+        for attendance in attendances:
+            found = False
+            for application in applications:
+                if attendance.empid == application.empid:
+                    found = True
+                    break
+            if not found:
+                empid_list.append(attendance.empid)
+
+        applications = Applications.query.filter(Applications.end_date == date_around_holiday.date_after_holiday, or_(Applications.type == 'Casual', Applications.type == 'Medical')).all()
+        attendances = Attendance.query.filter(Attendance.date == date_around_holiday.date_after_holiday, Attendance.in_time == time(0, 0)).all()
+        
+        for application in applications:
+            empid_list.append(application.empid)
+            
+        for attendance in attendances:
+            found = False
+            for application in applications:
+                if attendance.empid == application.empid:
+                    found = True
+                    break
+            if not found:
+                empid_list.append(attendance.empid)
 
         empids_duplicate = [empid for empid in empid_list if empid_list.count(empid) > 1]
         empids = list(set(empids_duplicate))
+
+        leave_duration = (date_around_holiday.date_after_holiday - date_around_holiday.date_before_holiday).days + 1
         for empid in empids:
             employee_exits = False
             for employee in employee_list:
                 if employee.empid == empid:
-                    employee.days += 2
+                    employee.days += leave_duration
                     employee_exits = True
             
             if not employee_exits:
-                employee_list.append(HolidayLeaves(empid, 2))
-    current_app.logger.warning('%s', employee_list)
+                employee_list.append(HolidayLeaves(empid, leave_duration))
+        
+    for emp in employee_list:
+        employee = Employee.query.filter_by(id=emp.empid).first()
+        current_app.logger.warning('%s, %s, %s, %s, %s', employee.id, employee.fullname, employee.designation, employee.teams[0].name, emp.days)
+
     return employee_list
+    
