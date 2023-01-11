@@ -567,7 +567,7 @@ def summary(action):
         try:
             holiday_leaves = find_holiday_leaves(form.month.data, form.year.data)
         except Exception as e:
-            current_app.log_exception.error( ' find_holiday_leaves(): %s', e)
+            current_app.log_exception()
             flash('Failed to find leaves around holidays', category='warning')
 
         count = 0
