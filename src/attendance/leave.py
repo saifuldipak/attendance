@@ -172,11 +172,11 @@ def reverse_deduction():
     employees = Employee.query.all()
    
     rv = update_leave_summary(employees, year_start_date, year_end_date)
+
+    flash('Leave deduction reversed')
     if rv:
-        flash('Leave summary update failed, Please check log', category='error')
-    else:
-        flash('Leave deduction reversed')
-   
+        flash('Some messages generated during the process, Please check log', category='warning')
+        
     return redirect(url_for('forms.reverse_leave_deduction'))
 
 
@@ -243,6 +243,8 @@ def update_leave():
     
     rv = update_leave_summary(employees, year_start_date, year_end_date)
     if rv:
+        msg = f'Updating leave from {year_start_date} to {year_end_date}'
+        flash(msg)
         flash('Failed to update leave for some employees, please check log', category='warning')
     else:
         flash('Leave updated successfully')
