@@ -971,7 +971,6 @@ def find_holiday_leaves(month, year):
                 dates_around_holidays.append(date_around_holiday)
                 holiday_start_date = False
 
-
     #Creating list of empid & holidays count
     employee_list = []
     for date_around_holiday in dates_around_holidays:
@@ -1019,10 +1018,5 @@ def find_holiday_leaves(month, year):
             
             if not employee_exits:
                 employee_list.append(HolidayLeaves(empid, leave_duration))
-        
-    for emp in employee_list:
-        employee = Employee.query.filter_by(id=emp.empid).first()
-        current_app.logger.warning('%s, %s, %s, %s, %s', employee.id, employee.fullname, employee.designation, employee.teams[0].name, emp.days)
-
+                
     return employee_list
-    
