@@ -578,10 +578,11 @@ def summary(action):
                     for leave in holiday_leaves:
                         if leave.empid == employee.id:
                             holiday_leave = leave.days
+                            break
                         else:
-                            holiday_leave = ''
+                            holiday_leave = None
                 else:
-                    holiday_leave = ''
+                    holiday_leave = None
 
                 early = attendance['summary']['NO'] + attendance['summary']['E']
                 attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early, holiday_leave=holiday_leave)
