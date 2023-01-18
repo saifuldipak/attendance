@@ -319,6 +319,7 @@ def get_attendance_data(empid, month, year):
     attendances = attendances_list
     return_values['attendances'] = attendances
     return_values['summary'] = summary
+
     return return_values
 
 
@@ -1008,7 +1009,7 @@ def find_holiday_leaves(month, year):
         empids_duplicate = [empid for empid in empid_list if empid_list.count(empid) > 1]
         empids = list(set(empids_duplicate))
 
-        leave_duration = (date_around_holiday.date_after_holiday - date_around_holiday.date_before_holiday).days + 1
+        leave_duration = (date_around_holiday.date_after_holiday - date_around_holiday.date_before_holiday).days - 1 #remove count of date_after_holiday
         for empid in empids:
             employee_exits = False
             for employee in employee_list:
@@ -1018,5 +1019,5 @@ def find_holiday_leaves(month, year):
             
             if not employee_exits:
                 employee_list.append(HolidayLeaves(empid, leave_duration))
-                
+
     return employee_list
