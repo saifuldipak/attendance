@@ -864,13 +864,13 @@ def update_leave_summary(employees, year_start_date, year_end_date):
         else:
             medical_approved_days = medical_approved.days
 
-        casual_deducted_1 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.late_early).label('days')).filter(LeaveDeductionSummary.empid==employee.id, LeaveDeductionSummary.year==year_start_date.year, LeaveDeductionSummary.month>=7, LeaveDeductionSummary.month<=12).first()
+        casual_deducted_1 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.leave_deducted).label('days')).filter(LeaveDeductionSummary.empid==employee.id, LeaveDeductionSummary.year==year_start_date.year, LeaveDeductionSummary.month>=7, LeaveDeductionSummary.month<=12).first()
         if not casual_deducted_1.days:
             casual_deducted_1_days = 0
         else:
             casual_deducted_1_days = casual_deducted_1.days
 
-        casual_deducted_2 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.late_early).label('days')).filter(LeaveDeductionSummary.empid==employee.id, LeaveDeductionSummary.year==year_end_date.year, LeaveDeductionSummary.month>=1, LeaveDeductionSummary.month<=6).first()
+        casual_deducted_2 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.leave_deducted).label('days')).filter(LeaveDeductionSummary.empid==employee.id, LeaveDeductionSummary.year==year_end_date.year, LeaveDeductionSummary.month>=1, LeaveDeductionSummary.month<=6).first()
         if not casual_deducted_2.days:
             casual_deducted_2_days = 0
         else:
