@@ -173,10 +173,9 @@ def reverse_deduction():
     employees = Employee.query.all()
    
     rv = update_leave_summary(employees, year_start_date, year_end_date)
+    flash('Leave deduction reversed')
     if rv:
-        flash('Leave summary update failed, Please check log', category='error')
-    else:
-        flash('Leave deduction reversed')
+        flash('Please check system log for salary deduct info', category='warning')
    
     return redirect(url_for('forms.reverse_leave_deduction'))
 
