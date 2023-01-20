@@ -31,28 +31,29 @@ def deduction():
         return redirect(url_for('forms.leave_deduction'))
 
     for summary in all_summary:
-        total_deduct = 0
-        salary_deduct = 0
+        leave_deducted = 0
+        salary_deducted = 0
                 
-        if summary.late > 2 or summary.early > 2:
+        if summary.late > 2 or summary.early > 2 or summary.holiday_leave > 0:
             leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
             leave_available_casual_earned = leave_available.casual + leave_available.earned
-            total_deduct = int(summary.late/3) + int(summary.early/3)
+            leave_deducted = int(summary.late/3) + int(summary.early/3) + summary.holiday_leave
             
-            if leave_available.casual >= total_deduct:
-                leave_available.casual = leave_available.casual - total_deduct
-            elif leave_available_casual_earned >= total_deduct:
-                leave_available.earned = leave_available_casual_earned - total_deduct
+            if leave_available.casual >= leave_deducted:
+                leave_available.casual = leave_available.casual - leave_deducted
+            elif leave_available_casual_earned >= leave_deducted:
+                leave_available.earned = leave_available_casual_earned - leave_deducted
                 leave_available.casual = 0
             else:    
                 leave_available.casual = 0
                 leave_available.earned = 0
-                salary_deduct = (total_deduct - leave_available_casual_earned)
+                salary_deducted = (leave_deducted - leave_available_casual_earned)
+                leave_deducted = leave_available_casual_earned
 
         if summary.absent > 0:
-            salary_deduct += summary.absent
+            salary_deducted += summary.absent
 
-        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, late_early=total_deduct, salary_deduct=salary_deduct, year=form.year.data, month=form.month.data)
+        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, leave_deducted=leave_deducted, salary_deducted=salary_deducted, year=form.year.data, month=form.month.data)
         db.session.add(deduction)
     
     db.session.commit()
