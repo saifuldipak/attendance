@@ -1021,3 +1021,54 @@ def find_holiday_leaves(month, year):
                 employee_list.append(HolidayLeaves(empid, leave_duration))
 
     return employee_list
+
+
+def find_holiday_leaves2(employee_id, attendances):
+    if not attendances:
+        raise Exception('Must provide attendances of an employee')
+
+    class HolidayLeaves():
+        def __init__(self, empid, days):
+            self.empid = empid
+            self.days = days
+    
+    class DateAroundHolidays():
+        def __init__(self, date_before_holiday, date_after_holiday):
+            self.date_before_holiday = date_before_holiday
+            self.date_after_holiday = date_after_holiday
+
+    #Creating holiday date list for weekly & other holidays
+    dates_around_holidays= []
+    holiday_start_date = False
+    for attendance in attendances:        
+        if attendance['day'] in ('Friday', 'Saturday') or attendance['holiday']:
+            if not holiday_start_date:
+                holiday_start_date = attendance['date']
+        else:
+            if holiday_start_date:
+                holiday_end_date = attendance['date']
+                date_around_holiday = DateAroundHolidays(holiday_start_date - timedelta(1), holiday_end_date)
+                dates_around_holidays.append(date_around_holiday)
+                holiday_start_date = False
+
+    #Creating list of empid & holidays count
+    employee_list = []
+    holiday_leave_days = 0
+    for date_around_holiday in dates_around_holidays:
+        empid_list = []
+        for attendance in attendances:
+            if attendance['date'] == date_around_holiday.date_before_holiday:
+                if attendance['application_type'] in ('Casual', 'Medical') or attendance['in_flag'] == 'NI':
+                    empid_list.append(employee_id)
+
+            if attendance['date'] == date_around_holiday.date_after_holiday:
+                if attendance['application_type'] in ('Casual', 'Medical') or attendance['in_flag'] == 'NI':
+                    empid_list.append(employee_id)
+
+        empids_duplicate = [empid for empid in empid_list if empid_list.count(empid) > 1]
+        empid = list(set(empids_duplicate))
+        if empid:
+            leave_duration = (date_around_holiday.date_after_holiday - date_around_holiday.date_before_holiday).days - 1 #remove count of date_after_holiday
+            holiday_leave_days += leave_duration
+                
+    return holiday_leave_days
