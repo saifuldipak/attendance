@@ -878,6 +878,7 @@ def update_leave_summary(employees, year_start_date, year_end_date):
         
         leave_available.casual = current_app.config['CASUAL']
         leave_available.earned = current_app.config['EARNED']
+        leave_available.medical = current_app.config['MEDICAL']
         leave_available_casual_earned = leave_available.casual + leave_available.earned
 
         casual_consumed = casual_approved_days + casual_deducted_days
@@ -894,7 +895,6 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 current_app.logger.warning(' update_leave_summary():(casual) Salary deduct days:%s for employee:%s', salary_deduct, employee.username)
                 error += 1
         
-        leave_available.medical = current_app.config['MEDICAL']
         leave_available_medical_casual = leave_available.medical + leave_available.casual
         leave_available_all = leave_available_medical_casual + leave_available.earned
         
@@ -905,7 +905,7 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 leave_available.medical = 0
                 leave_available.casual = leave_available_medical_casual - medical_approved_days
             elif medical_approved_days > leave_available_medical_casual and medical_approved_days <= leave_available_all:
-                leave_available.earned -= (leave_available_all - medical_approved_days)
+                leave_available.earned = leave_available_all - medical_approved_days
                 leave_available.medical = 0
                 leave_available.casual = 0
             else:
