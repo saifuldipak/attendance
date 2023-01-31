@@ -94,9 +94,8 @@ class LeaveDeductionSummary(db.Model):
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    late_early = db.Column(db.Integer) #days leave deducted due to late & early days
-    casual_overlap = db.Column(db.Integer) #days leave deducted due to casual before or after holidays
-    salary_deduct = db.Column(db.Integer) #days salary deducted due to leave unavailable
+    leave_deducted = db.Column(db.Integer) #days leave deducted due to late & early days
+    salary_deducted = db.Column(db.Integer) #days salary deducted due to leave unavailable
     attendance_summary = db.Column(db.Integer, db.ForeignKey('attendance_summary.id'))
 
 #Datewise approved Leave/Attendance applications and holidays
@@ -117,6 +116,7 @@ class AttendanceSummary(db.Model):
     absent = db.Column(db.Integer)
     late = db.Column(db.Integer)
     early = db.Column(db.Integer)
+    holiday_leave = db.Column(db.Integer)
     leave_deduction_summary = db.relationship('LeaveDeductionSummary', backref='attendancesummary', lazy=True)
 
 #Office timing for special cases

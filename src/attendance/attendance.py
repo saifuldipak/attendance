@@ -7,7 +7,7 @@ import pandas as pd
 from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime, Deleteattendance, Dutyscheduledelete)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
-from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates
+from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates, find_holiday_leaves2
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -519,14 +519,14 @@ def summary(action):
         file_name = ''
 
         if summary_for == 'self':
-            attendance_summary = AttendanceSummary.query.join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
+            attendance_summary = AttendanceSummary.query.join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).with_entities(Employee.fullname, AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.holiday_leave, LeaveDeductionSummary.leave_deducted, LeaveDeductionSummary.salary_deducted).filter(Employee.id==session['empid'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).all()
         
         if summary_for == 'team':
             teams = Team.query.filter_by(empid=session['empid']).all()
             attendance_summary_list = []
             
             for team in teams:
-                team_attendance_summary = AttendanceSummary.query.join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).join(Team, AttendanceSummary.empid==Team.empid, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Employee.fullname).all()
+                team_attendance_summary = AttendanceSummary.query.join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).join(Team, AttendanceSummary.empid==Team.empid, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.holiday_leave, LeaveDeductionSummary.leave_deducted, LeaveDeductionSummary.salary_deducted).filter(Team.name==team.name, AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Employee.fullname).all()
 
                 for attendance_summary in team_attendance_summary:
                     attendance_summary_list.append(attendance_summary)
@@ -534,10 +534,10 @@ def summary(action):
             attendance_summary = attendance_summary_list
 
         if summary_for == 'department':
-            attendance_summary = AttendanceSummary.query.join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).join(Employee, Team, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Team.name, Employee.fullname).all()
+            attendance_summary = AttendanceSummary.query.join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).join(Employee, Team, isouter=True).with_entities(Employee.fullname, Team.name.label('team'), AttendanceSummary.absent,AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.holiday_leave, LeaveDeductionSummary.leave_deducted, LeaveDeductionSummary.salary_deducted).filter(Employee.department==session['department'], AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data).order_by(Team.name, Employee.fullname).all()
 
         if summary_for == 'all':
-            stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, LeaveDeductionSummary.late_early, LeaveDeductionSummary.salary_deduct).select_from(AttendanceSummary).join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
+            stmt = select(Employee.fullname, AttendanceSummary.absent, AttendanceSummary.late, AttendanceSummary.early, AttendanceSummary.holiday_leave, LeaveDeductionSummary.leave_deducted, LeaveDeductionSummary.salary_deducted).select_from(AttendanceSummary).join(Employee).join(LeaveDeductionSummary, AttendanceSummary.id==LeaveDeductionSummary.attendance_summary, isouter=True).where(AttendanceSummary.month==form.month.data, AttendanceSummary.year==form.year.data)
             
             attendance_summary = db.session.execute(stmt).all()
 
@@ -568,8 +568,10 @@ def summary(action):
         for employee in employees:
             attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
             if attendance:
+                holiday_leave = find_holiday_leaves2(employee.id, attendance['attendances'])
                 early = attendance['summary']['NO'] + attendance['summary']['E']
-                attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early)
+
+                attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early, holiday_leave=holiday_leave)
                 db.session.add(attendance_summary)
                 count += 1
     
