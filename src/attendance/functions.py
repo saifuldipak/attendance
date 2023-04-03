@@ -371,7 +371,7 @@ def check_available_leave(application, update=None):
         return False
 
     if application.type == 'Casual':
-        if leave_available.casual > application.duration:
+        if leave_available.casual >= application.duration:
             if update:
                 casual = leave_available.casual - application.duration
                 leave_available.casual = casual
@@ -379,7 +379,7 @@ def check_available_leave(application, update=None):
             return True
         else:
             total = leave_available.casual + leave_available.earned
-            if total > application.duration:
+            if total >= application.duration:
                 if update:
                     earned = total - application.duration
                     leave_available.casual = 0
@@ -388,7 +388,7 @@ def check_available_leave(application, update=None):
                 return True
 
     if application.type == 'Medical':
-        if leave_available.medical > application.duration:
+        if leave_available.medical >= application.duration:
             if update:
                 medical = leave_available.medical - application.duration
                 leave_available.medical = medical
@@ -396,7 +396,7 @@ def check_available_leave(application, update=None):
             return True
         else:
             total = leave_available.medical + leave_available.casual         
-            if total > application.duration:
+            if total >= application.duration:
                 if update:
                     casual = total - application.duration
                     leave_available.medical = 0
@@ -405,7 +405,7 @@ def check_available_leave(application, update=None):
                 return True
             else:
                 total = total + leave_available.earned
-                if total > application.duration:
+                if total >= application.duration:
                     if update:
                         earned = total - application.duration
                         leave_available.medical = 0
