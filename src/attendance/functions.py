@@ -1072,3 +1072,67 @@ def find_holiday_leaves2(employee_id, attendances):
             holiday_leave_days += leave_duration
                 
     return holiday_leave_days
+
+
+def find_holiday_leaves3(employee_id, attendances):
+    if not employee_id and not attendances:
+        raise Exception('Must provide employee id & attendances')
+    
+    casual_count_start = False
+    holiday_count = 0
+    for attendance in attendances:
+        if attendance['application_type']:
+            if not attendance['holiday'] or attendance['day'] not in ('Friday', 'Saturday'):
+                if casual_count_start:
+                    casual_count_start = False
+                else:
+                    casual_count_start = True
+        else:
+            if casual_count_start:
+                if attendance['holiday'] or attendance['day'] in ('Friday', 'Saturday'):
+                    holiday_count += 1
+            else:
+                casual_count_start = False
+    
+    return holiday_count
+                
+    
+    """ class DateAroundHolidays():
+        def __init__(self, date_before_holiday, date_after_holiday):
+            self.date_before_holiday = date_before_holiday
+            self.date_after_holiday = date_after_holiday
+
+    #Creating holiday date list for weekly & other holidays
+    dates_around_holidays= []
+    holiday_start_date = False
+    for attendance in attendances:        
+        if attendance['day'] in ('Friday', 'Saturday') or attendance['holiday']:
+            if not holiday_start_date:
+                holiday_start_date = attendance['date']
+        else:
+            if holiday_start_date:
+                holiday_end_date = attendance['date']
+                date_around_holiday = DateAroundHolidays(holiday_start_date - timedelta(1), holiday_end_date)
+                dates_around_holidays.append(date_around_holiday)
+                holiday_start_date = False
+
+    #Creating list of empid & holidays count
+    employee_list = []
+    holiday_leave_days = 0
+    for date_around_holiday in dates_around_holidays:
+        empid_list = []
+        for attendance in attendances:
+            if attendance['date'] == date_around_holiday.date_before_holiday:
+                if attendance['application_type'] in ('Casual', 'Medical') or attendance['in_flag'] == 'NI':
+                    empid_list.append(employee_id)
+
+            if attendance['date'] == date_around_holiday.date_after_holiday:
+                if attendance['application_type'] in ('Casual', 'Medical') or attendance['in_flag'] == 'NI':
+                    empid_list.append(employee_id)
+
+        empids_duplicate = [empid for empid in empid_list if empid_list.count(empid) > 1]
+        empid = list(set(empids_duplicate))
+        if empid:
+            leave_duration = (date_around_holiday.date_after_holiday - date_around_holiday.date_before_holiday).days - 1 #remove count of date_after_holiday
+            holiday_leave_days += leave_duration """
+                
