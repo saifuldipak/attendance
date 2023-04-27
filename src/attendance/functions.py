@@ -780,10 +780,17 @@ def send_mail(sender, receiver, type, **kwargs):
         Name: {application['employee_fullname']}
         {name}
         Start date: {application['start_date']}
-        End date: {application['end_date']}
-        Remark: {application['remark']}
-        Status: {application['status']}
-        """
+        End date: {application['end_date']}"""
+
+        if 'holiday_duty_start' and 'holiday_duty_end' in application:
+            body += f"""
+        Holiday duty start: {application['holiday_duty_start']}
+        Holiday duty end: {application['holiday_duty_end']}"""
+        
+        body += f"""
+        Remark: {application['remark']} 
+        Status: {application['status']}"""
+
     
     #creating email body for password reset
     if type == 'reset':
