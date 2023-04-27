@@ -72,6 +72,9 @@ def submit(application_type):
     if application_type in ('attendance', 'fiber_attendance'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('casual', 'fiber_casual'):
+        if form.holiday_duty_type.data != 'No':
+            form.type.data = 'Casual adjust'
+
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
@@ -110,7 +113,7 @@ def submit(application_type):
     db.session.commit()
     flash('Application submitted', category='message')
 
-     #creating dict to use in get_emails() & send_email()
+    #creating dict to use in get_emails() & send_email()
     application_dict = { 
         'id' : application.id,
         'empid' : application.empid,
@@ -122,6 +125,10 @@ def submit(application_type):
         'employee_fullname' : application.employee.fullname
     }
 
+    if form.holiday_duty_type.data != 'No':
+        application_dict['holiday_duty_start'] = form.holiday_duty_start_date.data
+        application_dict['holiday_duty_end'] = form.holiday_duty_end_date.data
+    
     #Send mail to all concerned
     if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
         emails = get_emails(application_dict, action='approve')
