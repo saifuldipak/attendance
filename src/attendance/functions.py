@@ -1074,7 +1074,7 @@ def find_holiday_leaves2(employee_id, attendances):
     return holiday_leave_days
 
 
-def find_holiday_leaves3(employee_id, attendances):
+""" def find_holiday_leaves3(employee_id, attendances):
     if not employee_id and not attendances:
         raise Exception('Must provide employee id & attendances')
     
@@ -1091,13 +1091,15 @@ def find_holiday_leaves3(employee_id, attendances):
             if casual_count_start:
                 if attendance['holiday'] or attendance['day'] in ('Friday', 'Saturday'):
                     holiday_count += 1
+                else:
+                    holiday_count = 0
             else:
                 casual_count_start = False
     
     return holiday_count
                 
     
-    """ class DateAroundHolidays():
+    class DateAroundHolidays():
         def __init__(self, date_before_holiday, date_after_holiday):
             self.date_before_holiday = date_before_holiday
             self.date_after_holiday = date_after_holiday
