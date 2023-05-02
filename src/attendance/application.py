@@ -112,33 +112,17 @@ def submit(application_type):
     db.session.add(application)
     db.session.commit()
     flash('Application submitted', category='message')
-
-    #creating dict to use in get_emails() & send_email()
-    application_dict = { 
-        'id' : application.id,
-        'empid' : application.empid,
-        'type' : application.type,
-        'start_date' : application.start_date,
-        'end_date' : application.end_date,
-        'status' : application.status,
-        'remark' : application.remark,
-        'employee_fullname' : application.employee.fullname
-    }
-
-    if form.holiday_duty_type.data != 'No':
-        application_dict['holiday_duty_start'] = form.holiday_duty_start_date.data
-        application_dict['holiday_duty_end'] = form.holiday_duty_end_date.data
     
     #Send mail to all concerned
     if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
-        emails = get_emails(application_dict, action='approve')
+        emails = get_emails(application, action='approve')
     else:
-        emails = get_emails(application_dict, action='submit')
+        emails = get_emails(application, action='submit')
     
     if emails['error']:
         current_app.logger.error('Failed to get emails for submitted application for "%s"', session['username'])
         flash('Failed to get email addresses for sending email', category='error')
-        return redirect(url_for('forms.application', type=application_type))
+        return redirect(url_for('forms.application', application_type=application_type))
 
     if application_type not in ('attendance', 'fiber_attendance'):
         type = 'leave'
@@ -157,7 +141,7 @@ def submit(application_type):
         else:
             action = 'submitted'
     
-    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application_dict, type=type, action=action)
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
         current_app.logger.warning(' submit(): %s',rv)
         flash('Failed to send mail', category='warning')
@@ -218,18 +202,6 @@ def process(action, application_id):
         flash(msg, category='error')
         return redirect(url_for('application.search', application_for=application_for))
 
-    #creating dict to use in get_emails() & send_email()
-    application_dict = { 
-        'id' : application.id,
-        'empid' : application.empid,
-        'type' : application.type,
-        'start_date' : application.start_date,
-        'end_date' : application.end_date,
-        'status' : application.status,
-        'remark' : application.remark,
-        'employee_fullname' : application.employee.fullname
-    } 
-
     #Approve application
     if action == 'approve':            
         if application.type == 'Casual' or application.type == 'Medical':
@@ -240,7 +212,7 @@ def process(action, application_id):
     
         application.status = 'Approved'
         db.session.commit()
-        msg = f'Application:{application_dict["id"]} approved'
+        msg = f'Application:{application.id} approved'
     
     #Delete attachments 
     if action == 'cancel':              
@@ -270,12 +242,12 @@ def process(action, application_id):
                 flash('Failed to update leave summary', category='warning')
                 return redirect(url_for('application.search', application_for=application_for))
         
-        msg = f'Application: {application_dict["id"]} cancelled'
+        msg = f'Application: {application.id} cancelled'
 
     #Send mail to all concerned
-    emails = get_emails(application_dict, action)
+    emails = get_emails(application, action)
     if emails['error']:
-        current_app.logger.error('Failed to get emails for application "%s" %s', application_dict['id'], action)
+        current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
         flash('Failed to get email addresses for sending email', category=error)
         return redirect(url_for('application.search', application_for=application_for))
     
@@ -291,7 +263,7 @@ def process(action, application_id):
     elif action == 'cancel':
         action = 'cancelled'
 
-    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application_dict, type=type, action=action)
+    rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
         current_app.logger.warning(' process():', rv)
         flash('Failed to send mail', category='warning')        
