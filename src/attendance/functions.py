@@ -938,7 +938,7 @@ def get_fiscal_year_start_end_2(supplied_date):
     return year_start_date, year_end_date
 
 
-def find_holiday_leaves(month, year):
+""" def find_holiday_leaves(month, year):
     if not month or not year:
         raise Exception('Must provide "month" & "year"')
 
@@ -1020,39 +1020,50 @@ def find_holiday_leaves(month, year):
             if not employee_exits:
                 employee_list.append(HolidayLeaves(empid, leave_duration))
 
-    return employee_list
+    return employee_list """
 
 
 def find_holiday_leaves2(employee_id, attendances):
     if not attendances:
         raise Exception('Must provide attendances of an employee')
 
-    class HolidayLeaves():
+    """ class HolidayLeaves():
         def __init__(self, empid, days):
             self.empid = empid
-            self.days = days
+            self.days = days """
     
     class DateAroundHolidays():
         def __init__(self, date_before_holiday, date_after_holiday):
             self.date_before_holiday = date_before_holiday
             self.date_after_holiday = date_after_holiday
 
-    #Creating holiday date list for weekly & other holidays
+    #Creating holiday date list
     dates_around_holidays= []
     holiday_start_date = False
     for attendance in attendances:        
-        if attendance['day'] in ('Friday', 'Saturday') or attendance['holiday']:
-            if not holiday_start_date:
-                holiday_start_date = attendance['date']
-        else:
-            if holiday_start_date:
-                holiday_end_date = attendance['date']
-                date_around_holiday = DateAroundHolidays(holiday_start_date - timedelta(1), holiday_end_date)
-                dates_around_holidays.append(date_around_holiday)
-                holiday_start_date = False
+        if attendance['duty_shift']:
+            if attendance['duty_shift'] == 'O' and attendance['application_type'] is None:
+                if not holiday_start_date:
+                    holiday_start_date = attendance['date']
+            else:
+                if holiday_start_date:
+                    holiday_end_date = attendance['date']
+                    date_around_holiday = DateAroundHolidays(holiday_start_date - timedelta(1), holiday_end_date)
+                    dates_around_holidays.append(date_around_holiday)
+                    holiday_start_date = False
+        else: 
+            if attendance['day'] in ('Friday', 'Saturday') or attendance['holiday'] and attendance['application_type'] is None:
+                if not holiday_start_date:
+                    holiday_start_date = attendance['date']
+            else:
+                if holiday_start_date:
+                    holiday_end_date = attendance['date']
+                    date_around_holiday = DateAroundHolidays(holiday_start_date - timedelta(1), holiday_end_date)
+                    dates_around_holidays.append(date_around_holiday)
+                    holiday_start_date = False
 
     #Creating list of empid & holidays count
-    employee_list = []
+    #employee_list = []
     holiday_leave_days = 0
     for date_around_holiday in dates_around_holidays:
         empid_list = []
