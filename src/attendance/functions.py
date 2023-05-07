@@ -969,7 +969,7 @@ def find_holiday_leaves(employee_id, attendances):
                     dates_around_holidays.append(date_around_holiday)
                     holiday_start_date = False
         else: 
-            if attendance['day'] in ('Friday', 'Saturday') or attendance['holiday'] and attendance['application_type'] is None:
+            if (attendance['day'] in ('Friday', 'Saturday') or attendance['holiday']) and attendance['application_type'] is None:
                 if not holiday_start_date:
                     holiday_start_date = attendance['date']
             else:
