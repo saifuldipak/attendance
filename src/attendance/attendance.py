@@ -606,44 +606,6 @@ def summary(action):
         return redirect(url_for('forms.attendance_summary', action='delete'))
                 
 
-""" @attendance.route('/attendance/summary/prepare', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def prepare_summary():
-    form = Monthyear()
-    current_month = datetime.now().month
-    current_year = datetime.now().year
-
-    if form.month.data >= current_month and current_year >= form.year.data:
-        flash('You can only prepare attendance summary of previous month or before previous month', category='error')    
-        return redirect(url_for('forms.attendance_summary', action='prepare'))
-        
-    summary = AttendanceSummary.query.filter_by(year=form.year.data, month=form.month.data).first()
-    if summary:
-        flash('Summary data already exists for the year and month you submitted', category='error')
-        return redirect(url_for('forms.attendance_summary', action='prepare'))
-
-    employees = Employee.query.all()
-
-    count = 0
-    for employee in employees:
-        attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
-        if attendance:
-            early = attendance['summary']['NO'] + attendance['summary']['E']
-            attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early)
-            db.session.add(attendance_summary)
-            count += 1
-    
-    if count > 0:
-        db.session.commit()
-        msg = f'Attendance summary prepared for {form.month.data}, {form.year.data}. Added record {count}'
-    else:
-        msg = f'No record found for {form.month.data}, {form.year.data}'
-    
-    flash(msg)
-    return redirect(url_for('forms.attendance_summary', action='prepare'))
- """
-
 @attendance.route('/attendance/office_time/<action>', methods=['GET', 'POST'])
 @login_required
 @admin_required
