@@ -945,7 +945,7 @@ def get_fiscal_year_start_end_2(supplied_date):
     return year_start_date, year_end_date
 
 
-def find_holiday_leaves2(employee_id, attendances):
+def find_holiday_leaves(employee_id, attendances):
     if not attendances:
         raise Exception('Must provide attendances of an employee')
     

@@ -7,7 +7,7 @@ import pandas as pd
 from .forms import (Addholidays, Attnqueryfullname, Attndataupload, Dutyshiftcreate, Attendancesummaryshow, Monthyear, Dutyscheduleupload, Officetime, Deleteattendance, Dutyscheduledelete)
 from .db import *
 from .auth import login_required, admin_required, team_leader_required
-from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates, find_holiday_leaves2
+from .functions import check_holidays, get_attendance_data, check_view_permission, convert_team_name, check_data_access, check_attendance_summary, check_office_time_dates, find_holiday_leaves
 
 # file extensions allowed to be uploaded
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
@@ -568,7 +568,7 @@ def summary(action):
         for employee in employees:
             attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
             if attendance:
-                holiday_leave = find_holiday_leaves2(employee.id, attendance['attendances'])
+                holiday_leave = find_holiday_leaves(employee.id, attendance['attendances'])
                 early = attendance['summary']['NO'] + attendance['summary']['E']
 
                 attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early, holiday_leave=holiday_leave)
