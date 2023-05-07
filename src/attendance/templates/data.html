@@ -611,10 +611,10 @@
             Year: {{ form.year.data }}</p>
             {% if attendances %}
                 <p>
-                    Absent: {{ attendances['summary']['NI'] }} &nbsp&nbsp
+                    Absent* : {{ attendances['summary']['NI'] + attendances['summary']['NO'] }} &nbsp&nbsp
                     Late: {{ attendances['summary']['L'] }} &nbsp&nbsp
-                    No out: {{ attendances['summary']['NO'] }} &nbsp&nbsp
-                    Early: {{ attendances['summary']['E'] }}
+                    Early: {{ attendances['summary']['E'] }} <br><br>
+                    *Absent = No In + No Out
                 </p>
             {% endif %}
         <table class="query-result">

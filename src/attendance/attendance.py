@@ -569,9 +569,9 @@ def summary(action):
             attendance = get_attendance_data(employee.id, form.month.data, form.year.data)
             if attendance:
                 holiday_leave = find_holiday_leaves(employee.id, attendance['attendances'])
-                early = attendance['summary']['NO'] + attendance['summary']['E']
+                absent = attendance['summary']['NO'] + attendance['summary']['NI']
 
-                attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=attendance['summary']['NI'], late=attendance['summary']['L'], early=early, holiday_leave=holiday_leave)
+                attendance_summary = AttendanceSummary(empid=employee.id, year=form.year.data, month=form.month.data, absent=absent, late=attendance['summary']['L'], early=attendance['summary']['E'], holiday_leave=holiday_leave)
                 db.session.add(attendance_summary)
                 count += 1
     
