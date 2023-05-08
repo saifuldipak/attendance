@@ -34,6 +34,11 @@ def upload():
             df = pd.read_excel(form.file1.data, names=col_names)
            
             for i in range(len(df.index)):
+                if pd.isna(df.iat[i, 0]):
+                    msg = f'Employee id not found on row {i + 2}'
+                    flash(msg, category='error')
+                    return render_template('forms.html', form_type='attendance_upload', form=form)
+                    
                 empid = int(df.iat[i, 0])
                 date = datetime.strptime(df.iat[i, 1], "%m/%d/%Y").date()
                 
