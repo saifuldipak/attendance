@@ -181,7 +181,7 @@ def reverse_deduction():
     return redirect(url_for('forms.reverse_leave_deduction'))
 
 
-@leave.route('/leave/summary/<type>')
+@leave.route('/leave/summary/<type>', methods=['GET', 'POST'])
 @login_required     
 def summary(type):
     if type not in ('self', 'team', 'department', 'all'):
@@ -204,8 +204,12 @@ def summary(type):
         flash('You are not authorized to see leave summary of all', category='error')
         return render_template('base.html')
 
+    year_start = request.form.get('year_start')
+    if not year_start:
+        year_start = datetime.datetime.now().date()
+
     if type == 'self':
-        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.year_start <= year_start, LeaveAvailable.year_end >= year_start)).all()
         if not leave_summary:
             current_app.logger.warning(' summary(): No data found in leave_available table for %s', session['empid'])
             flash('No leave summary record found', category='warning')
@@ -216,7 +220,7 @@ def summary(type):
         team_summary = []
     
         for team in teams:
-            summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+            summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.year_start <= year_start, LeaveAvailable.year_end >= year_start)).all()
             team_summary += summary
         
         leave_summary = team_summary
@@ -227,13 +231,19 @@ def summary(type):
             return render_template('base.html')
     
     if type == 'department':
-        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.department==session['department'], Employee.id!=session['empid'],  and_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.department==session['department'], Employee.id!=session['empid'],  and_(LeaveAvailable.year_start <= year_start, LeaveAvailable.year_end >= year_start)).all()
 
     if type == 'all':
-        leave_summary = LeaveAvailable.query.join(Employee).filter(or_(LeaveAvailable.year_start < datetime.datetime.now().date(), LeaveAvailable.year_end > datetime.datetime.now().date())).all()
+        leave_summary = LeaveAvailable.query.join(Employee).filter(and_(LeaveAvailable.year_start <= year_start, LeaveAvailable.year_end > year_start)).all()
 
-    return render_template('data.html', data_type='leave_summary', leave_summary=leave_summary)
+        years = LeaveAvailable.query.group_by(LeaveAvailable.year_start).all()
 
+
+    if not years:
+        years = None
+
+    return render_template('data.html', data_type='leave_summary', type=type, year_start=leave_summary[0].year_start, year_end=leave_summary[0].year_end, leave_summary=leave_summary, years=years)
+   
 
 @leave.route('/leave/update')
 @login_required
