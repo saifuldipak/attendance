@@ -239,7 +239,7 @@ def summary(type):
         years = LeaveAvailable.query.group_by(LeaveAvailable.year_start).all()
 
 
-    if not years:
+    if 'years' not in locals():
         years = None
 
     return render_template('data.html', data_type='leave_summary', type=type, year_start=leave_summary[0].year_start, year_end=leave_summary[0].year_end, leave_summary=leave_summary, years=years)
