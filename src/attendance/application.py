@@ -81,22 +81,22 @@ def submit(application_type):
     
     if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data == 'No':
         if application_type == 'casual':
-            available = check_available_leave(application)
+            rv = check_available_leave(application)
         elif application_type == 'fiber_casual':
-            available = check_available_leave(application, 'update')
+            rv = check_available_leave(application, 'update')
 
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
+        if rv != 'Leave available':
+            flash(rv, category='error')
             return redirect(request.url)
     
     if application_type in ('medical', 'fiber_medical'):
         if application_type == 'medical':
-            available = check_available_leave(application)
+            rv = check_available_leave(application)
         elif application_type == 'fiber_medical':
-            available = check_available_leave(application, 'update')
+            rv = check_available_leave(application, 'update')
 
-        if not available:
-            flash('Leave not available, please check leave summary', category='error')
+        if rv != 'Leave available':
+            flash(rv, category='error')
             return redirect(request.url)
     
     if application_type in ('medical', 'fiber_medical'):

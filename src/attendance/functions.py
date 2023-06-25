@@ -361,14 +361,18 @@ def check_attendance_summary(start_date, end_date=None):
 
 
 def check_available_leave(application, update=None):
+    success_message = 'Leave available'
+    failed_messaage = 'Leave not available'
+    error_message = 'Leave record not found'
+
     if not application:
-        current_app.logger.warning('check_available_leave(): application argument missing, user: %s', session['username'])
-        return False
+        current_app.logger.warning('check_available_leave(): argument named "application" missing, user: %s', session['username'])
+        return error_message
     
-    leave_available = LeaveAvailable.query.filter_by(empid=application.empid).first()
+    leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==application.empid, LeaveAvailable.year_start <= application.start_date, LeaveAvailable.year_end >= application.end_date).first()
     if not leave_available:
-        current_app.logger.warning('check_available_leave(): leave_available record not found, user: %s', session['username'])
-        return False
+        current_app.logger.warning('check_available_leave(): leave_available record not found in table, user: %s (either record not created for a fiscal year or application start and end dates are in two different fiscal year)', session['username'])
+        return error_message
 
     if application.type == 'Casual':
         if leave_available.casual >= application.duration:
@@ -376,7 +380,7 @@ def check_available_leave(application, update=None):
                 casual = leave_available.casual - application.duration
                 leave_available.casual = casual
                 db.session.commit()
-            return True
+            return success_message
         else:
             total = leave_available.casual + leave_available.earned
             if total >= application.duration:
@@ -385,7 +389,7 @@ def check_available_leave(application, update=None):
                     leave_available.casual = 0
                     leave_available.earned = earned
                     db.session.commit()
-                return True
+                return success_message
 
     if application.type == 'Medical':
         if leave_available.medical >= application.duration:
@@ -393,7 +397,7 @@ def check_available_leave(application, update=None):
                 medical = leave_available.medical - application.duration
                 leave_available.medical = medical
                 db.session.commit()
-            return True
+            return success_message
         else:
             total = leave_available.medical + leave_available.casual         
             if total >= application.duration:
@@ -402,7 +406,7 @@ def check_available_leave(application, update=None):
                     leave_available.medical = 0
                     leave_available.casual = casual
                     db.session.commit()
-                return True
+                return success_message
             else:
                 total = total + leave_available.earned
                 if total >= application.duration:
@@ -412,8 +416,9 @@ def check_available_leave(application, update=None):
                         leave_available.casual = 0
                         leave_available.earned = earned
                         db.session.commit()
-                    return True
-    return False
+                    return success_message
+                
+    return failed_messaage
 
 
 def check_authorization(application):
