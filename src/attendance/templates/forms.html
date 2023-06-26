@@ -665,6 +665,26 @@
             </form>
         </div>
     {% endif %}
+
+    {% if type == 'update_leave' %}
+        <div class="form-style-2">
+            <form method="post" action="{{ url_for('leave.update') }}">
+                {{ form.csrf_token }}
+                <div class="form-style-2-heading">Update leave</div>
+                <table>
+                    <tr>
+                        <td>{{ form.date.label }}</td><td>{{ form.date }}</td>
+                        <td>(Pick any date in a fiscal year)</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td> <input type="submit" value="Update" /></td>
+                        
+                    </tr>
+                </table>
+            </form>
+        </div>
+    {% endif %}
             
 
 {% endblock %}

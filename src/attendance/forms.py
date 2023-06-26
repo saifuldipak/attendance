@@ -599,3 +599,16 @@ class Deleteattendance(Dates):
 def delete_attendance():
     form = Deleteattendance()
     return render_template('forms.html', type='delete_attendance', form=form)
+
+
+#Update leave
+class Updateleave(FlaskForm):
+    date = DateField('Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[InputRequired()])
+
+@forms.route('/forms/leave/update')
+@login_required
+@admin_required
+def update_leave():
+    form = Updateleave()
+    return render_template('forms.html', type='update_leave', form=form)
+

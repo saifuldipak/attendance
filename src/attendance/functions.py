@@ -856,13 +856,21 @@ def check_office_time_dates(form):
             return 'Start and/or end dates overlaps with other application'
 
 
-def update_leave_summary(employees, year_start_date, year_end_date):
+def update_leave_summary(employees, date):
     error = 0
+    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(date)
+    
+    leave_available_year = LeaveAvailable.query.filter(LeaveAvailable.year_start <= date, LeaveAvailable.year_end >= date).all()
+    if not leave_available_year:
+        current_app.logger.warning('Leave record not found from %s to %s', year_start_date, year_end_date)
+        return 2
+    
     for employee in employees:
         leave_available = LeaveAvailable.query.filter_by(empid=employee.id, year_start=year_start_date, year_end=year_end_date).first()
         if not leave_available:
             current_app.logger.error('Leave not found for %s', employee.username)
             error += 1
+            continue
        
         casual_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter(Applications.start_date>=year_start_date, Applications.start_date<=year_end_date, Applications.empid==employee.id, Applications.type=='Casual', Applications.status=='Approved').first()
         if not casual_approved.days:
@@ -931,11 +939,13 @@ def update_leave_summary(employees, year_start_date, year_end_date):
                 error += 1
 
     db.session.commit()
-    
-    if error > 0:
-        return True
-    
 
+    if error > 0:
+        return 1
+    
+    return 0
+    
+    
 def get_fiscal_year_start_end_2(supplied_date):
     year = supplied_date.year
     month = supplied_date.month
