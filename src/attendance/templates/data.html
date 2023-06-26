@@ -114,8 +114,8 @@
     {% if data_type == 'leave_summary' %}
         <div class="form-style-2-heading">Available Leave</div>
 
-        {% if type == 'all' %}
-            <form method="post" action="{{ url_for('leave.summary', type='all') }}">
+      
+            <form method="post" action="{{ url_for('leave.summary', type=type) }}">
                 <label for="year_start">Year start</label>
                 <select id="year_start" name="year_start">
                     {% for year in years %} 
@@ -124,10 +124,8 @@
                 </select>
 
                 <input type="submit" value="submit" />
-            </form>
-        {% endif %} 
+            </form> 
 
-        
         <p>From {{ year_start }} to {{ year_end }}</p>
         <table class="query-result">
             <th>Name</th>

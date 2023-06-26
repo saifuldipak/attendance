@@ -208,6 +208,8 @@ def summary(type):
     if not year_start:
         year_start = datetime.datetime.now().date()
 
+    years = LeaveAvailable.query.group_by(LeaveAvailable.year_start).all()
+
     if type == 'self':
         leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.year_start <= year_start, LeaveAvailable.year_end >= year_start)).all()
         if not leave_summary:
@@ -235,12 +237,6 @@ def summary(type):
 
     if type == 'all':
         leave_summary = LeaveAvailable.query.join(Employee).filter(and_(LeaveAvailable.year_start <= year_start, LeaveAvailable.year_end > year_start)).all()
-
-        years = LeaveAvailable.query.group_by(LeaveAvailable.year_start).all()
-
-
-    if 'years' not in locals():
-        years = None
 
     return render_template('data.html', data_type='leave_summary', type=type, year_start=leave_summary[0].year_start, year_end=leave_summary[0].year_end, leave_summary=leave_summary, years=years)
    
