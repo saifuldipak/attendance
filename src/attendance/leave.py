@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, redirect, render_template, session, fl
 from sqlalchemy import and_, or_
 from .db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary
 from .auth import *
-from .forms import Createleave, Monthyear
+from .forms import Createleave, Monthyear, Updateleave
 import datetime
 from .functions import get_fiscal_year_start_end_2, update_leave_summary
 from datetime import date
@@ -245,20 +245,27 @@ def summary(type):
     return render_template('data.html', data_type='leave_summary', type=type, year_start=leave_summary[0].year_start, year_end=leave_summary[0].year_end, leave_summary=leave_summary, years=years)
    
 
-@leave.route('/leave/update')
+@leave.route('/leave/update', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def update_leave():
-    employees = Employee.query.all()
-    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(date.today())
-    
-    rv = update_leave_summary(employees, year_start_date, year_end_date)
-    if rv:
-        msg = f'Updating leave from {year_start_date} to {year_end_date}'
-        flash(msg)
-        flash('Failed to update leave for some employees, please check log', category='warning')
-    else:
-        flash('Leave updated successfully')
+def update():
+    form = Updateleave()
+    if not form.validate_on_submit():
+        return render_template('forms.html', type='update_leave', form=form)
 
-    return render_template('base.html')
+    employees = Employee.query.all()
+    
+    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(form.date.data)
+
+    rv = update_leave_summary(employees, form.date.data)
+    if rv == 1 or rv == 0:
+        msg = f'Updated leave for fiscal year {year_start_date} to {year_end_date}'
+        flash(msg)
+        if rv == 1:
+            flash('Failed to update leave for some employees, please check log', category='warning')
+    else:
+        msg = f'Leave record not found for fiscal year {year_start_date} to {year_end_date}'
+        flash(msg, category='error')
+
+    return render_template('forms.html', type='update_leave', form=form)
 
