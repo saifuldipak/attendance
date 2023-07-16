@@ -1,0 +1,17 @@
+v1.1.0
+Fixes - 
+Fixed medical leave calculation in update_leave_summary()
+Fixed absent calculation in attendance.summary()
+Fixed conditional operator in check_available_leave()
+Set application type 'Casual adjust' in application.submit()
+Show holiday duty start date and end date in mail body
+Replace application dictionary with application object in get_emails() & send_mail() argument
+Added check for empty employee id cell in uploaded attendance excel file and give appropriate error message
+
+Feature - 
+Added function to check leave around holidays when preparing attendance summary
+Added option to query leave summary of a specific year
+
+
+v1.0.0
+First stable release
