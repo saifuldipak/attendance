@@ -2,7 +2,20 @@
 Employee attendance and leave record keeping app
 
 ## Description
-This is an app to keep record of employee attendance data from attendance machines. Employees can also apply for leave and attendance approval. Team managers can approve those applications. It has option to send mail to concern persons for application submission and approval. It also calculates annual leave of each employee and update that data when application is approved. It can calculate late and absent days of each employee for each month. 
+This is an app to keep record of employee attendance data from attendance machines. Employees can also apply for leave and attendance approval. Team managers can approve those applications. It has option to send mail to concern persons for application submission and approval. It also calculates annual leave of each employee and update that data when application is approved. It can calculate late and absent days of each employee for each month.
+
+### Features:
+- Data (csv/excel) from the attendance machine can be uploaded directly to the app  
+- Leave and attendance application submission and approval with auto email notification
+- Attendance (in time, out time, late, early & absent etc) and leave status check
+- Multiple access levels for different types of users. Admin, department head,  managers and team members etc.
+- Option to set allowable Casual, Medical, Earned leave,in time, out time, in grace time etc as per need.
+- Option to upload duty schedule for shifting duties. Office in time, out time and holidays are calculated based on that duty schedule
+- Attendance summary preparation for all employees (Calculation of late, early, absent and leave around holidays etc) at the end of the month
+- Leave deduction based on attendance summary.
+- Option to reverse leave deduction and delete attendance summary by admin user if required due to some error in attendance data.
+- Option to delete uploaded attendance data of specific date/s.
+
 
 ## Prerequisite software
 1. Ubuntu-20.04
