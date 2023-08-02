@@ -130,9 +130,8 @@ def duty_schedule(action):
         schedules = []
         for employee in employees:
             team = Team.query.filter_by(empid=employee.id).first()
-
-            dates = DutySchedule.query.join(DutyShift, isouter=True).with_entities(DutyShift.name.label('shift')).filter(DutySchedule.empid==employee.id, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date==year)).order_by(DutySchedule.date).all()
-            
+            dates = DutySchedule.query.join(DutyShift).with_entities(DutyShift.name.label('shift')).filter(DutySchedule.empid==employee.id, extract('month', DutySchedule.date)==month, extract('year', DutySchedule.date)==year).order_by(DutySchedule.date).all()
+           
             if dates:
                 individual_schedule = [employee.fullname, team.name]
 
@@ -148,7 +147,7 @@ def duty_schedule(action):
 
         month_days = monthrange(form.year.data,form.month.data)[1]
         return render_template('data.html', type='duty_schedule', month_days=month_days, schedules=schedules, form=form)
-
+    
     if action == 'upload':
         form = Dutyscheduleupload()
 
