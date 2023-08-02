@@ -214,7 +214,7 @@ def process(action, application_id):
         db.session.commit()
         msg = f'Application:{application.id} approved'
     
-    #Delete attachments 
+    #Cancel application 
     if action == 'cancel':              
         if application.type == 'Medical':
             files = application.file_url.split(';')
@@ -236,8 +236,8 @@ def process(action, application_id):
         db.session.delete(application)
         db.session.commit()
 
-        if application.status == 'Approved' and application.type in ('Casual', 'Medical'):
-            rv = update_leave_summary(employees, year_start_date, year_end_date)
+        if application.type in ('Casual', 'Medical'):
+            rv = update_leave_summary(employees, application.start_date)
             if rv:
                 flash('Failed to update leave summary', category='warning')
                 return redirect(url_for('application.search', application_for=application_for))
