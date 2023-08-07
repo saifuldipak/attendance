@@ -29,13 +29,16 @@ def deduction():
         msg = f'You have already deducted leave for {form.month.data}, {form.year.data}'
         flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
+    
+    date_object = date(form.year.data, form.month.data, 1)
+    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(date_object)
 
     for summary in all_summary:
         leave_deducted = 0
         salary_deducted = 0
                 
         if summary.late > 2 or summary.early > 2 or summary.holiday_leave > 0:
-            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid).first()
+            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid, LeaveAvailable.year_start==year_start_date, LeaveAvailable.year_end==year_end_date).first()
             leave_available_casual_earned = leave_available.casual + leave_available.earned
             leave_deducted = int(summary.late/3) + int(summary.early/3) + summary.holiday_leave
             
@@ -172,7 +175,7 @@ def reverse_deduction():
     (year_start_date, year_end_date) = get_fiscal_year_start_end_2(deduction_date)
     employees = Employee.query.all()
    
-    rv = update_leave_summary(employees, year_start_date, year_end_date)
+    rv = update_leave_summary(employees, year_start_date)
 
     flash('Leave deduction reversed')
     if rv:
