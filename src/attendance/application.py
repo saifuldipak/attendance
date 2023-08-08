@@ -248,7 +248,7 @@ def process(action, application_id):
     emails = get_emails(application, action)
     if emails['error']:
         current_app.logger.error('Failed to get emails for application "%s" %s', application.id, action)
-        flash('Failed to get email addresses for sending email', category=error)
+        flash('Failed to get email addresses for sending email', category='error')
         return redirect(url_for('application.search', application_for=application_for))
     
     if application.type in ('Casual', 'Medical', 'Casual adjust'):
