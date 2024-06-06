@@ -187,7 +187,7 @@ def duty_schedule(action):
             
             employee = Employee.query.join(Team).filter(Employee.fullname==fullname).first()
             if not employee:
-                msg = f'Employee not found with name: {fullname}'
+                msg = f'Employee not found with name: {fullname} on row {i+1}'
                 flash(msg, category='error')
                 return redirect(url_for('forms.duty_schedule', action='upload'))
             
