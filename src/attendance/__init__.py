@@ -5,6 +5,7 @@ import logging
 from logging.config import dictConfig
 from flask.logging import default_handler
 import yaml
+from flask_migrate import Migrate
 
 def create_app(test_config=None):
     
@@ -49,6 +50,9 @@ def create_app(test_config=None):
     from .db import db
     db.init_app(app)
     
+    # Initialize Flask-Migrate
+    migrate = Migrate(app, db)
+
     #registering database initialization command
     from . import initdb
     initdb.reset(app)
