@@ -14,7 +14,7 @@ class Employee(db.Model):
     designation = db.Column(db.String(16), nullable=False)
     role = db.Column(db.String(12), nullable=False)
     access = db.Column(db.String(8))
-    join_date = db.Column(db.Date)
+    joining_date = db.Column(db.Date)
     teams = db.relationship('Team', backref='employee', cascade='delete, merge, save-update', lazy=True)
     applications = db.relationship('Applications', cascade='delete, merge, save-update', backref='employee', lazy=True)
     leaveavailable = db.relationship('LeaveAvailable', cascade='delete, merge, save-update', backref='employee', lazy=True)
