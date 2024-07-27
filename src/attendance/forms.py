@@ -45,8 +45,8 @@ class Dates(FlaskForm):
     
     # extra validator added to check End date value with Start date value
     def validate_start_date(self, field):
-        if self.end_date.data:
-            if field.data > self.end_date.data:
+        if self.end_date.data: # type: ignore
+            if field.data > self.end_date.data: # type: ignore
                 raise ValidationError('End date must be same or later than Start date')
 
 #Attendance file upload
@@ -67,8 +67,8 @@ class Attnqueryall(FlaskForm):
         if not rv:
             return False
 
-        if self.type.data == 'Details' and not self.username.data:
-            self.type.errors.append('Must give "Username" if type is "Details"')
+        if self.type.data == 'Details' and not self.username.data: # type: ignore
+            self.type.errors.append('Must give "Username" if type is "Details"') # type: ignore
             return False
         return True
 
@@ -102,14 +102,14 @@ class Changeselfpass(FlaskForm):
             return False
 
         employee = Employee.query.filter_by(username=session['username']).first()
-        match = check_password_hash(employee.password, self.password.data)
+        match = check_password_hash(employee.password, self.password.data) # type: ignore
         
         if match:
-            self.password.errors.append('old password and new password cannot be same')
+            self.password.errors.append('old password and new password cannot be same') # type: ignore
             return False
 
-        if len(self.password.data) < 8:
-            self.password.errors.append('length must be at least 8 characters')
+        if len(self.password.data) < 8: # type: ignore
+            self.password.errors.append('length must be at least 8 characters') # type: ignore
             return False
         
         #if not re.search('[A-Z0-9]', self.password.data):
@@ -147,7 +147,7 @@ class Updatephone(FlaskForm):
 
 #Update department
 class Updatedept(FlaskForm):
-    username = StringField('Username', render_kw={'class': 'input-field'}, 
+    username = StringField('Username', render_kw={'class': 'input-field'},
                             validators=[InputRequired()])
     dept = SelectField('Team', render_kw={'class': 'input-field'}, choices=departments)
     
@@ -183,20 +183,20 @@ class ApplicationCasual(Dates):
     #Extra validator
     def validate_holiday_duty_type(self, field):
         if field.data != 'No':
-            if not self.holiday_duty_start_date.data:
+            if not self.holiday_duty_start_date.data: # type: ignore
                 raise ValidationError('Must give Holiday start date')
 
-            if self.holiday_duty_end_date.data:
-                if self.holiday_duty_start_date.data > self.holiday_duty_end_date.data:
+            if self.holiday_duty_end_date.data: # type: ignore
+                if self.holiday_duty_start_date.data > self.holiday_duty_end_date.data: # type: ignore
                     raise ValidationError('Holiday end date must be same or later than Holiday start date')
     
-            if not self.end_date.data:
-                self.end_date.data = self.start_date.data
-            leave_duration = (self.end_date.data - self.start_date.data).days
+            if not self.end_date.data: # type: ignore
+                self.end_date.data = self.start_date.data # type: ignore
+            leave_duration = (self.end_date.data - self.start_date.data).days # type: ignore
 
-            if not self.holiday_duty_end_date.data:
-                self.holiday_duty_end_date.data = self.holiday_duty_start_date.data    
-            holiday_duty_duration = (self.holiday_duty_end_date.data - self.holiday_duty_start_date.data).days
+            if not self.holiday_duty_end_date.data: # type: ignore
+                self.holiday_duty_end_date.data = self.holiday_duty_start_date.data     # type: ignore
+            holiday_duty_duration = (self.holiday_duty_end_date.data - self.holiday_duty_start_date.data).days # type: ignore
 
             if leave_duration != holiday_duty_duration:
                 raise ValidationError('Leave duration and holiday duty duration must be same')
