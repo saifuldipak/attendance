@@ -266,6 +266,7 @@ class Employeecreate(FlaskForm):
     rpassword = PasswordField('Retype Password', render_kw={'class': 'input-field'}, validators=[InputRequired()])
     email = EmailField('Email', render_kw={'class': 'input-field'})
     phone = StringField('Phone', render_kw={'class': 'input-field'})
+    joining_date = DateField('Joining Date', format='%Y-%m-%d', render_kw={'class': 'input-field'}, validators=[InputRequired()])
     department = SelectField('Department', render_kw={'class': 'input-field'}, choices=departments)
     designation = SelectField('Designation', render_kw={'class': 'input-field'}, choices=designations)
     team = SelectField('Team', render_kw={'class': 'input-field'}, choices=teams)
