@@ -1,12 +1,14 @@
 import secrets
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
-from .db import db, Employee, Team, LeaveAvailable
+from .db import db, Employee, Team, LeaveAvailable, LeaveAllocation
 from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from math import ceil
 from .auth import admin_required, login_required
 import random
 import string
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 import attendance.functions as fn
 
 employee = Blueprint('employee', __name__)
@@ -73,69 +75,64 @@ def details(id):
 ## Create employee record ##
 @employee.route('/employee/create', methods=['GET', 'POST'])
 @login_required
-@admin_required     
+@admin_required 
 def create():
     form = Employeecreate()
-
-    if form.validate_on_submit(): 
-        
-        username = Employee.query.filter_by(username=form.username.data).first()  
+    if form.validate_on_submit():
+        username = Employee.query.filter_by(username=form.username.data).first()   # type: ignore
         if username:
             flash('Username exists', category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
 
         #check if email already exists in database
-        if form.email.data:
-            employee = Employee.query.filter_by(email=form.email.data).first()
+        if form.email.data: # type: ignore
+            employee = Employee.query.filter_by(email=form.email.data).first() # type: ignore
             
             if employee:
                 flash('Email exists', category='error')
-                return render_template('forms.html', form_type='employee_create', form=form)  
+                return render_template('forms.html', form_type='employee_create', form=form)
 
-        if form.department.data == 'Accounts' or form.department.data == 'Sales' or \
-            form.role.data == 'Head':
-            team = ''
-        else:
-            team = form.team.data
-
-        #creating entry in employee table
-        employee = Employee(username=form.username.data, 
-                            fullname=form.fullname.data, 
-                            password=generate_password_hash(form.password.data),
-                            phone=form.phone.data, email=form.email.data, department=form.department.data, 
-                            designation=form.designation.data, role=form.role.data, access=form.access.data)
-
-        db.session.add(employee)
-        db.session.commit()
-        
-        #getting employee_id of newly created user and creating 'team' and 'LeaveAvailable' 
-        #table entry using that employee_id
-        employee = Employee.query.filter_by(username=form.username.data).first()
-        
-        #setting team name 'All' for department heads
-        if form.role.data=='Head':
+        #setting team name based on role
+        if form.role.data=='Head': # type: ignore
             name = 'All'
         else:
-            name = form.team.data
+            name = form.team.data # type: ignore
 
-        team = Team(empid=employee.id, name=name)
-        db.session.add(team)
-
-        #adding yearly leave 
-        current_year = date.today().year
-        current_month = date.today().month
-        if current_month <= 6:
-            year_start = date((current_year - 1), 7, 1)
-            year_end = date(current_year, 6, 30)
+        #finding appropriate fiscal year for the employee based on joining date
+        join_year = form.joining_date.data.year # type: ignore
+        join_month = form.joining_date.data.month # type: ignore
+        if join_month <= 6:
+            year_start = date((join_year - 1), 7, 1)
+            year_end = date(join_year, 6, 30)
         else:
-            year_start = date(current_year, 7, 1)
-            year_end = date((current_year + 1), 6, 30)
+            year_start = date(join_year, 7, 1)
+            year_end = date((join_year + 1), 6, 30)
+        
+        casual_leave = ceil(current_app.config['CASUAL'] * (year_end - form.joining_date.data).days / 365) # type: ignore
+        medical_leave = ceil(current_app.config['MEDICAL'] * (year_end - form.joining_date.data).days / 365) # type: ignore
 
-        available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
-                                    casual=current_app.config['CASUAL'], medical=current_app.config['MEDICAL'], 
-                                    earned=current_app.config['EARNED'])
-        db.session.add(available)
-        db.session.commit()
+        try:
+            employee = Employee(username=form.username.data, fullname=form.fullname.data, password=generate_password_hash(form.password.data), phone=form.phone.data, email=form.email.data, join_date=form.joining_date.data, department=form.department.data, designation=form.designation.data, role=form.role.data, access=form.access.data) # type: ignore
+            db.session.add(employee)
+            db.session.commit()
+        
+            employee = Employee.query.filter_by(username=form.username.data).first() # type: ignore
+
+            team = Team(empid=employee.id, name=name) # type: ignore
+            db.session.add(team)
+            leave_allocation = LeaveAllocation(empid=employee.id, year_start=year_start, year_end=year_end, casual=casual_leave, medical=medical_leave, earned=0) # type: ignore
+            db.session.add(leave_allocation)
+            leave_available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, casual=casual_leave, medical=medical_leave, earned=0) # type: ignore
+            db.session.add(leave_available)
+            db.session.commit()
+        except IntegrityError as e:
+            db.session.rollback()
+            flash(f"Integrity error: {str(e)}", category='error')
+            return render_template('forms.html', form_type='employee_create', form=form)
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash(f"Database error: {str(e)}", category='error')
+            return render_template('forms.html', form_type='employee_create', form=form)
 
     flash("Employee record created.", category='message')
     return redirect(url_for('forms.employee', action='create'))
