@@ -129,3 +129,14 @@ class OfficeTime(db.Model):
     out_time = db.Column(db.Time, nullable=False)
     in_grace_time = db.Column(db.Integer)
     out_grace_time = db.Column(db.Integer)
+
+#Leave allocation for each employee for a particular year
+class LeaveAllocation(db.Model):
+    __tablename__ = 'leave_allocation'
+    id = db.Column(db.Integer, primary_key=True)
+    empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    year_start = db.Column(db.Date, nullable=False)
+    year_end = db.Column(db.Date, nullable=False)
+    casual = db.Column(db.Integer, nullable=False)
+    medical = db.Column(db.Integer, nullable=False)
+    earned = db.Column(db.Integer, nullable=False)
