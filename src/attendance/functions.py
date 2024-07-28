@@ -1014,7 +1014,7 @@ def find_holiday_leaves(employee_id, attendances):
                 
     return holiday_leave_days
 
-def calculate_joining_fiscal_year(joining_date):
+def get_fiscal_year(joining_date):
     if not joining_date:
         raise TypeError('Must provide joining date of an employee')
     
@@ -1022,13 +1022,13 @@ def calculate_joining_fiscal_year(joining_date):
     joining_year = joining_date.year
     joining_month = joining_date.month
     if joining_month <= 6:
-        joining_fiscal_year_start_date = date((joining_year - 1), 7, 1)
-        joining_fiscal_year_end_date = date(joining_year, 6, 30)
+        fiscal_year_start_date = date((joining_year - 1), 7, 1)
+        fiscal_year_end_date = date(joining_year, 6, 30)
     else:
-        joining_fiscal_year_start_date = date(joining_year, 7, 1)
-        joining_fiscal_year_end_date = date((joining_year + 1), 6, 30)
+        fiscal_year_start_date = date(joining_year, 7, 1)
+        fiscal_year_end_date = date((joining_year + 1), 6, 30)
     
-    return joining_fiscal_year_start_date, joining_fiscal_year_end_date
+    return fiscal_year_start_date, fiscal_year_end_date
 
 def calculate_annual_leave(joining_date, new_fiscal_year_start_date=None):
     if not joining_date:
