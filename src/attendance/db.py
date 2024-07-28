@@ -49,8 +49,8 @@ class Applications(db.Model):
 class LeaveAvailable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    year_start = db.Column(db.Date, nullable=False)
-    year_end = db.Column(db.Date, nullable=False)
+    fiscal_year_start_date = db.Column(db.Date, nullable=False)
+    fiscal_year_end_date = db.Column(db.Date, nullable=False)
     casual = db.Column(db.Integer, nullable=False)
     medical = db.Column(db.Integer, nullable=False)
     earned = db.Column(db.Integer, nullable=False)
@@ -135,8 +135,8 @@ class LeaveAllocation(db.Model):
     __tablename__ = 'leave_allocation'
     id = db.Column(db.Integer, primary_key=True)
     empid = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    year_start = db.Column(db.Date, nullable=False)
-    year_end = db.Column(db.Date, nullable=False)
+    fiscal_year_start_date = db.Column(db.Date, nullable=False)
+    fiscal_year_end_date = db.Column(db.Date, nullable=False)
     casual = db.Column(db.Integer, nullable=False)
     medical = db.Column(db.Integer, nullable=False)
     earned = db.Column(db.Integer, nullable=False)
