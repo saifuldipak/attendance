@@ -116,10 +116,10 @@
 
       
             <form method="post" action="{{ url_for('leave.summary', type=type) }}">
-                <label for="year_start">Year start</label>
-                <select id="year_start" name="year_start">
+                <label for="fiscal_year_start_date">Year start</label>
+                <select id="fiscal_year_start_date" name="fiscal_year_start_date">
                     {% for year in years %} 
-                        <option value="{{ year.year_start }}">{{ year.year_start }}</option>
+                        <option value="{{ year.fiscal_year_start_date }}">{{ year.fiscal_year_start_date }}</option>
                     {% endfor %}
                 </select>
 
