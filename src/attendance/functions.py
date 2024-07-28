@@ -1,15 +1,14 @@
 from datetime import datetime, timedelta, date, time
 import re
 from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary
-from flask import session, current_app
+from flask import session, current_app, flash
 from sqlalchemy import extract, func, or_, and_
 import os
 from werkzeug.utils import secure_filename
 from email.message import EmailMessage
 from smtplib import SMTP, SMTPException
 import socket
-import calendar
-
+from math import ceil
 
 #Check holiday in holidays table
 def check_holidays(name, start_date, end_date=None):
@@ -1014,3 +1013,37 @@ def find_holiday_leaves(employee_id, attendances):
                 break
                 
     return holiday_leave_days
+
+def calculate_joining_fiscal_year(joining_date):
+    if not joining_date:
+        raise TypeError('Must provide joining date of an employee')
+    
+    #finding joining fiscal year
+    joining_year = joining_date.year
+    joining_month = joining_date.month
+    if joining_month <= 6:
+        joining_fiscal_year_start_date = date((joining_year - 1), 7, 1)
+        joining_fiscal_year_end_date = date(joining_year, 6, 30)
+    else:
+        joining_fiscal_year_start_date = date(joining_year, 7, 1)
+        joining_fiscal_year_end_date = date((joining_year + 1), 6, 30)
+    
+    return joining_fiscal_year_start_date, joining_fiscal_year_end_date
+
+def calculate_annual_leave(joining_date, new_fiscal_year_start_date=None):
+    if not joining_date:
+        raise TypeError('Must provide joining date of an employee')
+    
+    (joining_fiscal_year_start_date, joining_fiscal_year_end_date) = calculate_joining_fiscal_year(joining_date)
+    
+    #calculating annual leave
+    if not new_fiscal_year_start_date or joining_fiscal_year_start_date == new_fiscal_year_start_date: # type: ignore
+        casual_leave = ceil(current_app.config['CASUAL'] * (joining_fiscal_year_end_date - joining_date).days / 365)
+        medical_leave = ceil(current_app.config['MEDICAL'] * (joining_fiscal_year_end_date - joining_date).days / 365)
+        earned_leave = 0
+    else:
+        casual_leave = current_app.config['CASUAL']
+        medical_leave = current_app.config['MEDICAL']
+        earned_leave = ceil(current_app.config['EARNED'] * (joining_fiscal_year_end_date - joining_date).days / 365)        
+
+    return casual_leave, medical_leave, earned_leave
