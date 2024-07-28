@@ -8,8 +8,9 @@ from math import ceil
 from .auth import admin_required, login_required
 import random
 import string
-from datetime import datetime, date
+from datetime import datetime
 import attendance.functions as fn
+from attendance.functions import calculate_annual_leave, get_fiscal_year
 
 employee = Blueprint('employee', __name__)
 
@@ -41,20 +42,20 @@ def search():
     
     if form.validate_on_submit():
         #creating string for sql like query
-        string = f'{form.string.data}%'
+        string = f'{form.string.data}%' # type: ignore
         
-        if form.type.data.lower() == 'username':
+        if form.type.data.lower() == 'username': # type: ignore
             employees = Employee.query.filter(Employee.username.like(string)).all()
-        elif form.type.data.lower() == 'fullname':
-            string = f'%{form.string.data}%'
+        elif form.type.data.lower() == 'fullname': # type: ignore
+            string = f'%{form.string.data}%' # type: ignore
             employees = Employee.query.filter(Employee.fullname.like(string)).all()
-        elif form.type.data.lower() == 'department':
+        elif form.type.data.lower() == 'department': # type: ignore
             employees = Employee.query.filter(Employee.department.like(string)).all()
-        elif form.type.data.lower() == 'team':
+        elif form.type.data.lower() == 'team': # type: ignore
             employees = Employee.query.join(Team).filter(Team.name.like(string)).all()
-        elif form.type.data.lower() == 'designation':
+        elif form.type.data.lower() == 'designation': # type: ignore
             employees = Employee.query.filter(Employee.designation.like(string)).all()
-        elif form.type.data.lower() == 'access':
+        elif form.type.data.lower() == 'access': # type: ignore
             employees = Employee.query.filter(Employee.access.like(string)).all()
         else:
             employees = Employee.query.all()
@@ -98,44 +99,52 @@ def create():
         else:
             name = form.team.data # type: ignore
 
-        #finding appropriate fiscal year for the employee based on joining date
-        join_year = form.joining_date.data.year # type: ignore
-        join_month = form.joining_date.data.month # type: ignore
-        if join_month <= 6:
-            year_start = date((join_year - 1), 7, 1)
-            year_end = date(join_year, 6, 30)
-        else:
-            year_start = date(join_year, 7, 1)
-            year_end = date((join_year + 1), 6, 30)
-        
-        casual_leave = ceil(current_app.config['CASUAL'] * (year_end - form.joining_date.data).days / 365) # type: ignore
-        medical_leave = ceil(current_app.config['MEDICAL'] * (year_end - form.joining_date.data).days / 365) # type: ignore
-
         try:
-            employee = Employee(username=form.username.data, fullname=form.fullname.data, password=generate_password_hash(form.password.data), phone=form.phone.data, email=form.email.data, join_date=form.joining_date.data, department=form.department.data, designation=form.designation.data, role=form.role.data, access=form.access.data) # type: ignore
-            db.session.add(employee)
-            db.session.commit()
+            (casual_leave, medical_leave, earned_leave) = calculate_annual_leave(form.joining_date.data) # type: ignore
+        except TypeError as e:
+            current_app.logger.error(e)
+            flash('Failed to calculate annual leave', category='error')
+            return render_template('forms.html', form_type='employee_create', form=form)
         
-            employee = Employee.query.filter_by(username=form.username.data).first() # type: ignore
+        try:
+            (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year(form.joining_date.data) # type: ignore
+        except TypeError as e:
+            current_app.logger.error(e)
+            flash('Failed to calculate joining fiscal year', category='error')
+            return render_template('forms.html', form_type='employee_create', form=form)
 
+        error = False
+        try:
+            employee = Employee(username=form.username.data, fullname=form.fullname.data, password=generate_password_hash(form.password.data), phone=form.phone.data, email=form.email.data, joining_date=form.joining_date.data, department=form.department.data, designation=form.designation.data, role=form.role.data, access=form.access.data) # type: ignore
+            db.session.add(employee)
+            db.session.flush()
+        
             team = Team(empid=employee.id, name=name) # type: ignore
             db.session.add(team)
-            leave_allocation = LeaveAllocation(empid=employee.id, year_start=year_start, year_end=year_end, casual=casual_leave, medical=medical_leave, earned=0) # type: ignore
+            leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date, casual=casual_leave, medical=medical_leave, earned=earned_leave) # type: ignore
             db.session.add(leave_allocation)
-            leave_available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, casual=casual_leave, medical=medical_leave, earned=0) # type: ignore
+            leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date, casual=casual_leave, medical=medical_leave, earned=earned_leave) # type: ignore
             db.session.add(leave_available)
             db.session.commit()
+        except TypeError as e:
+            db.session.rollback()
+            current_app.logger.error(f"create(): Type error: {str(e)}, session rolled back")
+            error = True
         except IntegrityError as e:
             db.session.rollback()
-            flash(f"Integrity error: {str(e)}", category='error')
-            return render_template('forms.html', form_type='employee_create', form=form)
+            current_app.logger.error(f"create(): Integrity error: {str(e)}, session rolled back")
+            error = True
         except SQLAlchemyError as e:
             db.session.rollback()
-            flash(f"Database error: {str(e)}", category='error')
-            return render_template('forms.html', form_type='employee_create', form=form)
+            current_app.logger.error(f"create(): Database error: {str(e)}, session rolled back")
+            error = True
 
-    flash("Employee record created.", category='message')
-    return redirect(url_for('forms.employee', action='create'))
+        if error:
+            flash("Failed to create employee", category='error')
+            return render_template('forms.html', form_type='employee_create', form=form)
+        
+        flash("Employee record created.", category='message')
+        return redirect(url_for('forms.employee', action='create'))
 
 ## Delete employee record ##
 @employee.route('/employee/delete', methods=['GET', 'POST'])
