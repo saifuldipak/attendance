@@ -1,14 +1,15 @@
-from datetime import datetime, timedelta, date, time
+from datetime import datetime, timedelta, date
 import re
-from .db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary
-from flask import session, current_app, flash
-from sqlalchemy import extract, func, or_, and_
+from flask import session, current_app
+from sqlalchemy import extract, func, or_
 import os
 from werkzeug.utils import secure_filename
 from email.message import EmailMessage
 from smtplib import SMTP, SMTPException
 import socket
 from math import ceil
+from typing import Tuple, Optional
+from attendance.db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary
 
 #Check holiday in holidays table
 def check_holidays(name, start_date, end_date=None):
@@ -1014,29 +1015,46 @@ def find_holiday_leaves(employee_id, attendances):
                 
     return holiday_leave_days
 
-def get_fiscal_year(joining_date):
-    if not joining_date:
-        raise TypeError('Must provide joining date of an employee')
-    
-    #finding joining fiscal year
-    joining_year = joining_date.year
-    joining_month = joining_date.month
-    if joining_month <= 6:
-        fiscal_year_start_date = date((joining_year - 1), 7, 1)
-        fiscal_year_end_date = date(joining_year, 6, 30)
+def get_fiscal_year(supplied_date: date) -> Tuple[date, date]:
+    """
+    Calculate the start and end dates of the fiscal year based on the provided date.
+
+    Args:
+        supplied_date (datetime.date): The date to calculate the fiscal year for.
+
+    Returns:
+        Tuple[datetime.date, datetime.date]: A tuple containing the start and end dates of the fiscal year.
+
+    Raises:
+        TypeError: If the supplied date is None.
+
+    """
+    if supplied_date.month <= 6:
+        fiscal_year_start_date = date((supplied_date.year - 1), 7, 1)
+        fiscal_year_end_date = date(supplied_date.year, 6, 30)
     else:
-        fiscal_year_start_date = date(joining_year, 7, 1)
-        fiscal_year_end_date = date((joining_year + 1), 6, 30)
+        fiscal_year_start_date = date(supplied_date.year, 7, 1)
+        fiscal_year_end_date = date((supplied_date.year + 1), 6, 30)
     
     return fiscal_year_start_date, fiscal_year_end_date
 
-def calculate_annual_leave(joining_date, new_fiscal_year_start_date=None):
-    if not joining_date:
-        raise TypeError('Must provide joining date of an employee')
+def calculate_annual_leave(joining_date : date, new_fiscal_year_start_date : Optional[date]) -> Tuple[int, int, int]:
+    """
+    Calculate the annual leave for an employee based on their joining date and the new fiscal year start date.
+
+    Args:
+        joining_date (date): The date the employee joined the company.
+        new_fiscal_year_start_date (Optional[date]): The start date of the new fiscal year. If not provided, the current fiscal year will be used.
+
+    Returns:
+        Tuple[int, int, int]: A tuple containing the number of casual leave, medical leave, and earned leave for the employee.
+
+    Raises:
+        TypeError: If the joining_date is None.
+
+    """
+    (joining_fiscal_year_start_date, joining_fiscal_year_end_date) = get_fiscal_year(joining_date)
     
-    (joining_fiscal_year_start_date, joining_fiscal_year_end_date) = calculate_joining_fiscal_year(joining_date)
-    
-    #calculating annual leave
     if not new_fiscal_year_start_date or joining_fiscal_year_start_date == new_fiscal_year_start_date: # type: ignore
         casual_leave = ceil(current_app.config['CASUAL'] * (joining_fiscal_year_end_date - joining_date).days / 365)
         medical_leave = ceil(current_app.config['MEDICAL'] * (joining_fiscal_year_end_date - joining_date).days / 365)
