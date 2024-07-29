@@ -1,11 +1,15 @@
 from flask import Blueprint, current_app, redirect, render_template, session, flash, url_for
-from sqlalchemy import and_, or_
-from .db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary
+from sqlalchemy import and_
+from attendance.db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary, LeaveAllocation
 from .auth import *
-from .forms import Createleave, Monthyear, Updateleave
+from attendance.forms import AnnualLeave, Monthyear, Updateleave
 import datetime
-from .functions import get_fiscal_year_start_end_2, update_leave_summary
+from attendance.functions import calculate_annual_leave, get_fiscal_year_start_end_2, update_leave_summary
 from datetime import date
+import attendance.schemas as schemas
+import attendance.forms as forms
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 leave = Blueprint('leave', __name__)
 
@@ -67,39 +71,57 @@ def deduction():
 @leave.route('/leave/create', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def create_leave():
-    form = Createleave()
-    
-    if form.validate_on_submit():
-        year_start = datetime.date(form.year_start.data, 7, 1)
-        year_end = datetime.date(form.year_start.data + 1, 6, 30)
-
-        employees = Employee.query.all()
-        count = 0
-        for employee in employees:
-            leave_available = LeaveAvailable.query.filter(LeaveAvailable.year_start <= year_start, 
-                                LeaveAvailable.year_end >= year_end, LeaveAvailable.empid==employee.id).first()
-            if leave_available:
-                message = f'Leave exists for {employee.fullname} year: {leave_available.year_start} - {leave_available.year_end}'
-                flash(message, category='warning')
-            else:
-                leave_available = LeaveAvailable(empid=employee.id, year_start=year_start, year_end=year_end, 
-                                    casual=current_app.config['CASUAL'], medical=current_app.config['MEDICAL'], 
-                                    earned=current_app.config['EARNED'])
-                db.session.add(leave_available)
-                count += 1
-        
-        if count:
-            db.session.commit()
-            form.year_end.data = form.year_start.data + 1
-            message = f'Leave added for {count} employees for {form.year_start.data}-{form.year_end.data}'
-            flash(message, category='message')
-        else:
-            flash('No leave added', category='error')
-
-        return render_template('base.html')
-    else:
+def create_annual_leave():
+    form = forms.AnnualLeave()
+    if not form.validate_on_submit():
         return render_template('forms.html', type='create_leave', form=form)
+    
+    new_fiscal_year_start_date = datetime.date(form.year_start.data, 7, 1) # type: ignore
+    new_fiscal_year_end_date = datetime.date(form.year_start.data + 1, 6, 30) # type: ignore
+
+    employees = Employee.query.all()
+    count = 0
+    for employee in employees:
+        leave_available = LeaveAvailable.query.filter(LeaveAvailable.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date >= new_fiscal_year_end_date, LeaveAvailable.empid==employee.id).first()
+        leave_allocated = LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAllocation.empid==employee.id).first()
+        if leave_available or leave_allocated:
+            message = f'Leave exists for {employee.fullname} year: {new_fiscal_year_start_date} - {new_fiscal_year_end_date}'
+            flash(message, category='warning')
+        else:
+            error = False
+            try:
+                (casual, medical, earned) = calculate_annual_leave(schemas.AnnualLeave(joining_date=employee.joining_date, new_fiscal_year_start_date=new_fiscal_year_start_date))
+                leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=new_fiscal_year_start_date, fiscal_year_end_date=new_fiscal_year_end_date, casual=casual, medical=medical, earned=earned) # type: ignore
+                leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=new_fiscal_year_start_date, fiscal_year_end_date=new_fiscal_year_end_date, casual=casual, medical=medical, earned=earned) # type: ignore
+                db.session.add(leave_available)
+                db.session.add(leave_allocation)
+                count += 1
+            except ValidationError as e:
+                error_message = f"{employee.fullname}: {e}"
+                current_app.logger.error(error_message)
+                error = True
+            except TypeError as e:
+                error_message = f"{employee.fullname}: {e}"
+                current_app.logger.error(error_message)
+                error = True
+            except IntegrityError as e:
+                error_message = f"{employee.fullname}: {e}"
+                current_app.logger.error(error_message)
+                error = True
+            finally:
+                if error:
+                    message = f'Failed to calculate annual leave for {employee.fullname}'
+                    flash(message, category='warning')
+    
+    if count:
+        db.session.commit()
+        form.year_end.data = form.year_start.data + 1 # type: ignore
+        message = f'Leave added for {count} employees for {form.year_start.data}-{form.year_end.data}' # type: ignore
+        flash(message, category='message')
+    else:
+        flash('No leave added', category='error')
+
+    return render_template('base.html')   
     
 
 @leave.route('/leave/approval/batch')
