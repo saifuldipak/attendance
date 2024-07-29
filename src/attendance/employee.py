@@ -11,6 +11,8 @@ import string
 from datetime import datetime
 import attendance.functions as fn
 from attendance.functions import calculate_annual_leave, get_fiscal_year
+import attendance.schemas as schemas
+from pydantic import ValidationError
 
 employee = Blueprint('employee', __name__)
 
@@ -100,9 +102,10 @@ def create():
             name = form.team.data # type: ignore
 
         try:
-            (casual_leave, medical_leave, earned_leave) = calculate_annual_leave(form.joining_date.data) # type: ignore
-        except TypeError as e:
-            current_app.logger.error(e)
+            (casual_leave, medical_leave, earned_leave) = calculate_annual_leave(schemas.AnnualLeave(joining_date=form.joining_date.data)) # type: ignore
+        except ValidationError as e:
+            error_message = f"create(): {form.fullname.data}: {e}" # type: ignore
+            current_app.logger.error(error_message)
             flash('Failed to calculate annual leave', category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
         
