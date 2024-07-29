@@ -161,13 +161,7 @@ class Employeesearch(FlaskForm):
     string = StringField('Search string', render_kw={'class': 'input-field'})
     type = SelectField('Search by', render_kw={'class': 'input-field'}, choices=types)
 
-class Createleave(FlaskForm):
-    year_start = IntegerField('Year Start', default=datetime.now().year, render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    year_end = IntegerField('Year End', default=datetime.now().year+1, render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
-    def validate_year_end(self, field):
-        if self.year_start.data >= field.data:
-            raise ValidationError('must be greater than year start')
 
 forms = Blueprint('forms', __name__)
 
@@ -469,12 +463,7 @@ def password_self():
     form = Changeselfpass()
     return render_template('forms.html', type='change_pass', user='self', form=form)
 
-@forms.route('/forms/leave/create')
-@login_required
-@admin_required
-def create_leave():
-    form = Createleave()
-    return render_template('forms.html', type='create_leave', form=form)
+
 
 class Addholidays(Dates):
     name = StringField('Name', render_kw={'class': 'input-field'}, validators=[InputRequired()])
@@ -613,3 +602,17 @@ def update_leave():
     form = Updateleave()
     return render_template('forms.html', type='update_leave', form=form)
 
+class AnnualLeave(FlaskForm):
+    year_start = IntegerField('Year Start', default=datetime.now().year, render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    year_end = IntegerField('Year End', default=datetime.now().year+1, render_kw={'class': 'input-field'}, validators=[InputRequired()])
+
+    def validate_year_end(self, field):
+        if self.year_start.data >= field.data: # type: ignore
+            raise ValidationError('must be greater than year start')
+
+@forms.route('/forms/leave/create')
+@login_required
+@admin_required
+def create_annual_leave():
+    form = AnnualLeave()
+    return render_template('forms.html', type='create_annual_leave', form=form)

@@ -334,9 +334,9 @@
                     </label>
     {% endif %}
 
-    {% if type == 'create_leave' %}
+    {% if type == 'create_annual_leave' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('leave.create_leave') }}">
+                <form method="post" action="{{ url_for('leave.create_annual_leave') }}">
                     {{ form.csrf_token }}
                     <div class="form-style-2-heading">Create Yearly Leave</div>
                     <label>
