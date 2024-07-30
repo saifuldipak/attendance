@@ -610,9 +610,9 @@ class AnnualLeave(FlaskForm):
         if self.year_start.data >= field.data: # type: ignore
             raise ValidationError('must be greater than year start')
 
-@forms.route('/forms/leave/create')
+@forms.route('/forms/leave/add')
 @login_required
 @admin_required
-def create_annual_leave():
+def add_annual_leave():
     form = AnnualLeave()
-    return render_template('forms.html', type='create_annual_leave', form=form)
+    return render_template('forms.html', type='add_annual_leave', form=form)

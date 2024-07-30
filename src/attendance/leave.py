@@ -68,10 +68,10 @@ def deduction():
     
     return redirect(url_for('forms.leave_deduction'))
 
-@leave.route('/leave/create', methods=['GET', 'POST'])
+@leave.route('/leave/add', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def create_annual_leave():
+def add_annual_leave():
     form = forms.AnnualLeave()
     if not form.validate_on_submit():
         return render_template('forms.html', type='create_leave', form=form)
