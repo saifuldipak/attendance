@@ -9,8 +9,10 @@ from smtplib import SMTP, SMTPException
 import socket
 from math import ceil
 from typing import Tuple, Optional
-from attendance.db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary
+from attendance.db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary, LeaveAllocation
 from attendance.schemas import AnnualLeave
+from attendance.schemas import EmployeeFiscalYear
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError, NoResultFound
 
 #Check holiday in holidays table
 def check_holidays(name, start_date, end_date=None):
@@ -857,95 +859,97 @@ def check_office_time_dates(form):
             return 'Start and/or end dates overlaps with other application'
 
 
-def update_leave_summary(employees, date):
-    error = 0
-    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(date)
+def update_available_leave(data: EmployeeFiscalYear) -> str:
+    try:
+        leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==data.employee.id, LeaveAvailable.fiscal_year_start_date <= data.fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date >= data.fiscal_year_end_date).one() # type: ignore
+    except NoResultFound as e:
+        raise e
+    except IntegrityError as e:
+        current_app.logger.error('update_available_leave(): %s', e)
+        raise e
+    except SQLAlchemyError as e:
+        current_app.logger.error('update_available_leave(): %s', e)
+        raise e
     
-    leave_available_year = LeaveAvailable.query.filter(LeaveAvailable.year_start <= date, LeaveAvailable.year_end >= date).all()
-    if not leave_available_year:
-        current_app.logger.warning('Leave record not found from %s to %s', year_start_date, year_end_date)
-        return 2
+    try:
+        leave_allocated = LeaveAllocation.query.filter(LeaveAllocation.empid==data.employee.id, LeaveAllocation.fiscal_year_start_date <= data.fiscal_year_start_date, LeaveAllocation.fiscal_year_end_date >= data.fiscal_year_end_date).one() # type: ignore
+    except NoResultFound as e:
+        raise e
+    except IntegrityError as e:
+        current_app.logger.error('update_available_leave(): %s', e)
+        raise e
+    except SQLAlchemyError as e:
+        current_app.logger.error('update_available_leave(): %s', e)
+        raise e
     
-    for employee in employees:
-        leave_available = LeaveAvailable.query.filter_by(empid=employee.id, year_start=year_start_date, year_end=year_end_date).first()
-        if not leave_available:
-            current_app.logger.error('Leave not found for %s', employee.username)
-            error += 1
-            continue
-       
-        casual_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter(Applications.start_date>=year_start_date, Applications.start_date<=year_end_date, Applications.empid==employee.id, Applications.type=='Casual', Applications.status=='Approved').first()
-        if not casual_approved.days:
-            casual_approved_days = 0
+    casual_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter(Applications.start_date>=data.fiscal_year_start_date, Applications.start_date<=data.fiscal_year_end_date, Applications.empid==data.employee.id, Applications.type=='Casual', Applications.status=='Approved').first() # type: ignore
+    if not casual_approved.days: # type: ignore
+        casual_approved_days = 0
+    else:
+        casual_approved_days = casual_approved.days # type: ignore
+
+    medical_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter(Applications.start_date>=data.fiscal_year_start_date, Applications.start_date<=data.fiscal_year_end_date, Applications.empid==data.employee.id, Applications.type=='Medical', Applications.status=='Approved').first() # type: ignore
+    if not medical_approved.days: # type: ignore
+        medical_approved_days = 0
+    else:
+        medical_approved_days = medical_approved.days # type: ignore
+
+    casual_deducted_1 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.leave_deducted).label('days')).filter(LeaveDeductionSummary.empid==data.employee.id, LeaveDeductionSummary.year==data.fiscal_year_start_date.year, LeaveDeductionSummary.month>=7, LeaveDeductionSummary.month<=12).first() # type: ignore
+    if not casual_deducted_1.days: # type: ignore
+        casual_deducted_1_days = 0
+    else:
+        casual_deducted_1_days = casual_deducted_1.days # type: ignore
+
+    casual_deducted_2 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.leave_deducted).label('days')).filter(LeaveDeductionSummary.empid==data.employee.id, LeaveDeductionSummary.year==data.fiscal_year_end_date.year, LeaveDeductionSummary.month>=1, LeaveDeductionSummary.month<=6).first() # type: ignore
+    if not casual_deducted_2.days: # type: ignore
+        casual_deducted_2_days = 0
+    else:
+        casual_deducted_2_days = casual_deducted_2.days # type: ignore
+
+    casual_deducted_days = casual_deducted_1_days + casual_deducted_2_days
+    
+    leave_available.casual = leave_allocated.casual
+    leave_available.earned = leave_allocated.earned
+    leave_available.medical = leave_allocated.medical
+    leave_available_casual_earned = leave_available.casual + leave_available.earned
+    casual_consumed = casual_approved_days + casual_deducted_days
+    salary_deduct = 0
+    if casual_consumed > 0:
+        if casual_consumed <= leave_available.casual:
+            leave_available.casual -= casual_consumed
+        elif casual_consumed > leave_available.casual and casual_consumed <= leave_available_casual_earned:
+            leave_available.earned = leave_available_casual_earned - casual_consumed
+            leave_available.casual = 0
         else:
-            casual_approved_days = casual_approved.days
-
-        medical_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter(Applications.start_date>=year_start_date, Applications.start_date<=year_end_date, Applications.empid==employee.id, Applications.type=='Medical', Applications.status=='Approved').first()
-        if not medical_approved.days:
-            medical_approved_days = 0
+            leave_available.casual = 0
+            leave_available.earned = 0
+            salary_deduct = casual_consumed - leave_available_casual_earned
+    
+    leave_available_medical_casual = leave_available.medical + leave_available.casual
+    leave_available_all = leave_available_medical_casual + leave_available.earned
+    if medical_approved_days > 0:
+        if medical_approved_days <= leave_available.medical:
+            leave_available.medical -= medical_approved_days
+        elif medical_approved_days > leave_available.medical and medical_approved_days <= leave_available_medical_casual:
+            leave_available.medical = 0
+            leave_available.casual = leave_available_medical_casual - medical_approved_days
+        elif medical_approved_days > leave_available_medical_casual and medical_approved_days <= leave_available_all:
+            leave_available.earned = leave_available_all - medical_approved_days
+            leave_available.medical = 0
+            leave_available.casual = 0
         else:
-            medical_approved_days = medical_approved.days
-
-        casual_deducted_1 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.leave_deducted).label('days')).filter(LeaveDeductionSummary.empid==employee.id, LeaveDeductionSummary.year==year_start_date.year, LeaveDeductionSummary.month>=7, LeaveDeductionSummary.month<=12).first()
-        if not casual_deducted_1.days:
-            casual_deducted_1_days = 0
-        else:
-            casual_deducted_1_days = casual_deducted_1.days
-
-        casual_deducted_2 = LeaveDeductionSummary.query.with_entities(db.func.sum(LeaveDeductionSummary.leave_deducted).label('days')).filter(LeaveDeductionSummary.empid==employee.id, LeaveDeductionSummary.year==year_end_date.year, LeaveDeductionSummary.month>=1, LeaveDeductionSummary.month<=6).first()
-        if not casual_deducted_2.days:
-            casual_deducted_2_days = 0
-        else:
-            casual_deducted_2_days = casual_deducted_2.days
-
-        casual_deducted_days = casual_deducted_1_days + casual_deducted_2_days
-        
-        leave_available.casual = current_app.config['CASUAL']
-        leave_available.earned = current_app.config['EARNED']
-        leave_available.medical = current_app.config['MEDICAL']
-        leave_available_casual_earned = leave_available.casual + leave_available.earned
-
-        casual_consumed = casual_approved_days + casual_deducted_days
-        if casual_consumed > 0:
-            if casual_consumed <= leave_available.casual:
-                leave_available.casual -= casual_consumed
-            elif casual_consumed > leave_available.casual and casual_consumed <= leave_available_casual_earned:
-                leave_available.earned = leave_available_casual_earned - casual_consumed
-                leave_available.casual = 0
-            else:
-                leave_available.casual = 0
-                leave_available.earned = 0
-                salary_deduct = casual_consumed - leave_available_casual_earned
-                current_app.logger.warning(' update_leave_summary():(casual) Salary deduct days:%s for employee:%s', salary_deduct, employee.username)
-                error += 1
-        
-        leave_available_medical_casual = leave_available.medical + leave_available.casual
-        leave_available_all = leave_available_medical_casual + leave_available.earned
-        
-        if medical_approved_days > 0:
-            if medical_approved_days <= leave_available.medical:
-                leave_available.medical -= medical_approved_days
-            elif medical_approved_days > leave_available.medical and medical_approved_days <= leave_available_medical_casual:
-                leave_available.medical = 0
-                leave_available.casual = leave_available_medical_casual - medical_approved_days
-            elif medical_approved_days > leave_available_medical_casual and medical_approved_days <= leave_available_all:
-                leave_available.earned = leave_available_all - medical_approved_days
-                leave_available.medical = 0
-                leave_available.casual = 0
-            else:
-                leave_available.medical = 0
-                leave_available.casual = 0
-                leave_available.earned = 0
-                salary_deduct = casual_consumed - leave_available_all
-                current_app.logger.warning(' update_leave_summary(): (medical) Salary deduct days:%s days for employee:%s', salary_deduct, employee.username)
-                error += 1
+            leave_available.medical = 0
+            leave_available.casual = 0
+            leave_available.earned = 0
+            salary_deduct = casual_consumed - leave_available_all
 
     db.session.commit()
 
-    if error > 0:
-        return 1
+    salary_deduct_message = ''
+    if salary_deduct > 0:
+        salary_deduct_message = f"(Salary deduct: {salary_deduct} days)"
     
-    return 0
-    
+    return f"Available leave updated {salary_deduct_message}"
     
 def get_fiscal_year_start_end_2(supplied_date):
     year = supplied_date.year
