@@ -334,23 +334,32 @@
                     </label>
     {% endif %}
 
-    {% if type == 'add_annual_leave' %}
+    {% if type == 'annual_leave' %}
             <div class="form-style-2">
-                <form method="post" action="{{ url_for('leave.add_annual_leave') }}">
+                {% if action == 'add' %}
+                    <form method="post" action="{{ url_for('leave.add_annual_leave') }}">
+                {% elif action == 'update' %}
+                    <form method="post" action="{{ url_for('leave.update_leave') }}">
+                {% endif %}
                     {{ form.csrf_token }}
-                    <div class="form-style-2-heading">Create Yearly Leave</div>
+                {% if action == 'add' %}
+                    <div class="form-style-2-heading">Add Annual Leave</div>
+                {% elif action == 'update' %}
+                    <div class="form-style-2-heading">Update Available Leave</div>
+                {% endif %}
                     <label>
-                        <span>{{ form.year_start.label }}</span>
-                            {{ form.year_start }}
+                        <span>{{ form.fiscal_year_start_date.label }}</span>
+                            {{ form.fiscal_year_start_date }}
                     </label>
                     <label>
-                        <span>{{ form.year_end.label }} </span>
-                            {{ form.year_end }}
+                        <span>{{ form.fiscal_year_end_date.label }} </span>
+                            {{ form.fiscal_year_end_date }}
                     </label>
                     <label>
                         <span> </span>
-                        <input type="submit" value="Create" /></label>
+                        <input type="submit" value="Submit" /></label>
                     </label>
+                </form>
     {% endif %}
 
     {% if type == 'add_holiday' %}
@@ -664,26 +673,6 @@
                     <tr>
                         <td></td>
                         <td> <input type="submit" value="Delete" /></td>
-                    </tr>
-                </table>
-            </form>
-        </div>
-    {% endif %}
-
-    {% if type == 'update_leave' %}
-        <div class="form-style-2">
-            <form method="post" action="{{ url_for('leave.update') }}">
-                {{ form.csrf_token }}
-                <div class="form-style-2-heading">Update leave</div>
-                <table>
-                    <tr>
-                        <td>{{ form.date.label }}</td><td>{{ form.date }}</td>
-                        <td>(Pick any date in a fiscal year)</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td> <input type="submit" value="Update" /></td>
-                        
                     </tr>
                 </table>
             </form>
