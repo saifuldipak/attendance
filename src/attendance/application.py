@@ -1,8 +1,8 @@
-from .forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance, Searchapplication
+from attendance.forms import ApplicationCasual, ApplicationFiberAttendance, ApplicationFiberCasual, ApplicationMedical, ApplicationFiberMedical, ApplicationAttendance, Searchapplication
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
-from .auth import login_required
-from .db import LeaveAvailable, db, Applications, Employee, Team
-from .functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, return_leave, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end_2, update_leave_summary
+from attendance.auth import login_required
+from attendance.db import db, Applications, Employee, Team
+from attendance.functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end_2, update_available_leave
 import datetime
 import re
 from sqlalchemy import extract
@@ -70,14 +70,14 @@ def submit(application_type):
         status = 'Approval Pending'
 
     if application_type in ('attendance', 'fiber_attendance'):
-        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status) # type: ignore
     elif application_type in ('casual', 'fiber_casual'):
         if form.holiday_duty_type.data != 'No':
             form.type.data = 'Casual adjust'
 
-        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status)
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status) # type: ignore
     elif application_type in ('medical', 'fiber_medical'):
-        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status)
+        application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status) # type: ignore
     
     if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data == 'No':
         if application_type == 'casual':
@@ -237,7 +237,7 @@ def process(action, application_id):
         db.session.commit()
 
         if application.type in ('Casual', 'Medical'):
-            rv = update_leave_summary(employees, application.start_date)
+            rv = update_available_leave(employees, application.start_date)
             if rv:
                 flash('Failed to update leave summary', category='warning')
                 return redirect(url_for('application.search', application_for=application_for))
