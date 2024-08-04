@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from flask import Blueprint, current_app, flash, render_template, session, request
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
@@ -590,21 +590,9 @@ def delete_attendance():
     form = Deleteattendance()
     return render_template('forms.html', type='delete_attendance', form=form)
 
-
-#Update leave
-class Updateleave(FlaskForm):
-    date = DateField('Date', format='%Y-%m-%d', render_kw={'class': 'form-input'}, validators=[InputRequired()])
-
-@forms.route('/forms/leave/update')
-@login_required
-@admin_required
-def update_leave():
-    form = Updateleave()
-    return render_template('forms.html', type='update_leave', form=form)
-
 class AnnualLeave(FlaskForm):
-    year_start = IntegerField('Year Start', default=datetime.now().year, render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    year_end = IntegerField('Year End', default=datetime.now().year+1, render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    fiscal_year_start_date = DateField('Year Start Date', default=date(datetime.now().year, 7, 1), render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    fiscal_year_end_date = DateField('Year End Date', default=date(datetime.now().year+1, 6, 30), render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
     def validate_year_end(self, field):
         if self.year_start.data >= field.data: # type: ignore
@@ -615,4 +603,11 @@ class AnnualLeave(FlaskForm):
 @admin_required
 def add_annual_leave():
     form = AnnualLeave()
-    return render_template('forms.html', type='add_annual_leave', form=form)
+    return render_template('forms.html', type='annual_leave', action='add', form=form)
+
+@forms.route('/forms/leave/update')
+@login_required
+@admin_required
+def update_available_leave():
+    form = AnnualLeave()
+    return render_template('forms.html', type='annual_leave', action='update', form=form)
