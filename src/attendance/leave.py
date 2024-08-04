@@ -2,14 +2,14 @@ from flask import Blueprint, current_app, redirect, render_template, session, fl
 from sqlalchemy import and_
 from attendance.db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary, LeaveAllocation
 from .auth import *
-from attendance.forms import AnnualLeave, Monthyear, Updateleave
+from attendance.forms import AnnualLeave, Monthyear
 import datetime
-from attendance.functions import calculate_annual_leave, get_fiscal_year_start_end_2, update_leave_summary
+from attendance.functions import calculate_annual_leave, get_fiscal_year_start_end_2, update_available_leave
 from datetime import date
 import attendance.schemas as schemas
 import attendance.forms as forms
 from pydantic import ValidationError
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError, NoResultFound
 
 leave = Blueprint('leave', __name__)
 
@@ -82,7 +82,7 @@ def add_annual_leave():
     employees = Employee.query.all()
     count = 0
     for employee in employees:
-        leave_available = LeaveAvailable.query.filter(LeaveAvailable.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date >= new_fiscal_year_end_date, LeaveAvailable.empid==employee.id).first()
+        leave_available = LeaveAvailable.query.filter(LeaveAvailable.form.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date >= new_fiscal_year_end_date, LeaveAvailable.empid==employee.id).first()
         leave_allocated = LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAllocation.empid==employee.id).first()
         if leave_available or leave_allocated:
             message = f'Leave exists for {employee.fullname} year: {new_fiscal_year_start_date} - {new_fiscal_year_end_date}'
@@ -269,24 +269,34 @@ def summary(type):
 @leave.route('/leave/update', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def update():
-    form = Updateleave()
+def update_leave():
+    form = AnnualLeave()
     if not form.validate_on_submit():
         return render_template('forms.html', type='update_leave', form=form)
 
     employees = Employee.query.all()
-    
-    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(form.date.data)
+    for employee in employees:
+        internal_error = f'Failed to update leave for {employee.fullname} (internal error)'
+        no_leave_found = f'Failed to update leave for {employee.fullname} (no leave found)'
+        try:
+            retrun_message = update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data))
+        except TypeError as e:
+            current_app.logger.error('%s', e)
+            flash(internal_error, category='warning')
+        except ValidationError as e:
+            current_app.logger.error(' %s', e)
+            flash(internal_error, category='warning')
+        except NoResultFound as e:
+            flash(no_leave_found, category='warning')
+        except IntegrityError as e:
+            flash(internal_error, category='warning')
+        except SQLAlchemyError as e:
+            flash(internal_error, category='warning')
+        except Exception as e:
+            current_app.logger.error(' %s', e)
+            flash(internal_error, category='warning')
+        else:
+            flash(retrun_message, category='success')
 
-    rv = update_leave_summary(employees, form.date.data)
-    if rv == 1 or rv == 0:
-        msg = f'Updated leave for fiscal year {year_start_date} to {year_end_date}'
-        flash(msg)
-        if rv == 1:
-            flash('Failed to update leave for some employees, please check log', category='warning')
-    else:
-        msg = f'Leave record not found for fiscal year {year_start_date} to {year_end_date}'
-        flash(msg, category='error')
-
-    return render_template('forms.html', type='update_leave', form=form)
+    return render_template('base.html')
 
