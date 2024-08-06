@@ -325,21 +325,6 @@ def get_attendance_data(empid, month, year):
 
     return return_values
 
-
-def get_fiscal_year_start_end():
-    current_year = date.today().year
-    current_month = date.today().month
-    
-    if current_month <= 6:
-        year_start = date((current_year - 1), 7, 1)
-        year_end = date(current_year, 6, 30)
-    else:
-        year_start = date(current_year, 7, 1)
-        year_end = date((current_year + 1), 6, 30)
-    
-    return year_start, year_end
-
-
 def check_attendance_summary(start_date, end_date=None):
     start_date_in_summary = AttendanceSummary.query.filter(AttendanceSummary.year==start_date.year, AttendanceSummary.month==start_date.month).first()
     
@@ -950,20 +935,6 @@ def update_available_leave(data: EmployeeFiscalYear) -> str:
         salary_deduct_message = f"(Salary deduct: {salary_deduct} days)"
     
     return f"Available leave updated {salary_deduct_message}"
-    
-def get_fiscal_year_start_end_2(supplied_date):
-    year = supplied_date.year
-    month = supplied_date.month
-    
-    if month <= 6:
-        year_start_date = date((year - 1), 7, 1)
-        year_end_date = date(year, 6, 30)
-    else:
-        year_start_date = date(year, 7, 1)
-        year_end_date = date((year + 1), 6, 30)
-    
-    return year_start_date, year_end_date
-
 
 def find_holiday_leaves(employee_id, attendances):
     if not attendances:
@@ -1074,3 +1045,30 @@ def calculate_annual_leave(data: AnnualLeave) -> Tuple[int, int, int]:
             earned_leave = ceil(current_app.config['EARNED'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)  
 
     return casual_leave, medical_leave, earned_leave
+
+def get_fiscal_year_start_end(supplied_date: Optional[date] = None) -> Tuple[date, date]:
+    """
+    Calculate the start and end dates of the fiscal year based on the provided date.
+
+    Args:
+        supplied_date (Optional[date]): The date to calculate the fiscal year for. If not provided,
+            the current date is used.
+
+    Returns:
+        Tuple[date, date]: A tuple containing the start and end dates of the fiscal year.
+    """
+    if supplied_date:
+        year = supplied_date.year
+        month = supplied_date.month
+    else:
+        year = date.today().year
+        month = date.today().month
+        
+    if month <= 6:
+        year_start_date = date((year - 1), 7, 1)
+        year_end_date = date(year, 6, 30)
+    else:
+        year_start_date = date(year, 7, 1)
+        year_end_date = date((year + 1), 6, 30)
+    
+    return year_start_date, year_end_date
