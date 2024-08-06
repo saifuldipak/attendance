@@ -2,7 +2,7 @@ from attendance.forms import ApplicationCasual, ApplicationFiberAttendance, Appl
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
 from attendance.auth import login_required
 from attendance.db import db, Applications, Employee, Team
-from attendance.functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end_2, update_available_leave
+from attendance.functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end, update_available_leave
 import datetime
 import re
 from sqlalchemy import extract
@@ -231,7 +231,7 @@ def process(action, application_id):
                 flash(error, category='error')
         
         employees = Employee.query.filter_by(id=application.empid).all() 
-        (year_start_date, year_end_date) = get_fiscal_year_start_end_2(application.start_date)
+        (year_start_date, year_end_date) = get_fiscal_year_start_end(application.start_date)
 
         db.session.delete(application)
         db.session.commit()
