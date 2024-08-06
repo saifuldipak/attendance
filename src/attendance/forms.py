@@ -5,6 +5,8 @@ from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators
 from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, EmailField, TelField, SelectField, RadioField, TimeField, BooleanField) 
 from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, Optional, NumberRange)
+
+from attendance.functions import get_fiscal_year_start_end
 from .auth import admin_required, login_required, supervisor_required, team_leader_required
 from .db import Employee, Team, DutyShift
 from werkzeug.security import check_password_hash
@@ -611,3 +613,10 @@ def add_annual_leave():
 def update_available_leave():
     form = AnnualLeave()
     return render_template('forms.html', type='annual_leave', action='update', form=form)
+
+@forms.route('/forms/leave/delete')
+@login_required
+@admin_required
+def delete_annual_leave():
+    (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year_start_end()
+    return render_template('forms.html', type='annual_leave', action='delete', fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date)

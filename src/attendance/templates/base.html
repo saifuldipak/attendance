@@ -115,6 +115,7 @@
                         <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">-- Deduction</a>
                         <a href="{{ url_for('forms.add_annual_leave') }}" class="navbar-item">-- Add</a>
                         <a href="{{ url_for('forms.update_available_leave') }}" class="navbar-item">-- Update available leave</a>
+                        <a href="{{ url_for('forms.delete_annual_leave') }}" class="navbar-item">-- Delete annual leave</a>
                         <a href="{{ url_for('leave.reverse_deduction') }}" class="navbar-item">-- Reverse Deduction</a>
 
                     </p>
@@ -158,7 +159,7 @@
             {% endif %}
         {% endwith %}
 
-        {% with messages = get_flashed_messages(category_filter=(['message'])) %}
+        {% with messages = get_flashed_messages(category_filter=(['success'])) %}
             {% if messages %}
                 <ul class="message">
                     {% for message in messages %}

@@ -1,10 +1,10 @@
 from flask import Blueprint, current_app, redirect, render_template, session, flash, url_for
-from sqlalchemy import and_
+from sqlalchemy import and_, delete
 from attendance.db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary, LeaveAllocation
 from .auth import *
 from attendance.forms import AnnualLeave, Monthyear
 import datetime
-from attendance.functions import calculate_annual_leave, get_fiscal_year_start_end_2, update_available_leave
+from attendance.functions import calculate_annual_leave, get_fiscal_year_start_end, update_available_leave
 from datetime import date
 import attendance.schemas as schemas
 import attendance.forms as forms
@@ -35,7 +35,7 @@ def deduction():
         return redirect(url_for('forms.leave_deduction'))
     
     date_object = date(form.year.data, form.month.data, 1)
-    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(date_object)
+    (year_start_date, year_end_date) = get_fiscal_year_start_end(date_object)
 
     for summary in all_summary:
         leave_deducted = 0
@@ -194,7 +194,7 @@ def reverse_deduction():
     db.session.commit()
 
     deduction_date = date(form.year.data, form.month.data, 1)
-    (year_start_date, year_end_date) = get_fiscal_year_start_end_2(deduction_date)
+    (year_start_date, year_end_date) = get_fiscal_year_start_end(deduction_date)
     employees = Employee.query.all()
    
     rv = update_leave_summary(employees, year_start_date)
@@ -263,6 +263,8 @@ def summary(type):
     if type == 'all':
         leave_summary = LeaveAvailable.query.join(Employee).filter(and_(LeaveAvailable.fiscal_year_start_date <= year_start, LeaveAvailable.fiscal_year_end_date > year_start)).all()
 
+    if not leave_summary:
+        flash(f'No leave summary record found for {year_start} to {year_end}', category='warning')
     return render_template('data.html', data_type='leave_summary', type=type, year_start=leave_summary[0].fiscal_year_start_date, year_end=leave_summary[0].fiscal_year_end_date, leave_summary=leave_summary, years=years)
    
 
@@ -300,3 +302,34 @@ def update_leave():
 
     return render_template('base.html')
 
+@leave.route('/leave/delete', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def delete_annual_leave():
+    (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year_start_end()
+
+    function_name = 'delete_annual_leave()'
+    no_leave_found_message = f"No leave found for {fiscal_year_start_date} to {fiscal_year_end_date}"
+    internal_error_message = f'Failed to delete leave for {fiscal_year_start_date} - {fiscal_year_end_date}'
+
+    try:
+        LeaveAvailable.query.filter(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date).one()
+        LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date).one()
+        stmt = delete(LeaveAvailable).where(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date)
+        db.session.execute(stmt)
+        stmt = delete(LeaveAllocation).where(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date)
+        db.session.execute(stmt)
+        db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        current_app.logger.error('%s %s', function_name, e)
+        flash(internal_error_message, category='error')
+    except NoResultFound as e:
+        db.session.rollback()
+        flash(no_leave_found_message, category='warning')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error('%s %s', function_name, e)
+        flash(internal_error_message, category='error')
+
+    return render_template('base.html')

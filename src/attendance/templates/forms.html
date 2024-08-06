@@ -341,12 +341,17 @@
                 {% elif action == 'update' %}
                     <form method="post" action="{{ url_for('leave.update_leave') }}">
                 {% endif %}
+                {%if action == 'add' or action == 'update'%}
                     {{ form.csrf_token }}
+                {% endif %}
                 {% if action == 'add' %}
                     <div class="form-style-2-heading">Add Annual Leave</div>
                 {% elif action == 'update' %}
                     <div class="form-style-2-heading">Update Available Leave</div>
+                {% elif action == 'delete' %}
+                    <div class="form-style-2-heading">Delete Annual Leave</div>
                 {% endif %}
+                {% if action == 'add' or action == 'update'%}
                     <label>
                         <span>{{ form.fiscal_year_start_date.label }}</span>
                             {{ form.fiscal_year_start_date }}
@@ -360,6 +365,13 @@
                         <input type="submit" value="Submit" /></label>
                     </label>
                 </form>
+                {% elif action == 'delete' %}
+                <form method="get" action="{{ url_for('leave.delete_annual_leave') }}">
+                    <h3>{{ fiscal_year_start_date}} to {{ fiscal_year_end_date}}</h3>
+                    <button type="submit">Delete</button>
+                </form>
+                {% endif %}
+                        
     {% endif %}
 
     {% if type == 'add_holiday' %}
