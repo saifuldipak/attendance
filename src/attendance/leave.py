@@ -229,27 +229,29 @@ def summary(type):
         flash('You are not authorized to see leave summary of all', category='error')
         return render_template('base.html')
 
-    year_start = request.form.get('year_start')
-    if not year_start:
-        year_start = datetime.datetime.now().date()
-
-    years = LeaveAvailable.query.group_by(LeaveAvailable.fiscal_year_start_date).all()
-
+    form = AnnualLeave()
     if type == 'self':
-        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.fiscal_year_start_date <= year_start, LeaveAvailable.fiscal_year_end_date >= year_start)).all()
-        if not leave_summary:
-            current_app.logger.warning(' summary(): No data found in leave_available table for %s', session['empid'])
+        try:
+            leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data)).one()
+        except NoResultFound as e:
             flash('No leave summary record found', category='warning')
+            return render_template('base.html')
+        except IntegrityError as e:
+            current_app.logger.error(' summary(): IntegrityError: %s', e)
+            flash('Failed to show summary', category='error')
             return render_template('base.html')
 
     if type == 'team':
         teams = Team.query.filter_by(empid=session['empid']).all()
         team_summary = []
-    
         for team in teams:
-            summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.fiscal_year_start_date <= year_start, LeaveAvailable.fiscal_year_end_date >= year_start)).all()
+            try:
+                summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data)).all()
+            except IntegrityError as e:
+                current_app.logger.error(' summary(): IntegrityError: %s', e)
+                flash('Failed to show summary', category='error')
+                return render_template('base.html')
             team_summary += summary
-        
         leave_summary = team_summary
     
         if not leave_summary:
@@ -258,15 +260,25 @@ def summary(type):
             return render_template('base.html')
     
     if type == 'department':
-        leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.department==session['department'], Employee.id!=session['empid'],  and_(LeaveAvailable.fiscal_year_start_date <= year_start, LeaveAvailable.fiscal_year_end_date >= year_start)).all()
-
+        try:
+            leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.department==session['department'], Employee.id!=session['empid'],  and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date)).all()
+        except IntegrityError as e:
+            current_app.logger.error(' summary(): IntegrityError: %s', e)
+            flash('Failed to show summary', category='error')
+            return render_template('base.html')
+        
     if type == 'all':
-        leave_summary = LeaveAvailable.query.join(Employee).filter(and_(LeaveAvailable.fiscal_year_start_date <= year_start, LeaveAvailable.fiscal_year_end_date > year_start)).all()
+        try:
+            leave_summary = LeaveAvailable.query.join(Employee).filter(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data).all()
+        except IntegrityError as e:
+            current_app.logger.error(' summary(): IntegrityError: %s', e)
+            flash('Failed to show summary', category='error')
+            return render_template('base.html')
 
     if not leave_summary:
-        flash(f'No leave summary record found for {year_start} to {year_end}', category='warning')
-    return render_template('data.html', data_type='leave_summary', type=type, year_start=leave_summary[0].fiscal_year_start_date, year_end=leave_summary[0].fiscal_year_end_date, leave_summary=leave_summary, years=years)
-   
+        flash(f'No leave summary record found for {form.fiscal_year_start_date.data} to {form.fiscal_year_end_date.data}', category='warning')
+
+    return render_template('data.html', data_type='leave_summary', type=type, leave_summary=leave_summary, form=form)   
 
 @leave.route('/leave/update', methods=['GET', 'POST'])
 @login_required
