@@ -1,5 +1,5 @@
 from flask import Blueprint, current_app, redirect, render_template, session, flash, url_for
-from sqlalchemy import and_, delete
+from sqlalchemy import and_, delete, or_
 from attendance.db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary, LeaveAllocation
 from .auth import *
 from attendance.forms import AnnualLeave, Monthyear
@@ -42,25 +42,25 @@ def deduction():
         salary_deducted = 0
                 
         if summary.late > 2 or summary.early > 2 or summary.holiday_leave > 0:
-            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid, LeaveAvailable.year_start==year_start_date, LeaveAvailable.year_end==year_end_date).first()
-            leave_available_casual_earned = leave_available.casual + leave_available.earned
+            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid, LeaveAvailable.year_start==year_start_date, LeaveAvailable.year_end==year_end_date).first() # type: ignore
+            leave_available_casual_earned = leave_available.casual + leave_available.earned # type: ignore
             leave_deducted = int(summary.late/3) + int(summary.early/3) + summary.holiday_leave
             
-            if leave_available.casual >= leave_deducted:
-                leave_available.casual = leave_available.casual - leave_deducted
+            if leave_available.casual >= leave_deducted: # type: ignore
+                leave_available.casual = leave_available.casual - leave_deducted # type: ignore
             elif leave_available_casual_earned >= leave_deducted:
-                leave_available.earned = leave_available_casual_earned - leave_deducted
-                leave_available.casual = 0
+                leave_available.earned = leave_available_casual_earned - leave_deducted # type: ignore
+                leave_available.casual = 0 # type: ignore
             else:    
-                leave_available.casual = 0
-                leave_available.earned = 0
+                leave_available.casual = 0 # type: ignore
+                leave_available.earned = 0 # type: ignore
                 salary_deducted = (leave_deducted - leave_available_casual_earned)
                 leave_deducted = leave_available_casual_earned
 
         if summary.absent > 0:
             salary_deducted += summary.absent
 
-        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, leave_deducted=leave_deducted, salary_deducted=salary_deducted, year=form.year.data, month=form.month.data)
+        deduction = LeaveDeductionSummary(attendance_summary=summary.id, empid=summary.empid, leave_deducted=leave_deducted, salary_deducted=salary_deducted, year=form.year.data, month=form.month.data) # type: ignore
         db.session.add(deduction)
     
     db.session.commit()
@@ -74,50 +74,46 @@ def deduction():
 def add_annual_leave():
     form = forms.AnnualLeave()
     if not form.validate_on_submit():
-        return render_template('forms.html', type='create_leave', form=form)
+        return render_template('forms.html', type='annual_leave', action='add', form=form)
     
-    new_fiscal_year_start_date = datetime.date(form.year_start.data, 7, 1) # type: ignore
-    new_fiscal_year_end_date = datetime.date(form.year_start.data + 1, 6, 30) # type: ignore
+    #check any data already exists for fiscal_year_start_date and fiscal_year_end_date
+    try:
+        leave_available = LeaveAvailable.query.filter(or_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data, LeaveAvailable.fiscal_year_end_date == form.fiscal_year_end_date.data)).first()
+        leave_allocation = LeaveAllocation.query.filter(or_(LeaveAllocation.fiscal_year_start_date == form.fiscal_year_start_date.data, LeaveAllocation.fiscal_year_end_date == form.fiscal_year_end_date.data)).first()
+    except SQLAlchemyError as e:
+        current_app.logger.error('add_leave(): %s', e)
+        flash('Failed to add leave (Internal server error)', category='error')
+        return render_template('forms.html', type='annual_leave', action='add', form=form)
 
+    if leave_available or leave_allocation:
+        flash(f'Leave exists for {form.fiscal_year_start_date.data} - {form.fiscal_year_end_date.data}', category='error')
+        return render_template('forms.html', type='annual_leave', action='add', form=form)  
+
+    #add annual leave for each employee
     employees = Employee.query.all()
     count = 0
+    failed_message = 'Failed to calculate annual leave'
     for employee in employees:
-        leave_available = LeaveAvailable.query.filter(LeaveAvailable.form.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date >= new_fiscal_year_end_date, LeaveAvailable.empid==employee.id).first()
-        leave_allocated = LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date <= new_fiscal_year_start_date, LeaveAllocation.empid==employee.id).first()
-        if leave_available or leave_allocated:
-            message = f'Leave exists for {employee.fullname} year: {new_fiscal_year_start_date} - {new_fiscal_year_end_date}'
-            flash(message, category='warning')
-        else:
-            error = False
-            try:
-                (casual, medical, earned) = calculate_annual_leave(schemas.AnnualLeave(joining_date=employee.joining_date, new_fiscal_year_start_date=new_fiscal_year_start_date))
-                leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=new_fiscal_year_start_date, fiscal_year_end_date=new_fiscal_year_end_date, casual=casual, medical=medical, earned=earned) # type: ignore
-                leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=new_fiscal_year_start_date, fiscal_year_end_date=new_fiscal_year_end_date, casual=casual, medical=medical, earned=earned) # type: ignore
-                db.session.add(leave_available)
-                db.session.add(leave_allocation)
-                count += 1
-            except ValidationError as e:
-                error_message = f"{employee.fullname}: {e}"
-                current_app.logger.error(error_message)
-                error = True
-            except TypeError as e:
-                error_message = f"{employee.fullname}: {e}"
-                current_app.logger.error(error_message)
-                error = True
-            except IntegrityError as e:
-                error_message = f"{employee.fullname}: {e}"
-                current_app.logger.error(error_message)
-                error = True
-            finally:
-                if error:
-                    message = f'Failed to calculate annual leave for {employee.fullname}'
-                    flash(message, category='warning')
+        try:
+            (casual, medical, earned) = calculate_annual_leave(schemas.AnnualLeave(joining_date=employee.joining_date, new_fiscal_year_start_date=form.fiscal_year_start_date.data))
+        except ValidationError as e:
+            current_app.logger.error('add_annual_leave() - ValidationError - %s - %s', employee.fullname, e)
+            flash(f"{failed_message} for {employee.fullname}", category='warning')
+        
+        try:
+            leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
+            leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
+            db.session.add(leave_available)
+            db.session.add(leave_allocation)
+            count += 1
+        except SQLAlchemyError as e:
+            current_app.logger.error('add_annual_leave() - SQLAlchemyError - %s - %s', employee.fullname, e)
+            flash(f"{failed_message} for {employee.fullname}", category='warning')
     
     if count:
         db.session.commit()
-        form.year_end.data = form.year_start.data + 1 # type: ignore
-        message = f'Leave added for {count} employees for {form.year_start.data}-{form.year_end.data}' # type: ignore
-        flash(message, category='message')
+        message = f'Leave added for {count} employees from {form.fiscal_year_start_date.data} to {form.fiscal_year_end_date.data}' # type: ignore
+        flash(message, category='info')
     else:
         flash('No leave added', category='error')
 
@@ -135,35 +131,35 @@ def approval_batch():
         casual_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Casual', status='Approved').first() 
         medical_approved = Applications.query.with_entities(db.func.sum(Applications.duration).label('days')).filter_by(empid=employee.id, type='Medical', status='Approved').first() 
 
-        leave_available.casual = current_app.config['CASUAL']
-        leave_available.medical = current_app.config['MEDICAL']
-        leave_available.earned = current_app.config['EARNED']
-        leave_available_casual_earned = leave_available.casual + leave_available.earned
+        leave_available.casual = current_app.config['CASUAL'] # type: ignore
+        leave_available.medical = current_app.config['MEDICAL'] # type: ignore
+        leave_available.earned = current_app.config['EARNED'] # type: ignore
+        leave_available_casual_earned = leave_available.casual + leave_available.earned # type: ignore
         
-        if casual_approved.days:
-            if casual_approved.days <= leave_available.casual:
-                leave_available.casual = leave_available.casual - casual_approved.days
-            elif casual_approved.days > leave_available.casual and casual_approved.days <= leave_available_casual_earned:
-                leave_available.earned = leave_available_casual_earned - casual_approved.days
-                leave_available.casual = 0
+        if casual_approved.days: # type: ignore
+            if casual_approved.days <= leave_available.casual: # type: ignore
+                leave_available.casual = leave_available.casual - casual_approved.days # type: ignore
+            elif casual_approved.days > leave_available.casual and casual_approved.days <= leave_available_casual_earned: # type: ignore
+                leave_available.earned = leave_available_casual_earned - casual_approved.days # type: ignore
+                leave_available.casual = 0 # type: ignore
             else:
                 current_app.logger.error('Failed to update leave_available table for %s (casual)', employee.username)
                 msg = f'Batch casual leave approval failed for {employee.fullname}'
                 flash(msg, category='warning')
 
-        leave_available_medical_casual = leave_available.medical + leave_available.casual
-        leave_available_all = leave_available_medical_casual + leave_available.earned
+        leave_available_medical_casual = leave_available.medical + leave_available.casual # type: ignore
+        leave_available_all = leave_available_medical_casual + leave_available.earned # type: ignore
         
-        if medical_approved.days:
-            if medical_approved.days <= leave_available.medical:
-                leave_available.medical = leave_available.medical - medical_approved.days
-            elif medical_approved.days > leave_available.medical and medical_approved.days <= leave_available_medical_casual:
-                leave_available.medical = 0
-                leave_available.casual = leave_available_medical_casual - medical_approved.days
-            elif medical_approved.days > leave_available_medical_casual and medical_approved.days <= leave_available_all:
-                leave_available.earned = leave_available_all - medical_approved.days
-                leave_available.medical = 0
-                leave_available.casual = 0
+        if medical_approved.days: # type: ignore
+            if medical_approved.days <= leave_available.medical: # type: ignore
+                leave_available.medical = leave_available.medical - medical_approved.days # type: ignore
+            elif medical_approved.days > leave_available.medical and medical_approved.days <= leave_available_medical_casual: # type: ignore
+                leave_available.medical = 0 # type: ignore
+                leave_available.casual = leave_available_medical_casual - medical_approved.days # type: ignore
+            elif medical_approved.days > leave_available_medical_casual and medical_approved.days <= leave_available_all: # type: ignore
+                leave_available.earned = leave_available_all - medical_approved.days # type: ignore
+                leave_available.medical = 0 # type: ignore
+                leave_available.casual = 0 # type: ignore
             else:
                 current_app.logger.error('Failed to update leave_available table for of %s (medical)', employee.username)
                 msg = f'Batch medical leave approval failed for {employee.fullname}'
@@ -293,24 +289,16 @@ def update_leave():
         internal_error = f'Failed to update leave for {employee.fullname} (internal error)'
         no_leave_found = f'Failed to update leave for {employee.fullname} (no leave found)'
         try:
-            retrun_message = update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data))
-        except TypeError as e:
-            current_app.logger.error('%s', e)
-            flash(internal_error, category='warning')
+            return_message = update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data))
         except ValidationError as e:
             current_app.logger.error(' %s', e)
             flash(internal_error, category='warning')
         except NoResultFound as e:
             flash(no_leave_found, category='warning')
-        except IntegrityError as e:
-            flash(internal_error, category='warning')
         except SQLAlchemyError as e:
             flash(internal_error, category='warning')
-        except Exception as e:
-            current_app.logger.error(' %s', e)
-            flash(internal_error, category='warning')
         else:
-            flash(retrun_message, category='success')
+            flash(return_message, category='info')
 
     return render_template('base.html')
 
@@ -325,23 +313,21 @@ def delete_annual_leave():
     internal_error_message = f'Failed to delete leave for {fiscal_year_start_date} - {fiscal_year_end_date}'
 
     try:
-        LeaveAvailable.query.filter(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date).one()
-        LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date).one()
+        leave_available = LeaveAvailable.query.filter(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date).first()
+        leave_allocation = LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date).first()
+        if not leave_available or not leave_allocation:
+            flash(no_leave_found_message, category='warning')
+            return render_template('base.html')
+        
         stmt = delete(LeaveAvailable).where(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date)
         db.session.execute(stmt)
         stmt = delete(LeaveAllocation).where(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date)
         db.session.execute(stmt)
         db.session.commit()
-    except IntegrityError as e:
-        db.session.rollback()
+    except SQLAlchemyError as e:
         current_app.logger.error('%s %s', function_name, e)
         flash(internal_error_message, category='error')
-    except NoResultFound as e:
-        db.session.rollback()
-        flash(no_leave_found_message, category='warning')
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error('%s %s', function_name, e)
-        flash(internal_error_message, category='error')
+    else:
+        flash('Leave deleted successfully', category='info')
 
     return render_template('base.html')
