@@ -159,9 +159,9 @@
             {% endif %}
         {% endwith %}
 
-        {% with messages = get_flashed_messages(category_filter=(['success'])) %}
+        {% with messages = get_flashed_messages(category_filter=(['info'])) %}
             {% if messages %}
-                <ul class="message">
+                <ul class="info">
                     {% for message in messages %}
                         <li>{{ message }}</li>
                     {% endfor %}
