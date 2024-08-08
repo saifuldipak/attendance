@@ -849,9 +849,6 @@ def update_available_leave(data: EmployeeFiscalYear) -> str:
         leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==data.employee.id, LeaveAvailable.fiscal_year_start_date <= data.fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date >= data.fiscal_year_end_date).one() # type: ignore
     except NoResultFound as e:
         raise e
-    except IntegrityError as e:
-        current_app.logger.error('update_available_leave(): %s', e)
-        raise e
     except SQLAlchemyError as e:
         current_app.logger.error('update_available_leave(): %s', e)
         raise e
@@ -859,9 +856,6 @@ def update_available_leave(data: EmployeeFiscalYear) -> str:
     try:
         leave_allocated = LeaveAllocation.query.filter(LeaveAllocation.empid==data.employee.id, LeaveAllocation.fiscal_year_start_date <= data.fiscal_year_start_date, LeaveAllocation.fiscal_year_end_date >= data.fiscal_year_end_date).one() # type: ignore
     except NoResultFound as e:
-        raise e
-    except IntegrityError as e:
-        current_app.logger.error('update_available_leave(): %s', e)
         raise e
     except SQLAlchemyError as e:
         current_app.logger.error('update_available_leave(): %s', e)
@@ -934,7 +928,7 @@ def update_available_leave(data: EmployeeFiscalYear) -> str:
     if salary_deduct > 0:
         salary_deduct_message = f"(Salary deduct: {salary_deduct} days)"
     
-    return f"Available leave updated {salary_deduct_message}"
+    return f"Available leave updated for {data.employee.fullname} {salary_deduct_message}" # type: ignore
 
 def find_holiday_leaves(employee_id, attendances):
     if not attendances:
