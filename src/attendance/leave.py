@@ -315,14 +315,18 @@ def delete_annual_leave():
     try:
         leave_available = LeaveAvailable.query.filter(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date).first()
         leave_allocation = LeaveAllocation.query.filter(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date).first()
-        if not leave_available or not leave_allocation:
+        if not leave_available and not leave_allocation:
             flash(no_leave_found_message, category='warning')
             return render_template('base.html')
         
-        stmt = delete(LeaveAvailable).where(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date)
-        db.session.execute(stmt)
-        stmt = delete(LeaveAllocation).where(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date)
-        db.session.execute(stmt)
+        if leave_available:
+            stmt = delete(LeaveAvailable).where(LeaveAvailable.fiscal_year_start_date == fiscal_year_start_date)
+            db.session.execute(stmt)
+
+        if leave_allocation:    
+            stmt = delete(LeaveAllocation).where(LeaveAllocation.fiscal_year_start_date == fiscal_year_start_date)
+            db.session.execute(stmt)
+        
         db.session.commit()
     except SQLAlchemyError as e:
         current_app.logger.error('%s %s', function_name, e)
