@@ -5,7 +5,7 @@ import functools
 
 auth = Blueprint('auth', __name__)
 
-@auth.route('/login', methods=('GET', 'POST'))
+@auth.route('/attendance', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
         username = request.form['username']
