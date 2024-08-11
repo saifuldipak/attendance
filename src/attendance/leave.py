@@ -99,6 +99,9 @@ def add_annual_leave():
         except ValidationError as e:
             current_app.logger.error('add_annual_leave() - ValidationError - %s - %s', employee.fullname, e)
             flash(f"{failed_message} for {employee.fullname}", category='warning')
+        except RuntimeError as e:
+            flash("Internel server error", category='error')
+            break
         
         try:
             leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
