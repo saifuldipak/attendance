@@ -26,7 +26,7 @@ This is an app to keep record of employee attendance data from attendance machin
 ```bash
 $ mkdir ~/attendance
 $ cd ~/attendance
-$ python3 -m venv venv
+$ python3 -m venv .venv --prompt=attendance
 $ source venv/bin/activate
 ```
 
@@ -46,8 +46,8 @@ $ source venv/bin/activate
 ```bash
 #copy config files to instance folder, replace 'x' with your installed python 
 #version number. run command "$ python3 --version" to get the version
-(venv)$ cd ~/attendance/venv/lib/python3.x/site-packages/attendance/config
-(venv)$ cp config.py logging.yaml ~/attendance/venv/var/attendance-instance/
+(venv)$ cd ~/attendance/.venv/lib/python3.x/site-packages/attendance/config
+(venv)$ cp config.py logging.yaml ~/attendance/.venv/var/attendance-instance/
 
 #generating secret key string
 (venv)$ cd ~/attendance/venv/var/attendance-instance
@@ -124,3 +124,23 @@ http://yourdomain/login
 
 user: admin
 pass: admin123
+
+## Database backup
+Create a cron task to take backup of attendance app sqlite3 database file to a remote linux machine using rsync, a script is run  
+by cron to do the backup
+
+Note: this script uses smtp client "msmtp", you need to install it and add a .msmtprc file in your user directory, 
+you can find help online on how to create .msmtprc file.
+
+replace "username" in the following commands to your linux username
+
+copy the script and edit to set appropriate values
+```bash
+$ mkdir -p /home/username/scripts
+$ cp /home/username/attendance/src/config/database-backup.sh /home/username/scripts/
+$ nano /home/username/scripts/database-backup.sh
+```
+create a cron job, replace username with appropriate Linux username
+```bash
+$ echo "0 */6 * * * username /home/username/scripts/database-backup.sh" > /etc/cron.d/attendance
+```
