@@ -357,7 +357,7 @@ def check_available_leave(application, update=None):
         current_app.logger.warning('check_available_leave(): argument named "application" missing, user: %s', session['username'])
         return error_message
     
-    leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==application.empid, LeaveAvailable.year_start <= application.start_date, LeaveAvailable.year_end >= application.end_date).first()
+    leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==application.empid, LeaveAvailable.fiscal_year_start_date <= application.start_date, LeaveAvailable.fiscal_year_end_date >= application.end_date).first()
     if not leave_available:
         current_app.logger.warning('check_available_leave(): leave_available record not found in table, user: %s (either record not created for a fiscal year or application start and end dates are in two different fiscal year)', session['username'])
         return error_message
