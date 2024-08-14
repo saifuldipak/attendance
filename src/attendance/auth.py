@@ -27,16 +27,16 @@ def login():
             current_app.logger.warning('"%s" login failed (access denied)', username) 
 
         if error is None:
-            session['empid'] = employee.id
-            session['username'] = employee.username
-            session['fullname'] = employee.fullname
-            session['role'] = employee.role
-            session['department'] = employee.department
-            session['access'] = employee.access
-            session['email'] = employee.email
+            session['empid'] = employee.id # type: ignore
+            session['username'] = employee.username  # type: ignore
+            session['fullname'] = employee.fullname # type: ignore
+            session['role'] = employee.role # type: ignore
+            session['department'] = employee.department # type: ignore
+            session['access'] = employee.access # type: ignore
+            session['email'] = employee.email # type: ignore
             
             #Getting team name 
-            team = Team.query.filter_by(empid=employee.id).first()
+            team = Team.query.filter_by(empid=employee.id).first() # type: ignore
             if team:
                 session['team'] = team.name
             
