@@ -204,9 +204,11 @@ def reverse_deduction():
         try:
             update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date))
             leave_updated_employees += 1
+        except ValidationError as e:
+            current_app.logger.error('reverse_deduction() - ValidationError - %s - %s', employee.fullname, e)
+            break
         except NoResultFound as e:
             current_app.logger.warning('Leave not found for %s - from %s to %s', employee.username, fiscal_year_start_date, fiscal_year_end_date)
-            flash(f"reverse_deduction(): Leave not found for {employee.fullname}", category='warning')
         except SQLAlchemyError as e:
             current_app.logger.error('reverse_deduction(): SQLAlchemyError - %s', e)
             break
