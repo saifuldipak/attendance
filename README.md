@@ -126,21 +126,26 @@ user: admin
 pass: admin123
 
 ## Database backup
-Create a cron task to take backup of attendance app sqlite3 database file to a remote linux machine using rsync, a script is run  
+Create a cron task to take backup of attendance app sqlite3 database file to a remote linux machine using rsync, a bash script is run  
 by cron to do the backup
 
-Note: this script uses smtp client "msmtp", you need to install it and add a .msmtprc file in your user directory, 
-you can find help online on how to create .msmtprc file.
-
-replace "username" in the following commands to your linux username
+Important:
+1. backup bash script uses smtp client "msmtp", you need to install it and add ".msmtprc" config file in your user directory, 
+you can find help online on how to create the config file, 
+2. rsync uses ssh to login to the remote server, so you need to add your rsa public key to the remote server
 
 copy the script and edit to set appropriate values
 ```bash
-$ mkdir -p /home/username/scripts
-$ cp /home/username/attendance/src/config/database-backup.sh /home/username/scripts/
-$ nano /home/username/scripts/database-backup.sh
+$ mkdir -p ~/scripts
+$ cp ~/attendance/src/config/database-backup.sh ~/scripts/
+$ chmod 744 ~/scripts/database-backup.sh
+$ nano ~/database-backup.sh
 ```
-create a cron job, replace username with appropriate Linux username
+create a cron job
 ```bash
-$ echo "0 */6 * * * username /home/username/scripts/database-backup.sh" > /etc/cron.d/attendance
+$ crontab -e
+```
+add following line to crontab file, replace username with your Linux username  
+```
+0 */6 * * * username /home/username/scripts/database-backup.sh
 ```
