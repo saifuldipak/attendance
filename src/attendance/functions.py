@@ -1026,17 +1026,17 @@ def calculate_annual_leave(data: AnnualLeave) -> Tuple[int, int, int]:
     (joining_fiscal_year_start_date, joining_fiscal_year_end_date) = get_fiscal_year(data.joining_date)
     
     if joining_fiscal_year_start_date == data.new_fiscal_year_start_date or not data.new_fiscal_year_start_date: # type: ignore
-        casual_leave = ceil(current_app.config['CASUAL_LEAVE'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
-        medical_leave = ceil(current_app.config['MEDICAL_LEAVE'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
+        casual_leave = ceil(current_app.config['CASUAL'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
+        medical_leave = ceil(current_app.config['MEDICAL'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
         earned_leave = 0
     else:
-        casual_leave = current_app.config['CASUAL_LEAVE']
-        medical_leave = current_app.config['MEDICAL_LEAVE']
+        casual_leave = current_app.config['CASUAL']
+        medical_leave = current_app.config['MEDICAL']
         work_duration = (data.new_fiscal_year_start_date - data.joining_date).days
         if work_duration > 365:
-            earned_leave = current_app.config['EARNED_LEAVE']
+            earned_leave = current_app.config['EARNED']
         else:
-            earned_leave = ceil(current_app.config['EARNED_LEAVE'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)  
+            earned_leave = ceil(current_app.config['EARNED'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)  
 
     leaves = ['casual_leave', 'medical_leave', 'earned_leave']
     for leave in leaves:
