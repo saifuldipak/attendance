@@ -303,20 +303,26 @@ def update_leave():
         return render_template('forms.html', type='update_leave', form=form)
 
     employees = Employee.query.all()
+    number_of_employees = len(employees)
+    leave_updated_employees = 0
     for employee in employees:
-        internal_error = f'Failed to update leave for {employee.fullname} (internal error)'
-        no_leave_found = f'Failed to update leave for {employee.fullname} (no leave found)'
         try:
-            return_message = update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data))
+            update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data))
+            leave_updated_employees += 1
         except ValidationError as e:
-            current_app.logger.error(' %s', e)
-            flash(internal_error, category='warning')
+            current_app.logger.error('update_leave() - ValidationError - %s - %s', employee.fullname, e)
+            break
         except NoResultFound as e:
-            flash(no_leave_found, category='warning')
+            current_app.logger.error('update_leave() - Leave not found from %s to %s for %s', form.fiscal_year_start_date, form.fiscal_year_end_date, employee.fullname)
+            break
         except SQLAlchemyError as e:
-            flash(internal_error, category='warning')
-        else:
-            flash(return_message, category='info')
+            current_app.logger.error('update_leave() - SQLAlchemyError - %s - %s', employee.fullname, e)
+            break
+
+    if leave_updated_employees == number_of_employees:
+        flash(f'Leave updated for {leave_updated_employees} employees from {form.fiscal_year_start_date.data} to {form.fiscal_year_end_date.data}', category='info')
+    else:
+        flash(f'Failed to update leave from {form.fiscal_year_start_date.data} to {form.fiscal_year_end_date.data}', category='error')
 
     return render_template('base.html')
 
