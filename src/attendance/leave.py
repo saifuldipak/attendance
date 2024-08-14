@@ -93,16 +93,18 @@ def add_annual_leave():
     employees = Employee.query.all()
     count = 0
     failed_message = 'Failed to calculate annual leave'
-    for employee in employees:
+    for employee in employees:        
         try:
             (casual, medical, earned) = calculate_annual_leave(schemas.AnnualLeave(joining_date=employee.joining_date, new_fiscal_year_start_date=form.fiscal_year_start_date.data))
         except ValidationError as e:
             current_app.logger.error('add_annual_leave() - ValidationError - %s - %s', employee.fullname, e)
-            flash(f"{failed_message} for {employee.fullname}", category='warning')
-        except RuntimeError as e:
             flash("Internel server error", category='error')
             break
-        
+        except NameError as e:
+            current_app.logger.error('add_annual_leave() - NameError - %s - %s', employee.fullname, e)
+            flash('Internal server error', category='error')
+            break
+
         try:
             leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
             leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
@@ -245,7 +247,7 @@ def summary(type):
         team_summary = []
         for team in teams:
             try:
-                summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data)).all()
+                summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data)).all() # type: ignore
             except IntegrityError as e:
                 current_app.logger.error(' summary(): IntegrityError: %s', e)
                 flash('Failed to show summary', category='error')
