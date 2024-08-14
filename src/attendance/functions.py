@@ -1023,30 +1023,25 @@ def calculate_annual_leave(data: AnnualLeave) -> Tuple[int, int, int]:
         TypeError: If the joining_date is None.
 
     """
-
-    if all(key in current_app.config for key in ['CASUAL', 'MEDICAL', 'EARNED']):
-        casual = current_app.config['CASUAL']
-        medical = current_app.config['MEDICAL']
-        earned = current_app.config['EARNED']
-    else:
-        missing_keys = [key for key in ['CASUAL', 'MEDICAL', 'EARNED'] if key not in current_app.config]
-        current_app.logger.error(f"calculate_annual_leave() - Missing keys in config: {', '.join(missing_keys)}")
-        raise RuntimeError('Could not get CASUAL, MEDICAL, and EARNED values from config')
-
     (joining_fiscal_year_start_date, joining_fiscal_year_end_date) = get_fiscal_year(data.joining_date)
     
     if joining_fiscal_year_start_date == data.new_fiscal_year_start_date or not data.new_fiscal_year_start_date: # type: ignore
-        casual_leave = ceil(casual * (joining_fiscal_year_end_date - data.joining_date).days / 365)
-        medical_leave = ceil(medical * (joining_fiscal_year_end_date - data.joining_date).days / 365)
+        casual_leave = ceil(current_app.config['CASUAL_LEAVE'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
+        medical_leave = ceil(current_app.config['MEDICAL_LEAVE'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
         earned_leave = 0
     else:
-        casual_leave = casual
-        medical_leave = medical
+        casual_leave = current_app.config['CASUAL_LEAVE']
+        medical_leave = current_app.config['MEDICAL_LEAVE']
         work_duration = (data.new_fiscal_year_start_date - data.joining_date).days
         if work_duration > 365:
-            earned_leave = earned
+            earned_leave = current_app.config['EARNED_LEAVE']
         else:
-            earned_leave = ceil(earned * (joining_fiscal_year_end_date - data.joining_date).days / 365)  
+            earned_leave = ceil(current_app.config['EARNED_LEAVE'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)  
+
+    leaves = ['casual_leave', 'medical_leave', 'earned_leave']
+    for leave in leaves:
+        if leave not in locals():
+            raise NameError(f"{leave} could not calculate")
 
     return casual_leave, medical_leave, earned_leave
 
