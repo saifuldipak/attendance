@@ -1,8 +1,9 @@
 #!/bin/bash
 #This is a bash script which will be run from cron to backup sqlite3 database file backup using rsync
 
+# Important: rsync uses ssh to login to the remote server, so you need to add your rsa public key to the remote server
+
 # Set the variables
-#Note: Please generate ssh keys with command: ssh-keygen -t rsa and copy public key to remote server``
 DATABASE_FOLDER='/home/username/attendance/src/instance/'
 REMOTE_USERNAME='root'
 REMOTE_SERVER_NAME='backup-server-name'
@@ -20,6 +21,5 @@ else
     SUBJECT="Attendance app backup failed"
 fi
 
-echo "$OUTPUT"
 # Send email with output in the body
 echo -e "Subject: $SUBJECT\n\n$OUTPUT" | msmtp -f $SENDER $RECEIVER
