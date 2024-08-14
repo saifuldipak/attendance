@@ -45,17 +45,17 @@ def update_applications_holidays(empid, start_date, end_date, application_id=Non
 
 #check whether session user is the team leader of the employee of the supplied application_id 
 def check_team_access(application_id):
-    employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first()
+    employee = Employee.query.join(Applications, Team).filter(Applications.id==application_id).first() # type: ignore
     
-    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first() # type: ignore
     if supervisor:
         return True
 
-    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==employee.teams[0].name, Employee.role=='Manager').first() # type: ignore
     if manager:
         return True
 
-    head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
+    head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first() # type: ignore
     if head:
         return True
 
@@ -63,8 +63,8 @@ def check_team_access(application_id):
 
 def check_edit_permission(application, employee):
     team = Team.query.filter_by(empid=employee.id).first()
-    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Supervisor').first()
-    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Manager').first()
+    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Supervisor').first() # type: ignore
+    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Manager').first() # type: ignore
     head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
     
     if application.status == 'Approval Pending':
@@ -93,8 +93,8 @@ def check_edit_permission(application, employee):
 
 def check_edit_permission2(action, application, employee):
     team = Team.query.filter_by(empid=employee.id).first()
-    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Supervisor').first()
-    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Manager').first()
+    supervisor = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Supervisor').first() # type: ignore
+    manager = Employee.query.join(Team).filter(Employee.username==session['username'], Team.name==team.name, Employee.role=='Manager').first() # type: ignore
     head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first()
     
     if session['username'] == employee.username:
@@ -149,15 +149,15 @@ def convert_team_name(team_name):
 def check_data_access(employee_id):
     employee = Employee.query.join(Team).filter(Employee.id==employee_id).first()
     
-    supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first() # type: ignore
     if supervisor:
         return True
 
-    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+    manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first() # type: ignore
     if manager:
         return True
 
-    head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+    head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first() # type: ignore
     if head:
         return True
     
@@ -267,7 +267,7 @@ def get_attendance_data(empid, month, year):
         no_time = datetime.strptime('00:00:00', "%H:%M:%S").time()
         no_attendance = datetime.combine(attendance.date, no_time)
 
-        if application_type in ('Casual', 'Medical', 'Both', 'Casual adjust') and application.status.lower() == 'approved':
+        if application_type in ('Casual', 'Medical', 'Both', 'Casual adjust') and application.status.lower() == 'approved': # type: ignore
             attendance_list['in_flag'] = None
             attendance_list['out_flag'] = None
         elif attendance_list['duty_shift'] in ('O', 'HO'):
@@ -283,7 +283,7 @@ def get_attendance_data(empid, month, year):
             attendance_list['in_flag'] = None
             attendance_list['out_flag'] = None
         else:
-            if application_type == 'In' and application.status.lower() == 'approved':
+            if application_type == 'In' and application.status.lower() == 'approved': # type: ignore
                 attendance_list['in_flag'] = None
             elif attendance_list['in_time'] == no_attendance:
                 attendance_list['in_flag'] = 'NI'
@@ -302,7 +302,7 @@ def get_attendance_data(empid, month, year):
                 else:
                     attendance_list['out_time'] = datetime.combine(attendance.date, attendance.out_time)
 
-            if application_type == 'Out' and application.status.lower() == 'approved':
+            if application_type == 'Out' and application.status.lower() == 'approved': # type: ignore
                 attendance_list['out_flag'] = None
             elif attendance_list['out_time'] == no_attendance:
                 #to avoid counting no out('NO') if the person is absent
@@ -412,30 +412,30 @@ def check_available_leave(application, update=None):
 def check_authorization(application):
     employee = Employee.query.filter_by(id=application.empid).first()
     
-    if employee.role == 'Team':
-        supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first()
+    if employee.role == 'Team': # type: ignore
+        supervisor = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Supervisor').first() # type: ignore
         if supervisor:
             return True
         
-        manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+        manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first() # type: ignore
         if manager:
             return True
 
-        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first() # type: ignore
         if head:
             return True
 
-    if employee.role == 'Supervisor':
-        manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first()
+    if employee.role == 'Supervisor': # type: ignore
+        manager = Employee.query.join(Team).filter(Employee.id==session['empid'], Team.name==employee.teams[0].name, Employee.role=='Manager').first() # type: ignore
         if manager:
             return True
 
-        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first() # type: ignore
         if head:
             return True
         
-    if employee.role == 'Manager':
-        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first()
+    if employee.role == 'Manager': # type: ignore
+        head = Employee.query.filter_by(id=session['empid'], department=employee.department, role='Head').first() # type: ignore
         if head:
             return True
 
@@ -689,7 +689,7 @@ def check_holiday_dates(form, application_type):
     if form.holiday_duty_type.data == 'On site':
         holiday_duty_duration = (form.holiday_duty_end_date.data - form.holiday_duty_start_date.data).days + 1
         attendance = Attendance.query.with_entities(func.count(Attendance.id).label('count')).filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).first()
-        if holiday_duty_duration != attendance.count:
+        if holiday_duty_duration != attendance.count: # type: ignore
             return f'Attendance not found for one or more days between dates {form.holiday_duty_start_date.data} & {form.holiday_duty_end_date.data}'
 
         attendances = Attendance.query.filter(Attendance.empid==employee_id, Attendance.date>=form.holiday_duty_start_date.data, Attendance.date<=form.holiday_duty_end_date.data).all()
