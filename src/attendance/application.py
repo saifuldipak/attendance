@@ -237,7 +237,7 @@ def process(action, application_id):
         db.session.commit()
 
         if application.type in ('Casual', 'Medical'):
-            rv = update_available_leave(employees, application.start_date)
+            rv = update_available_leave(employees, application.start_date) # type: ignore
             if rv:
                 flash('Failed to update leave summary', category='warning')
                 return redirect(url_for('application.search', application_for=application_for))
@@ -338,8 +338,8 @@ def search(application_for):
 def details(application_id):
     application = Applications.query.join(Employee).filter(Applications.id==application_id).first()
 
-    if session['empid'] != application.empid:
-        has_access = check_data_access(application.empid)
+    if session['empid'] != application.empid: # type: ignore
+        has_access = check_data_access(application.empid) # type: ignore
         if not has_access:
             flash('You are not authorized to see this record', category='error')
             return render_template('base.html')
