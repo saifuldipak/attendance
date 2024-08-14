@@ -104,37 +104,36 @@
     {% endif %}
 
     {% if session['access'] == 'Admin' %}
-    <div class="dropdown">
-            <button class="dropbtn">Team</button>
-                <div class="dropdown-content">
-                    <p>Application
-                        <a href="{{ url_for('application.search', application_for='all') }}" class="navbar-item">-- Search</a>
-                    </p>
-                    <p>Leave
-                        <a href="{{ url_for('leave.summary', type='all') }}" class="navbar-item">-- Show Summary</a>
-                        <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">-- Deduction</a>
-                        <a href="{{ url_for('forms.add_annual_leave') }}" class="navbar-item">-- Add</a>
-                        <a href="{{ url_for('forms.update_available_leave') }}" class="navbar-item">-- Update available leave</a>
-                        <a href="{{ url_for('forms.delete_annual_leave') }}" class="navbar-item">-- Delete annual leave</a>
-                        <a href="{{ url_for('leave.reverse_deduction') }}" class="navbar-item">-- Reverse Deduction</a>
+        <div class="dropdown">
+                <button class="dropbtn">Team</button>
+                    <div class="dropdown-content">
+                        <p>Application
+                            <a href="{{ url_for('application.search', application_for='all') }}" class="navbar-item">-- Search</a>
+                        </p>
+                        <p>Leave
+                            <a href="{{ url_for('leave.summary', type='all') }}" class="navbar-item">-- Show Summary</a>
+                            <a href="{{ url_for('forms.leave_deduction') }}" class="navbar-item">-- Deduction</a>
+                            <a href="{{ url_for('forms.add_annual_leave') }}" class="navbar-item">-- Add</a>
+                            <a href="{{ url_for('forms.update_available_leave') }}" class="navbar-item">-- Update available leave</a>
+                            <a href="{{ url_for('forms.delete_annual_leave') }}" class="navbar-item">-- Delete annual leave</a>
+                            <a href="{{ url_for('leave.reverse_deduction') }}" class="navbar-item">-- Reverse Deduction</a>
 
-                    </p>
-                    <p>Attendance
-                        <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
-                        <a href="{{ url_for('forms.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
-                        <a href="{{ url_for('attendance.holidays', action='show') }}" class="navbar-item">-- Holidays</a>
-                        <a href="{{ url_for('attendance.office_time', action='search') }}" class="navbar-item">--Office time</a> 
-                        <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
-                        <a href="{{ url_for('forms.upload') }}" class="navbar-item">-- Upload</a>
-                        <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='all') }}" class="navbar-item">-- Show Summary</a>
-                        <a href="{{ url_for('forms.attendance_summary', action='prepare') }}" class="navbar-item">-- Prepare Summary</a> 
-                        <a href="{{ url_for('attendance.summary', action='delete') }}" class="navbar-item">-- Delete Summary</a> 
-                        <a href="{{ url_for('forms.delete_attendance') }}" class="navbar-item">-- Delete Attendnace</a> 
-                    </p>
-                </div>
-            </div> 
-
-            <div class="dropdown">
+                        </p>
+                        <p>Attendance
+                            <a href="{{ url_for('attendance.duty_shift', action='query') }}" class="navbar-item">-- Duty shift</a>
+                            <a href="{{ url_for('forms.duty_schedule', action='query') }}" class="navbar-item">-- Duty schedule</a>
+                            <a href="{{ url_for('attendance.holidays', action='show') }}" class="navbar-item">-- Holidays</a>
+                            <a href="{{ url_for('attendance.office_time', action='search') }}" class="navbar-item">--Office time</a> 
+                            <a href="{{ url_for('forms.attendance_query', query_for='others') }}" class="navbar-item">-- Query</a>
+                            <a href="{{ url_for('forms.upload') }}" class="navbar-item">-- Upload</a>
+                            <a href="{{ url_for('forms.attendance_summary', action='show', summary_for='all') }}" class="navbar-item">-- Show Summary</a>
+                            <a href="{{ url_for('forms.attendance_summary', action='prepare') }}" class="navbar-item">-- Prepare Summary</a> 
+                            <a href="{{ url_for('attendance.summary', action='delete') }}" class="navbar-item">-- Delete Summary</a> 
+                            <a href="{{ url_for('forms.delete_attendance') }}" class="navbar-item">-- Delete Attendnace</a> 
+                        </p>
+                    </div>
+            </div>
+        <div class="dropdown">
             <button class="dropbtn">Employee</button>
                 <div class="dropdown-content">
                     <a href="{{ url_for('employee.search', action='employee_search') }}" class="navbar-item">Search</a>
@@ -142,10 +141,14 @@
                     <a href="{{ url_for('employee.update_menu') }}" class="navbar-item">Update</a>
                     <a href="{{ url_for('forms.employee', action='delete') }}" class="navbar-item">Delete</a> 
                 </div>
+        </div>
+        <div class="dropdown">
+            <button class="dropbtn">Help</button>
+                <div class="dropdown-content">  
+                    <a href="{{ url_for('help.show_admin_help', help_section='admin') }}" class="navbar-item">Help</a>
+                </div>
         </div>   
     {% endif %}
-    
-    
 
     {#-- Rendering flash messages --#}
     <div class="main-container">

@@ -103,4 +103,7 @@ def create_app(test_config=None):
     from .application import application as application_blueprint
     app.register_blueprint(application_blueprint)
 
+    from .help import help as help_blueprint
+    app.register_blueprint(help_blueprint)
+
     return app

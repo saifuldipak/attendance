@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% if help_section == 'admin' %}
+        <h1>Help (Team menu)</h1>
+        <ul style="list-style-type: none;">
+            <li><b>Leave</b>
+                <ul style="list-style-type: none;">
+                    <li><b>Annual leave</b>
+                        <ul style="list-style-type: none;">
+                            <li>
+                                <b>Add annual leave</b><br>
+                                There are two steps to add annual leave<br>
+                                <ol>
+                                    <li><i>Team->Leave->Add</i><br>
+                                        Set appropriate dates and submit
+                                    </li>
+                                    <br>
+                                    <li><i>Team->Leave->Update available leave</i><br>
+                                        Set appropriate dates and submit
+                                    </li>
+                                </ol>
+                            </li>
+                            <li>
+                                <b>Delete annual leave</b><br>
+                                Click: <i>Team->Leave->Delete</i>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><br></li>
+                    <li>
+                        <b>Show available leave</b><br>
+                        <i>Team->Leave->Summary</i><br>
+                        Shows available leave of all employees<br>
+                    </li>
+                    <li><br></li>
+                    <li>
+                        <b>Leave deduction</b><br>
+                        <i>Team->Leave->Deduct</i><br>
+                        Deducts leave if there is no annual leave available<br>
+                        You need to prepare attendance summary of a month before deducting leave<br>
+                    </li>
+                </ul>
+            </li>
+            <li><br></li>
+            <li>
+                <b>Attendance</b>
+                <ul class="sub-topic">
+                    <li><b>Summary</b>
+                        <ul>
+                            <li>
+                                Prepare summary</b><br>
+                            </li>
+                            <li>
+                                Show summary<br>
+                            </li>
+                            <li>
+                                Delete summary<br>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+    {% endif %}
+
+{% endblock %}
