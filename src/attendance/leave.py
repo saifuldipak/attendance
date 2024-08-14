@@ -195,17 +195,28 @@ def reverse_deduction():
     db.session.commit()
 
     deduction_date = date(form.year.data, form.month.data, 1)
-    (year_start_date, year_end_date) = get_fiscal_year_start_end(deduction_date)
+    (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year_start_end(deduction_date)
+    
     employees = Employee.query.all()
-   
-    rv = update_leave_summary(employees, year_start_date)
+    number_of_employees = len(employees)
+    leave_updated_employees = 0
+    for employee in employees:
+        try:
+            update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date))
+            leave_updated_employees += 1
+        except NoResultFound as e:
+            current_app.logger.warning('Leave not found for %s - from %s to %s', employee.username, fiscal_year_start_date, fiscal_year_end_date)
+            flash(f"reverse_deduction(): Leave not found for {employee.fullname}", category='warning')
+        except SQLAlchemyError as e:
+            current_app.logger.error('reverse_deduction(): SQLAlchemyError - %s', e)
+            break
 
-    flash('Leave deduction reversed')
-    if rv:
-        flash('Some messages generated during the process, Please check log', category='warning')
-        
+    if leave_updated_employees == number_of_employees:
+        flash('Leave deduction reversed', category='info')
+    else:
+        flash('Failed to reverse deduction (Internal server error)', category='error')
+
     return redirect(url_for('forms.reverse_leave_deduction'))
-
 
 @leave.route('/leave/summary/<type>', methods=['GET', 'POST'])
 @login_required     
