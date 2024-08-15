@@ -1,7 +1,7 @@
 import secrets
 from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
 from .db import db, Employee, Team, LeaveAvailable, LeaveAllocation
-from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatephone, Updaterole, Updateteam)
+from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatejoiningdate, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from math import ceil
@@ -200,6 +200,8 @@ def update(action):
         form = Updatedept()
     elif action == 'designation':
         form = Updatedesignation()
+    elif action == 'joining_date':
+        form = Updatejoiningdate()
     elif action == 'email':
         form = Updateemail()
     elif action == 'fullname':
@@ -231,7 +233,7 @@ def update(action):
                 if not team:
                     team = Team(empid=employee.id, name=form.team.data)
                     db.session.add(team)
-                    flash('Team added', category='message')
+                    flash('Team added', category='info')
                 else:
                     flash('Team name already exists', category='error')
                     return redirect(url_for('forms.update_team'))
@@ -239,7 +241,7 @@ def update(action):
             if form.action.data == 'Delete':
                 if team:
                     db.session.delete(team)
-                    flash('Team deleted', category='message')
+                    flash('Team deleted', category='info')
                 else:
                     flash('Team name not found', category='error')
         
@@ -249,14 +251,29 @@ def update(action):
                 flash('Current and new department is same', category='warning')
             else:
                 employee.department = form.dept.data
-                flash('Department updated', category='message')
+                flash('Department updated', category='info')
         
         if action == 'designation':
             if employee.designation == form.designation.data:
                 flash('Current and new designation is same', category='warning')
             else:
                 employee.designation = form.designation.data
-                flash('Designation updated', category='message')
+                flash('Designation updated', category='info')
+        
+        #update joining date
+        if action == 'joining_date':
+            if employee.joining_date == form.joining_date.data:
+                flash('Current and new joining date is same', category='warning')
+            else:
+                employee.joining_date = form.joining_date.data
+                flash('Joining date updated', category='info')
+        
+        if action == 'designation':
+            if employee.designation == form.designation.data:
+                flash('Current and new designation is same', category='warning')
+            else:
+                employee.designation = form.designation.data
+                flash('Designation updated', category='info')
 
         #update email
         if action == 'email':
@@ -264,7 +281,7 @@ def update(action):
                 flash('Current and new email is same', category='warning')
             else:
                 employee.email = form.email.data
-                flash('Email updated', category='message')
+                flash('Email updated', category='info')
         
         #update fullname
         if action == 'fullname':
@@ -272,7 +289,7 @@ def update(action):
                 flash('Current and new fullname is same', category='warning')
             else:
                 employee.fullname = form.fullname.data
-                flash('Fullname updated', category='message')
+                flash('Fullname updated', category='info')
 
         #update phone
         if action == 'phone':
@@ -280,13 +297,13 @@ def update(action):
                 flash('Current and new phone is same', category='warning')
             else:
                 employee.phone = form.phone.data
-                flash('Phone updated', category='message')
+                flash('Phone updated', category='info')
 
         #update role
         if action == 'role':
             if employee.role != form.role.data:
                 employee.role = form.role.data
-                flash('Role updated', category='message')
+                flash('Role updated', category='info')
             else:
                 flash('Current and new role is same', category='warning')
         
@@ -294,7 +311,7 @@ def update(action):
         if action == 'access':
             if employee.access != form.access.data:
                 employee.access = form.access.data
-                flash('Access updated', category='message')
+                flash('Access updated', category='info')
             else:
                 flash('Current and new access is same', category='warning')
 
@@ -322,7 +339,7 @@ def update(action):
                 flash('Failed to send mail', category='error')
                 return redirect(url_for('employee.update_menu'))
 
-            flash('Password reset', category='message')
+            flash('Password reset', category='info')
 
         db.session.commit()
         

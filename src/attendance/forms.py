@@ -139,7 +139,13 @@ class Updatedesignation(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
     designation = SelectField('Designation', render_kw={'class': 'input-field'}, 
                         validators=[InputRequired()], choices=designations)
-
+    
+#Update employee joining date
+class Updatejoiningdate(FlaskForm):
+    username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    joining_date = DateField('Joining date', render_kw={'class': 'input-field'}, 
+                        validators=[InputRequired()])
+    
 #Update employee phone
 class Updatephone(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, 
@@ -386,6 +392,14 @@ def update_fullname():
 def update_designation():
     form = Updatedesignation()
     return render_template('emp_update.html', type='designation', form=form)
+
+#Employee modify - joining date
+@forms.route('/forms/employee/update_joining_date')
+@login_required
+@admin_required
+def update_joining_date():
+    form = Updatejoiningdate()
+    return render_template('emp_update.html', type='joining_date', form=form)
 
 #Employee modify - phone
 @forms.route('/forms/employee/update_phone')

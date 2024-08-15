@@ -20,6 +20,10 @@
                 Designation
             </a>
             &ensp;
+            <a href="{{ url_for('forms.update_joining_date') }}" class="navbar2">
+                Joining Date
+            </a>
+            &ensp;
             <a href="{{ url_for('forms.update_email') }}" class="navbar2">
                 Email
             </a>
@@ -98,6 +102,26 @@
                         <label for="team">
                             <span>{{ form.designation.label }}</span>
                                 {{ form.designation }}
+                        </label>
+                        <label>
+                            <span> </span>
+                            <input type="submit" value="Submit" /></label>
+                        </label>
+    {% endif %}
+
+    {# --employee joining date update form-- #}
+    {% if type == 'joining_date' %}
+            <div class="form-style-2">
+                <form method="post" action="{{ url_for('employee.update', action='joining_date') }}">
+                    {{ form.csrf_token }}
+                    <div class="form-style-2-heading">Joining date</div>
+                        <label for="username">
+                            <span>{{ form.username.label }}</span>
+                                {{ form.username }}
+                        </label>
+                        <label for="joining_date">
+                            <span>{{ form.joining_date.label }}</span>
+                                {{ form.joining_date }}
                         </label>
                         <label>
                             <span> </span>
