@@ -4,7 +4,7 @@ from attendance.db import db, Employee, Team, Applications, LeaveAvailable, Atte
 from .auth import *
 from attendance.forms import AnnualLeave, Monthyear
 import datetime
-from attendance.functions import calculate_annual_leave, get_fiscal_year_start_end, update_available_leave
+from attendance.functions import calculate_annual_leave, get_fiscal_year, get_fiscal_year_start_end, update_available_leave
 from datetime import date
 import attendance.schemas as schemas
 import attendance.forms as forms
@@ -76,26 +76,28 @@ def add_annual_leave():
     if not form.validate_on_submit():
         return render_template('forms.html', type='annual_leave', action='add', form=form)
     
+    (new_fiscal_year_start_date, new_fiscal_year_end_date) = get_fiscal_year(form.fiscal_year_start_date.data)
+
     #check any data already exists for fiscal_year_start_date and fiscal_year_end_date
     try:
-        leave_available = LeaveAvailable.query.filter(or_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data, LeaveAvailable.fiscal_year_end_date == form.fiscal_year_end_date.data)).first()
-        leave_allocation = LeaveAllocation.query.filter(or_(LeaveAllocation.fiscal_year_start_date == form.fiscal_year_start_date.data, LeaveAllocation.fiscal_year_end_date == form.fiscal_year_end_date.data)).first()
+        leave_available = LeaveAvailable.query.filter(or_(LeaveAvailable.fiscal_year_start_date == new_fiscal_year_start_date, LeaveAvailable.fiscal_year_end_date == new_fiscal_year_end_date)).first()
+        leave_allocation = LeaveAllocation.query.filter(or_(LeaveAllocation.fiscal_year_start_date == new_fiscal_year_start_date, LeaveAllocation.fiscal_year_end_date == new_fiscal_year_end_date)).first()
     except SQLAlchemyError as e:
         current_app.logger.error('add_leave(): %s', e)
         flash('Failed to add leave (Internal server error)', category='error')
         return render_template('forms.html', type='annual_leave', action='add', form=form)
 
     if leave_available or leave_allocation:
-        flash(f'Leave exists for {form.fiscal_year_start_date.data} - {form.fiscal_year_end_date.data}', category='error')
+        flash(f'Leave exists for {new_fiscal_year_start_date} - {new_fiscal_year_end_date}', category='error')
         return render_template('forms.html', type='annual_leave', action='add', form=form)  
 
     #add annual leave for each employee
     employees = Employee.query.all()
-    count = 0
-    failed_message = 'Failed to calculate annual leave'
+    number_of_employees = len(employees)
+    leave_added_employees = 0
     for employee in employees:        
         try:
-            (casual, medical, earned) = calculate_annual_leave(schemas.AnnualLeave(joining_date=employee.joining_date, new_fiscal_year_start_date=form.fiscal_year_start_date.data))
+            (casual, medical, earned) = calculate_annual_leave(schemas.AnnualLeave(joining_date=employee.joining_date, new_fiscal_year_start_date=new_fiscal_year_start_date))
         except ValidationError as e:
             current_app.logger.error('add_annual_leave() - ValidationError - %s - %s', employee.fullname, e)
             flash("Internel server error", category='error')
@@ -104,20 +106,25 @@ def add_annual_leave():
             current_app.logger.error('add_annual_leave() - NameError - %s - %s', employee.fullname, e)
             flash('Internal server error', category='error')
             break
+        except ValueError as e:
+            current_app.logger.error('add_annual_leave() - ValueError - %s - %s', employee.fullname, e)
+            flash(str(e), category='error')
+            break
 
         try:
-            leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
-            leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data, casual=casual, medical=medical, earned=earned) # type: ignore
+            leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=new_fiscal_year_start_date, fiscal_year_end_date=new_fiscal_year_end_date, casual=casual, medical=medical, earned=earned) # type: ignore
+            leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=new_fiscal_year_start_date, fiscal_year_end_date=new_fiscal_year_end_date, casual=casual, medical=medical, earned=earned) # type: ignore
             db.session.add(leave_available)
             db.session.add(leave_allocation)
-            count += 1
+            leave_added_employees += 1
         except SQLAlchemyError as e:
             current_app.logger.error('add_annual_leave() - SQLAlchemyError - %s - %s', employee.fullname, e)
-            flash(f"{failed_message} for {employee.fullname}", category='warning')
+            flash('Internal server error', category='error')
+            break
     
-    if count:
+    if leave_added_employees == number_of_employees:
         db.session.commit()
-        message = f'Leave added for {count} employees from {form.fiscal_year_start_date.data} to {form.fiscal_year_end_date.data}' # type: ignore
+        message = f'Leave added for {leave_added_employees} employees from {new_fiscal_year_start_date} to {new_fiscal_year_end_date}' # type: ignore
         flash(message, category='info')
     else:
         flash('No leave added', category='error')
