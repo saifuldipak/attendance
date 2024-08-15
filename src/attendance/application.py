@@ -111,7 +111,7 @@ def submit(application_type):
 
     db.session.add(application)
     db.session.commit()
-    flash('Application submitted', category='message')
+    flash('Application submitted', category='info')
     
     #Send mail to all concerned
     if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
@@ -268,7 +268,7 @@ def process(action, application_id):
         current_app.logger.warning(' process():', rv)
         flash('Failed to send mail', category='warning')        
     
-    flash(msg, category='message')
+    flash(msg, category='info')
     return redirect(url_for('application.search', application_for=application_for))
 
 
