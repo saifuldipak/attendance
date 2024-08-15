@@ -22,4 +22,4 @@ else
 fi
 
 # Send email with output in the body
-echo -e "Subject: $SUBJECT\n\n$OUTPUT" | msmtp -f $SENDER $RECEIVER
+echo -e "Subject: $SUBJECT\n\nBackup server: $REMOTE_SERVER_NAME\nBackup directory: $REMOTE_DIRECTORY\n\nMessage: $OUTPUT"  | msmtp -f $SENDER $RECEIVER
