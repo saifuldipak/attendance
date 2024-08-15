@@ -66,7 +66,7 @@ def create_app(test_config=None):
             logger.addHandler(default_handler)
     
     #loading configuration from file
-    app.config.from_pyfile('config.py', silent=True)
+    app.config.from_pyfile('config.py', silent=False)
     try:
         validate_config(app)
     except (ValueError, TypeError) as e:
