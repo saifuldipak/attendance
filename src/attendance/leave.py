@@ -290,7 +290,7 @@ def summary(type):
         
     if type == 'all':
         try:
-            leave_summary = LeaveAvailable.query.join(Employee).filter(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data).all()
+            leave_summary = LeaveAvailable.query.join(Employee).filter(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data).order_by(Employee.joining_date).all()
         except IntegrityError as e:
             current_app.logger.error(' summary(): IntegrityError: %s', e)
             flash('Failed to show summary', category='error')
