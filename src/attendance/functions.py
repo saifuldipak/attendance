@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import math
 import re
 from flask import session, current_app
 from sqlalchemy import extract, func, or_
@@ -1023,11 +1024,18 @@ def calculate_annual_leave(data: AnnualLeave) -> Tuple[int, int, int]:
         TypeError: If the joining_date is None.
 
     """
+    if not data.new_fiscal_year_start_date:
+        data.new_fiscal_year_start_date = date.today()
+
     (joining_fiscal_year_start_date, joining_fiscal_year_end_date) = get_fiscal_year(data.joining_date)
+    (new_fiscal_year_start_date, new_fiscal_year_end_date) = get_fiscal_year(data.new_fiscal_year_start_date) # type: ignore
+
+    if joining_fiscal_year_start_date > new_fiscal_year_start_date:
+        raise ValueError('joining_fiscal_year_start_date cannot be after new_fiscal_year_start_date')
     
-    if joining_fiscal_year_start_date == data.new_fiscal_year_start_date or not data.new_fiscal_year_start_date: # type: ignore
-        casual_leave = ceil(current_app.config['CASUAL'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
-        medical_leave = ceil(current_app.config['MEDICAL'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)
+    if joining_fiscal_year_start_date == new_fiscal_year_start_date: # type: ignore
+        casual_leave = calculate_leave_days(current_app.config['CASUAL'], joining_fiscal_year_end_date, data.joining_date)
+        medical_leave = calculate_leave_days(current_app.config['MEDICAL'], joining_fiscal_year_end_date, data.joining_date)
         earned_leave = 0
     else:
         casual_leave = current_app.config['CASUAL']
@@ -1036,7 +1044,7 @@ def calculate_annual_leave(data: AnnualLeave) -> Tuple[int, int, int]:
         if work_duration > 365:
             earned_leave = current_app.config['EARNED']
         else:
-            earned_leave = ceil(current_app.config['EARNED'] * (joining_fiscal_year_end_date - data.joining_date).days / 365)  
+            earned_leave = calculate_leave_days(current_app.config['EARNED'], data.new_fiscal_year_start_date, data.joining_date)
 
     leaves = ['casual_leave', 'medical_leave', 'earned_leave']
     for leave in leaves:
@@ -1071,3 +1079,29 @@ def get_fiscal_year_start_end(supplied_date: Optional[date] = None) -> Tuple[dat
         year_end_date = date((year + 1), 6, 30)
     
     return year_start_date, year_end_date
+
+def calculate_leave_days(standard_leave_days: int, fiscal_year_end_date: date, joining_date: date) -> int:
+    """
+    Calculate the number of leave days based on the standard leave days, fiscal year end date, and joining date.
+
+    Parameters:
+        standard_leave_days (int): The number of standard leave days.
+        fiscal_year_end_date (date): The end date of the fiscal year.
+        joining_date (date): The joining date.
+
+    Returns:
+        int: The number of partial leave days.
+
+    """
+    result = standard_leave_days * (fiscal_year_end_date - joining_date).days / 365
+    fraction = result - math.floor(result)
+    
+    if fraction >= 0.5:
+        rounded_result = math.ceil(result)
+    else:
+        rounded_result = math.floor(result)
+    
+    return rounded_result
+    
+
+
