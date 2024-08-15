@@ -131,6 +131,10 @@
         <table class="query-result">
             <th>Name</th>
             <th>&nbsp</th>
+            <th>Joining date</th>
+            <th>&nbsp</th>
+            <th>Department</th>
+            <th>&nbsp</th>
             <th>Casual</th>
             <th>&nbsp</th>
             <th>Medical</th>
@@ -142,6 +146,10 @@
             {% for leave in leave_summary %}
                 <tr>
                     <td>{{ leave['employee']['fullname'] }}</td>
+                    <td></td>
+                    <td>{{ leave['employee']['joining_date'] }}</td>
+                    <td></td>
+                    <td>{{ leave['employee']['department'] }}</td>
                     <td></td>
                     <td>{{ leave['casual'] }}</td>
                     <td></td>
