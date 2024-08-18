@@ -66,12 +66,14 @@ def create_app(test_config=None):
             logger.addHandler(default_handler)
     
     #loading configuration from file
-    app.config.from_pyfile('config.py', silent=False)
-    try:
-        validate_config(app)
-    except (ValueError, TypeError) as e:
-        app.logger.error(f"Configuration error: {e}")
-        sys.exit(1) 
+    app.config.from_pyfile('config.py', silent=True)
+    main_config = os.path.join(app.instance_path, 'config.py')
+    if os.path.exists(main_config):
+        try:
+            validate_config(app)
+        except (ValueError, TypeError) as e:
+            app.logger.error(f"Configuration error: {e}")
+            sys.exit(1) 
         
     #registering sqlalchemy
     from .db import db
