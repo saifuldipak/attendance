@@ -18,98 +18,109 @@ This is an app to keep record of employee attendance data from attendance machin
 
 
 ## Prerequisite software
-1. Ubuntu-20.04
-2. Python3
+Python3
 
-## Installation
-1. First create and activate a python virtual environment 
+## Installation 
+There are two ways to install this sofware, 
+1. From binary version (stable version)
+2. From development version (current development version)
+
+Note: Section which are exclusive for each version are specified, other sections are same for both types.
+
+#### 1. Create the python virtual environment and install the app, 
+
+For binary version   
+first download the app from Github
+Go to https://github.com/saifuldipak/attendance
+Click on the release link in the "Realeases" secton on the right side to download
 ```bash
 $ mkdir ~/attendance
+$ cp ~Downloads/attendnace-x.x.x-py3-none-any.whl ~/attendance/
+```
+
+For development version  
+```bash
+$ cd ~
+$ git clone https://github.com/saifuldipak/attendance.git
+```
+
+```bash
 $ cd ~/attendance
 $ python3 -m venv .venv --prompt=attendance
-$ source venv/bin/activate
+$ source .venv/bin/activate
+```
+For Binary version  
+```bash
+(attendance)$ pip install attendance-x.x.x-py3-none-any.whl
+```
+For Development version  
+```bash
+(attendance)$ pip install -e .
 ```
 
-2. Copy attendance-x.x.x-py3-none-any.whl to directory created in step one and install
+#### 2. Configure the app and create database, replace x with your python version, run command "$ python3 --version" to get the version
+
+For binary version
 ```bash
-(venv)$ python3 -m pip install attendnace-x.x.x-py3-none-any.whl
+(attendance)$ ln -s .venv/lib/pythonx.xx/site_packages/attendance src
+(attendance)$ ln -s .venv/var/attendance-instance/ instance
+```
+For development version
+```bash
+(attendance)$ ln -s src/attendance src
+(attendance)$ ln -s src/instance instance
 ```
 
-3. Run the app to create instance directory
 ```bash
-(venv)$ export FLASK_APP=attendance
-(venv)$ flask run
-(venv)$ CTRL+c #exit app
+(attendance)$ export FLASK_APP=attendance
+(attendance)$ flask run
+(attendance)$ ctrl+c
+(attendance)$ flask initdb
+(attendance)$ deactivate
 ```
 
-4. Edit the config file 'config.py' and 'logging.yaml' 
 ```bash
-#copy config files to instance folder, replace 'x' with your installed python 
-#version number. run command "$ python3 --version" to get the version
-(venv)$ cd ~/attendance/.venv/lib/python3.x/site-packages/attendance/config
-(venv)$ cp config.py logging.yaml ~/attendance/.venv/var/attendance-instance/
-
-#generating secret key string
-(venv)$ cd ~/attendance/venv/var/attendance-instance
-(venv)$ python -c 'import secrets; print(secrets.token_hex())'
-
-#put the string in the 'config.py' file 'SECRET_KEY'
-(venv)$ nano config.py
-
-#In "file:" section
-#replace 'username' in 'filename' value with your linux account name  
-#In "mail:" section
-#replace appropriate values for mailhost, fromaddr, toaddrs
-(venv)$ nano logging.yaml 
+$ cp src/config/config.py instance/
+$ cp src/config/logging.yaml instance/
 ```
 
-5. Create database and admin user
+Generating secret key string
 ```bash
-(venv)$ flask initdb
+$ python -c 'import secrets; print(secrets.token_hex())'
 ```
+Open config.py with your favorite text editor and replace the 'change_me' with the string generated above in the 'config.py' file 'SECRET_KEY'
 
-6. Configuring systemd
+Open logging.yaml with your favorite text editor and change following fields
+In "file:" section replace 'username' in 'filename' value with your linux account name  
+In "mail:" section replace appropriate values for mailhost, fromaddr, toaddrs
+
+#### 3. Add attendance app to systemd
 ```bash
-(venv)$ deactivate
-#copy systemd service file
-$ cd ~/attendance/venv/lib/python3.x/site-packages/attendance/config/
-$ sudo cp attendance.service /etc/systemd/system/
-
-#replace 'username' with your Linux username name
-$ sudo nano /etc/systemd/system/attendance.service
-
-#start attendance service
+$ sudo cp src/config/attendance.service /etc/systemd/system/
+```
+Edit /etc/systemd/system/attendance.service and replace username with your Linux username, 
+start attendance app from systemd, check status (message should show "Active: active (running)")
+```bash
 $ sudo systemctl enable --now attendance
-
-#check the status, it should be showing status 'active(running)'
 $ systemctl status attendance
 ```
 
-7. Installing and configuring Nginx server
+#### 4. Installing Nginx 
 ```bash
 $ sudo apt update
 $ sudo apt install nginx
-
-#check status, it should show status 'active(running)'
-$ systemctl status nginx
-
-#copy attendnace site config file to nginx config directory
-$ sudo cp ~/attendance/venv/lib/python3.8/site-packages/attendance/config/attendance /etc/nginx/sites-available/
-
-#edit site config file with appropriate domain name
-$ sudo nano /etc/nginx/sites-vailable/attendance
-
-#create symlink to activate attendance site
-$ sudo ln -s /etc/nginx/sites-available/attendance /etc/nginx/sites-enabled
-
-#check file syntax
+$ sudo cp src/config/nginx-config /etc/nginx/sites-available/attendance
+$ sudo ln -s /etc/nginx/sites-available/attendance /etc/nginx/sites-enabled/attendance
+```
+edit nginx config file and put your domain name in "server_name" section
+check Nginx configuration, restart and check running status
+```bash
 $ sudo nginx -t
-
-#restart Nginx
 $ sudo systemctl restart nginx
+$ systemctl status nginx
 ```
 
-8. Configure and check firewall
+#### 5. Configure and check firewall
 ```bash
 $ sudo ufw allow 'OpenSSH'
 $ sudo ufw allow 'Nginx HTTP'
@@ -134,13 +145,14 @@ Important:
 you can find help online on how to create the config file, 
 2. rsync uses ssh to login to the remote server, so you need to add your rsa public key to the remote server
 
-copy the script and edit to set appropriate values
+copy the script and 
 ```bash
 $ mkdir -p ~/scripts
 $ cp ~/attendance/src/config/database-backup.sh ~/scripts/
 $ chmod 744 ~/scripts/database-backup.sh
-$ nano ~/database-backup.sh
 ```
+edit "~scripts/database-backup.sh" to set relevant values for your system
+
 create a cron job
 ```bash
 $ crontab -e
