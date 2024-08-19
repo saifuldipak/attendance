@@ -1,3 +1,19 @@
+v1.2.0
+Feature -
+Now annual leaves are calculated based on joining date of employee
+Help section for admin panel
+Clear and simple instructions in README file to install from binary and development version
+Option to add and update joining date in employee creation
+Added Flask-migrate for database change management
+Added database backup section in README file
+
+Fixes -
+Added better exception handling
+Pydantic for argument validation for some functions
+Added docstring for some functions
+Replace multiple functions of same work with one function
+Replaced mail with msmtp in database-backup.sh script
+
 v1.1.0
 Fixes - 
 Fixed medical leave calculation in update_leave_summary()
