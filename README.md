@@ -28,10 +28,8 @@ There are two ways to install this sofware,
 Note: Section which are exclusive for each version are specified, other sections are same for both types.
 
 #### 1. Create the python virtual environment and install the app, 
-
-For binary version   
-first download the app from Github
-Go to https://github.com/saifuldipak/attendance
+For binary version  
+Download the app from Github, Go to https://github.com/saifuldipak/attendance, 
 Click on the release link in the "Realeases" secton on the right side to download
 ```bash
 $ mkdir ~/attendance
@@ -62,15 +60,12 @@ For Development version
 
 For binary version
 ```bash
-(attendance)$ ln -s .venv/lib/pythonx.xx/site_packages/attendance src
-(attendance)$ ln -s .venv/var/attendance-instance/ instance
+(attendance)$ ln -s .venv/lib/pythonx.xx/site_packages/attendance attendance
 ```
 For development version
 ```bash
-(attendance)$ ln -s src/attendance src
-(attendance)$ ln -s src/instance instance
+(attendance)$ ln -s src/attendance attendance
 ```
-
 ```bash
 (attendance)$ export FLASK_APP=attendance
 (attendance)$ flask run
@@ -78,10 +73,18 @@ For development version
 (attendance)$ flask initdb
 (attendance)$ deactivate
 ```
+For binary version
+```bash
+(attendance)$ ln -s .venv/var/attendance-instance/ instance
+```
+For development version
+```bash
+(attendance)$ ln -s src/instance instance
+```
 
 ```bash
-$ cp src/config/config.py instance/
-$ cp src/config/logging.yaml instance/
+$ cp attendance/config/config.py instance/
+$ cp attendance/config/logging.yaml instance/
 ```
 
 Generating secret key string
@@ -96,7 +99,7 @@ In "mail:" section replace appropriate values for mailhost, fromaddr, toaddrs
 
 #### 3. Add attendance app to systemd
 ```bash
-$ sudo cp src/config/attendance.service /etc/systemd/system/
+$ sudo cp attendance/config/attendance.service /etc/systemd/system/
 ```
 Edit /etc/systemd/system/attendance.service and replace username with your Linux username, 
 start attendance app from systemd, check status (message should show "Active: active (running)")
@@ -109,10 +112,10 @@ $ systemctl status attendance
 ```bash
 $ sudo apt update
 $ sudo apt install nginx
-$ sudo cp src/config/nginx-config /etc/nginx/sites-available/attendance
+$ sudo cp attendance/config/nginx-config /etc/nginx/sites-available/attendance
 $ sudo ln -s /etc/nginx/sites-available/attendance /etc/nginx/sites-enabled/attendance
 ```
-edit nginx config file and put your domain name in "server_name" section
+edit nginx config file (/etc/nginx/sites-available/attendance) and put your domain name in "server_name" section
 check Nginx configuration, restart and check running status
 ```bash
 $ sudo nginx -t
@@ -120,7 +123,7 @@ $ sudo systemctl restart nginx
 $ systemctl status nginx
 ```
 
-#### 5. Configure and check firewall
+#### 5. Configure and check firewall (optional but highly recommended)
 ```bash
 $ sudo ufw allow 'OpenSSH'
 $ sudo ufw allow 'Nginx HTTP'
