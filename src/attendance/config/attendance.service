@@ -6,8 +6,8 @@ After=network.target
 User=username
 Group=www-data
 WorkingDirectory=/home/username/attendance
-Environment="PATH=/home/username/attendance/venv/bin"
-ExecStart=/home/username/attendance/venv/bin/gunicorn --workers 3 --bind unix:/tmp/attendance.sock "attendance:create_app()"
+Environment="PATH=/home/username/attendance/.venv/bin"
+ExecStart=/home/username/attendance/.venv/bin/gunicorn --workers 3 --bind unix:/tmp/attendance.sock "attendance:create_app()"
 
 [Install]
 WantedBy=multi-user.target
