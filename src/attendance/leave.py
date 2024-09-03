@@ -253,12 +253,9 @@ def summary(type):
     form = AnnualLeave()
     if type == 'self':
         try:
-            leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data)).one()
-        except NoResultFound as e:
-            flash('No leave summary record found', category='warning')
-            return render_template('base.html')
-        except IntegrityError as e:
-            current_app.logger.error(' summary(): IntegrityError: %s', e)
+            leave_summary = LeaveAvailable.query.join(Employee).filter(Employee.id==session['empid'], LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data).all()
+        except SQLAlchemyError as e:
+            current_app.logger.error(' summary(): SQLAlchemyError: %s', e)
             flash('Failed to show summary', category='error')
             return render_template('base.html')
 
@@ -267,9 +264,9 @@ def summary(type):
         team_summary = []
         for team in teams:
             try:
-                summary = LeaveAvailable.query.join(Employee, Team).filter(Team.name==team.name, Employee.id!=session['empid'], and_(LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data)).all() # type: ignore
-            except IntegrityError as e:
-                current_app.logger.error(' summary(): IntegrityError: %s', e)
+                summary = LeaveAvailable.query.join(Employee, LeaveAvailable.empid== Employee.id).join(Team, LeaveAvailable.empid== Team.empid).filter(Team.name==team.name, Employee.id!=session['empid'],LeaveAvailable.fiscal_year_start_date == form.fiscal_year_start_date.data).all() # type: ignore
+            except SQLAlchemyError as e:
+                current_app.logger.error(' summary(): SQLAlchemyError: %s', e)
                 flash('Failed to show summary', category='error')
                 return render_template('base.html')
             team_summary += summary
