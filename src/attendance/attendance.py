@@ -585,7 +585,7 @@ def summary(action):
         else:
             msg = f'No record found for {form.month.data}, {form.year.data}'
         
-        flash(msg)
+        flash(msg, category='info')
         return redirect(url_for('forms.attendance_summary', action='prepare'))
     
     if action == 'delete':
@@ -606,7 +606,7 @@ def summary(action):
 
         db.session.commit()
         msg = f'Attendance summary deleted for {form.month.data}, {form.year.data}'
-        flash(msg)
+        flash(msg, category='info')
         return redirect(url_for('forms.attendance_summary', action='delete'))
                 
 
@@ -680,5 +680,5 @@ def delete_attendance():
 
     db.session.commit()
     msg = f'Attendnace deleted from {form.start_date.data} to {form.end_date.data}'    
-    flash(msg)
+    flash(msg, category='info')
     return redirect(url_for('forms.delete_attendance'))
