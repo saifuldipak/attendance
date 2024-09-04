@@ -42,7 +42,7 @@ def deduction():
         salary_deducted = 0
                 
         if summary.late > 2 or summary.early > 2 or summary.holiday_leave > 0:
-            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid, LeaveAvailable.year_start==year_start_date, LeaveAvailable.year_end==year_end_date).first() # type: ignore
+            leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid, LeaveAvailable.fiscal_year_start_date==year_start_date, LeaveAvailable.fiscal_year_end_date==year_end_date).first() # type: ignore
             leave_available_casual_earned = leave_available.casual + leave_available.earned # type: ignore
             leave_deducted = int(summary.late/3) + int(summary.early/3) + summary.holiday_leave
             
@@ -64,7 +64,7 @@ def deduction():
         db.session.add(deduction)
     
     db.session.commit()
-    flash('Leave deducted')
+    flash('Leave deducted', category='info')
     
     return redirect(url_for('forms.leave_deduction'))
 
