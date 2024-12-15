@@ -317,7 +317,7 @@ def update_leave():
             current_app.logger.error('update_leave() - ValidationError - %s - %s', employee.fullname, e)
             break
         except NoResultFound as e:
-            current_app.logger.error('update_leave() - Leave not found from %s to %s for %s', form.fiscal_year_start_date, form.fiscal_year_end_date, employee.fullname)
+            current_app.logger.error('update_leave() - Leave not found from %s to %s for %s', form.fiscal_year_start_date.data, form.fiscal_year_end_date.data, employee.fullname)
             break
         except SQLAlchemyError as e:
             current_app.logger.error('update_leave() - SQLAlchemyError - %s - %s', employee.fullname, e)
