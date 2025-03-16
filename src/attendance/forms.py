@@ -607,11 +607,19 @@ def delete_attendance():
     return render_template('forms.html', type='delete_attendance', form=form)
 
 class AnnualLeave(FlaskForm):
-    fiscal_year_start_date = DateField('Year Start Date', default=date(datetime.now().year, 7, 1), render_kw={'class': 'input-field'}, validators=[InputRequired()])
-    fiscal_year_end_date = DateField('Year End Date', default=date(datetime.now().year+1, 6, 30), render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    current_date = datetime.now()
+    if current_date <= datetime(current_date.year, 6, 30):
+        start_date = date(current_date.year - 1, 7, 1)
+        end_date = date(current_date.year, 6, 30)
+    else:
+        start_date = date(current_date.year, 7, 1)
+        end_date = date(current_date.year + 1, 6, 30)
+    
+    fiscal_year_start_date = DateField('Year Start Date', default=start_date, render_kw={'class': 'input-field'}, validators=[InputRequired()])
+    fiscal_year_end_date = DateField('Year End Date', default=end_date, render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
     def validate_year_end(self, field):
-        if self.year_start.data >= field.data: # type: ignore
+        if self.fiscal_year_start_date.data >= field.data: # type: ignore
             raise ValidationError('must be greater than year start')
 
 @forms.route('/forms/leave/add')
