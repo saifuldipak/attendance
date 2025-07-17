@@ -4,7 +4,6 @@ from .db import db, Employee, Team, LeaveAvailable, LeaveAllocation
 from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatejoiningdate, Updatephone, Updaterole, Updateteam)
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from math import ceil
 from .auth import admin_required, login_required
 import random
 import string
@@ -148,6 +147,9 @@ def create():
         
         flash("Employee record created.", category='message')
         return redirect(url_for('forms.employee', action='create'))
+    
+    # If form doesn't validate, return the form with errors
+    return render_template('forms.html', form_type='employee_create', form=form)
 
 ## Delete employee record ##
 @employee.route('/employee/delete', methods=['GET', 'POST'])
@@ -227,18 +229,18 @@ def update(action):
         
         #add or delete team
         if action == 'team':
-            team = Team.query.filter_by(empid=employee.id, name=form.team.data).first()
+            team = Team.query.filter_by(empid=employee.id, name=form.team.data).first()  # type: ignore
 
-            if form.action.data == 'Add':
+            if form.action.data == 'Add':  # type: ignore
                 if not team:
-                    team = Team(empid=employee.id, name=form.team.data)
+                    team = Team(empid=employee.id, name=form.team.data)  # type: ignore
                     db.session.add(team)
                     flash('Team added', category='info')
                 else:
                     flash('Team name already exists', category='error')
                     return redirect(url_for('forms.update_team'))
             
-            if form.action.data == 'Delete':
+            if form.action.data == 'Delete':  # type: ignore
                 if team:
                     db.session.delete(team)
                     flash('Team deleted', category='info')
@@ -246,77 +248,70 @@ def update(action):
                     flash('Team name not found', category='error')
         
         #update department
-        if action == 'dept':
-            if employee.department == form.dept.data:
+        elif action == 'dept':
+            if employee.department == form.dept.data:  # type: ignore
                 flash('Current and new department is same', category='warning')
             else:
-                employee.department = form.dept.data
+                employee.department = form.dept.data  # type: ignore
                 flash('Department updated', category='info')
         
-        if action == 'designation':
-            if employee.designation == form.designation.data:
+        elif action == 'designation':
+            if employee.designation == form.designation.data:  # type: ignore
                 flash('Current and new designation is same', category='warning')
             else:
-                employee.designation = form.designation.data
+                employee.designation = form.designation.data  # type: ignore
                 flash('Designation updated', category='info')
         
         #update joining date
-        if action == 'joining_date':
-            if employee.joining_date == form.joining_date.data:
+        elif action == 'joining_date':
+            if employee.joining_date == form.joining_date.data:  # type: ignore
                 flash('Current and new joining date is same', category='warning')
             else:
-                employee.joining_date = form.joining_date.data
+                employee.joining_date = form.joining_date.data  # type: ignore
                 flash('Joining date updated', category='info')
-        
-        if action == 'designation':
-            if employee.designation == form.designation.data:
-                flash('Current and new designation is same', category='warning')
-            else:
-                employee.designation = form.designation.data
-                flash('Designation updated', category='info')
 
         #update email
-        if action == 'email':
-            if employee.email == form.email.data:
+        elif action == 'email':
+            if employee.email == form.email.data:  # type: ignore
                 flash('Current and new email is same', category='warning')
             else:
-                employee.email = form.email.data
+                employee.email = form.email.data  # type: ignore
                 flash('Email updated', category='info')
         
         #update fullname
-        if action == 'fullname':
-            if employee.fullname == form.fullname.data:
+        elif action == 'fullname':
+            if employee.fullname == form.fullname.data:  # type: ignore
                 flash('Current and new fullname is same', category='warning')
             else:
-                employee.fullname = form.fullname.data
+                employee.fullname = form.fullname.data  # type: ignore
                 flash('Fullname updated', category='info')
 
         #update phone
-        if action == 'phone':
-            if employee.phone == form.phone.data:
+        elif action == 'phone':
+            if employee.phone == form.phone.data:  # type: ignore
                 flash('Current and new phone is same', category='warning')
             else:
-                employee.phone = form.phone.data
+                employee.phone = form.phone.data  # type: ignore
                 flash('Phone updated', category='info')
 
         #update role
-        if action == 'role':
-            if employee.role != form.role.data:
-                employee.role = form.role.data
+        elif action == 'role':
+            if employee.role != form.role.data:  # type: ignore
+                employee.role = form.role.data  # type: ignore
                 flash('Role updated', category='info')
             else:
                 flash('Current and new role is same', category='warning')
         
         #update access
-        if action == 'access':
-            if employee.access != form.access.data:
-                employee.access = form.access.data
+        elif action == 'access':
+            if employee.access != form.access.data:  # type: ignore
+                employee.access = form.access.data  # type: ignore
                 flash('Access updated', category='info')
             else:
                 flash('Current and new access is same', category='warning')
 
         #reset password
-        if action == 'pass':
+        elif action == 'pass':
             password = ''
             for _ in range(3):
                 password += secrets.choice(string.ascii_lowercase)
@@ -354,9 +349,12 @@ def password_self():
 
     if form.validate_on_submit():
         employee = Employee.query.filter_by(username=session['username']).first()
-        employee.password = generate_password_hash(form.password.data)
-        db.session.commit()
-        flash('Password changed', category='message')
+        if employee and form.password.data:  # type: ignore
+            employee.password = generate_password_hash(form.password.data)  # type: ignore
+            db.session.commit()
+            flash('Password changed', category='message')
+        else:
+            flash('Error updating password', category='error')
 
     return render_template('forms.html', type='change_pass', form=form)
 
