@@ -1,9 +1,8 @@
 from flask import Blueprint, current_app, redirect, render_template, session, flash, url_for
 from sqlalchemy import and_, delete, or_
 from attendance.db import db, Employee, Team, Applications, LeaveAvailable, AttendanceSummary, LeaveDeductionSummary, LeaveAllocation
-from .auth import *
+from .auth import admin_required, login_required
 from attendance.forms import AnnualLeave, Monthyear
-import datetime
 from attendance.functions import calculate_annual_leave, get_fiscal_year, get_fiscal_year_start_end, update_available_leave
 from datetime import date
 import attendance.schemas as schemas
@@ -34,7 +33,7 @@ def deduction():
         flash(msg, category='error')
         return redirect(url_for('forms.leave_deduction'))
     
-    date_object = date(form.year.data, form.month.data, 1)
+    date_object = date(form.year.data, form.month.data, 1) # type: ignore
     (year_start_date, year_end_date) = get_fiscal_year_start_end(date_object)
 
     for summary in all_summary:
@@ -76,7 +75,7 @@ def add_annual_leave():
     if not form.validate_on_submit():
         return render_template('forms.html', type='annual_leave', action='add', form=form)
     
-    (new_fiscal_year_start_date, new_fiscal_year_end_date) = get_fiscal_year(form.fiscal_year_start_date.data)
+    (new_fiscal_year_start_date, new_fiscal_year_end_date) = get_fiscal_year(form.fiscal_year_start_date.data) # type: ignore
 
     #check any data already exists for fiscal_year_start_date and fiscal_year_end_date
     try:
@@ -201,7 +200,7 @@ def reverse_deduction():
     
     db.session.commit()
 
-    deduction_date = date(form.year.data, form.month.data, 1)
+    deduction_date = date(form.year.data, form.month.data, 1) # type: ignore
     (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year_start_end(deduction_date)
     
     employees = Employee.query.all()
@@ -214,7 +213,7 @@ def reverse_deduction():
         except ValidationError as e:
             current_app.logger.error('reverse_deduction() - ValidationError - %s - %s', employee.fullname, e)
             break
-        except NoResultFound as e:
+        except NoResultFound:
             current_app.logger.warning('Leave not found for %s - from %s to %s', employee.username, fiscal_year_start_date, fiscal_year_end_date)
         except SQLAlchemyError as e:
             current_app.logger.error('reverse_deduction(): SQLAlchemyError - %s', e)
@@ -311,12 +310,12 @@ def update_leave():
     leave_updated_employees = 0
     for employee in employees:
         try:
-            update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data))
+            update_available_leave(schemas.EmployeeFiscalYear(employee=employee, fiscal_year_start_date=form.fiscal_year_start_date.data, fiscal_year_end_date=form.fiscal_year_end_date.data)) # type: ignore
             leave_updated_employees += 1
         except ValidationError as e:
             current_app.logger.error('update_leave() - ValidationError - %s - %s', employee.fullname, e)
             break
-        except NoResultFound as e:
+        except NoResultFound:
             current_app.logger.error('update_leave() - Leave not found from %s to %s for %s', form.fiscal_year_start_date.data, form.fiscal_year_end_date.data, employee.fullname)
             break
         except SQLAlchemyError as e:
