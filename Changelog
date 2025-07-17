@@ -1,3 +1,12 @@
+v1.2.1 -
+Fixes -
+enhance employee search result display to include team and role information
+improve form validation and error handling in create and update actions in employee module
+clean up imports and add type hints for better clarity in leave module
+in forms module -
+    use tuples instead of string in WTF form creation class choices field to comply with WTF class definition
+    add type hints for better code clarity and maintainability
+
 v1.2.0
 Feature -
 Now annual leaves are calculated based on joining date of employee
