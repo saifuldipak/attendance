@@ -4,29 +4,35 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import validators
 from wtforms.fields import (DateField, TextAreaField, IntegerField, StringField, PasswordField, EmailField, TelField, SelectField, RadioField, TimeField, BooleanField) 
-from wtforms.validators import (InputRequired, ValidationError, EqualTo, InputRequired, Email, Optional, NumberRange)
-
+from wtforms.validators import (InputRequired, ValidationError, EqualTo, Email, Optional, NumberRange)
 from attendance.functions import get_fiscal_year_start_end
-from .auth import admin_required, login_required, supervisor_required, team_leader_required
-from .db import Employee, Team, DutyShift
+from .auth import admin_required, login_required, team_leader_required
+from .db import Employee, Team
 from werkzeug.security import check_password_hash
 from re import search
 
 
-departments = ['Accounts', 'Sales', 'Technical']
+departments = [('Accounts', 'Accounts'), ('Sales', 'Sales'), ('Technical', 'Technical')]
 
-months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 
-            'October', 'November', 'December']
-attendance = ['In', 'Out', 'Both']
-years = ['2022', '2023', '2024', '2025']
-actions = ['Add', 'Delete']
-designations = ['GM', 'DGM', 'AGM', 'Sr. Manager', 'Manager', 'Dy. Manager', 'Asst. Manager', 
-                'Sr. Network Engineer', 'Sr. Executive', 'Network Engineer', 'Executive', 
-                'Jr. Network Engineer', 'Jr. Executive', 'Sr. Asst. Engineer', 'Asst. Engineer', 
-                'Jr. Asst. Engineer', 'Team Coordinator', 'Jr. Splice Tech', 'Jr. Cable Tech', 'Splice Tech', 'Cable Tech', 
-                'Driver', 'Peon']
-types = ['All', 'Username', 'Fullname', 'Department', 'Designation', 'Team', 'Access']
-queries = ['Details', 'Summary']
+months = [('January', 'January'), ('February', 'February'), ('March', 'March'), ('April', 'April'), 
+          ('May', 'May'), ('June', 'June'), ('July', 'July'), ('August', 'August'), 
+          ('September', 'September'), ('October', 'October'), ('November', 'November'), ('December', 'December')]
+attendance = [('In', 'In'), ('Out', 'Out'), ('Both', 'Both')]
+years = [('2022', '2022'), ('2023', '2023'), ('2024', '2024'), ('2025', '2025')]
+actions = [('Add', 'Add'), ('Delete', 'Delete')]
+designations = [('GM', 'GM'), ('DGM', 'DGM'), ('AGM', 'AGM'), ('Sr. Manager', 'Sr. Manager'), 
+                ('Manager', 'Manager'), ('Dy. Manager', 'Dy. Manager'), ('Asst. Manager', 'Asst. Manager'), 
+                ('Sr. Network Engineer', 'Sr. Network Engineer'), ('Sr. Executive', 'Sr. Executive'), 
+                ('Network Engineer', 'Network Engineer'), ('Executive', 'Executive'), 
+                ('Jr. Network Engineer', 'Jr. Network Engineer'), ('Jr. Executive', 'Jr. Executive'), 
+                ('Sr. Asst. Engineer', 'Sr. Asst. Engineer'), ('Asst. Engineer', 'Asst. Engineer'), 
+                ('Jr. Asst. Engineer', 'Jr. Asst. Engineer'), ('Team Coordinator', 'Team Coordinator'), 
+                ('Jr. Splice Tech', 'Jr. Splice Tech'), ('Jr. Cable Tech', 'Jr. Cable Tech'), 
+                ('Splice Tech', 'Splice Tech'), ('Cable Tech', 'Cable Tech'), 
+                ('Driver', 'Driver'), ('Peon', 'Peon')]
+types = [('All', 'All'), ('Username', 'Username'), ('Fullname', 'Fullname'), 
+         ('Department', 'Department'), ('Designation', 'Designation'), ('Team', 'Team'), ('Access', 'Access')]
+queries = [('Details', 'Details'), ('Summary', 'Summary')]
 
 #Common classes
 class Monthyear(FlaskForm):
@@ -59,7 +65,7 @@ class Attndataupload(FlaskForm):
 #Attendance query for all 
 class Attnqueryall(FlaskForm):
     month = SelectField('Month', render_kw={'class': 'input-field'}, choices=months)
-    type = SelectField('Type', render_kw={'class': 'input-field'}, choices=['Summary', 'Details'])
+    type = SelectField('Type', render_kw={'class': 'input-field'}, choices=[('Summary', 'Summary'), ('Details', 'Details')])
     username = StringField('Username', render_kw={'class': 'input-field'}, 
                                         validators=[validators.Optional()])
     
@@ -85,7 +91,7 @@ class Attnsummary(FlaskForm):
 
 #Attendance summary show
 class Attnsummaryshow(Attnsummary):
-    result = SelectField('Result', render_kw={'class': 'input-field'}, choices=['Show', 'Download'])
+    result = SelectField('Result', render_kw={'class': 'input-field'}, choices=[('Show', 'Show'), ('Download', 'Download')])
     
 #Self password change
 class Changeselfpass(FlaskForm):
@@ -174,7 +180,7 @@ class Employeesearch(FlaskForm):
 forms = Blueprint('forms', __name__)
 
 #Applications
-duty_types = ['No', 'On site', 'Off site']
+duty_types = [('No', 'No'), ('On site', 'On site'), ('Off site', 'Off site')]
 class ApplicationCasual(Dates):
     type = StringField('', default='Casual', validators=[Optional()])
     remark = TextAreaField('Remark', render_kw={'class': 'textarea-field'})
@@ -248,17 +254,19 @@ def application(application_type):
     
     if search('^fiber_', application_type):
         names = Employee.query.join(Team).filter(Team.name==session['team'], Employee.role=='Team').all()
-        form.empid.choices = [(i.id, i.fullname) for i in names]
+        if hasattr(form, 'empid'):
+            empid_field = getattr(form, 'empid')
+            empid_field.choices = [(i.id, i.fullname) for i in names]
     
     return render_template('forms.html', type='application', application_type=application_type, form=form)
 
 #Create, delete, update employee record
-teams = ['Customer Care', 'Support-Dhanmondi', 'Support-Gulshan', 'Support-Motijheel', 
-                'Support-Nationwide', 'Support-Uttara','Implementation', 'Fiber-Implementation', 
-                'Fiber-Dhanmondi', 'Fiber-Gulshan', 'Fiber-Motijheel', 'NS', 'NOC', 'NTN', 'WAN', 'HR', 'Billing', 
-                'Accounts', 'Sales']
-roles = ['Team', 'Supervisor', 'Manager', 'Head']
-access = ['User', 'Admin', 'None']
+teams = [('Customer Care', 'Customer Care'), ('Support-Dhanmondi', 'Support-Dhanmondi'), ('Support-Gulshan', 'Support-Gulshan'), ('Support-Motijheel', 'Support-Motijheel'), 
+         ('Support-Nationwide', 'Support-Nationwide'), ('Support-Uttara', 'Support-Uttara'), ('Implementation', 'Implementation'), ('Fiber-Implementation', 'Fiber-Implementation'), 
+         ('Fiber-Dhanmondi', 'Fiber-Dhanmondi'), ('Fiber-Gulshan', 'Fiber-Gulshan'), ('Fiber-Motijheel', 'Fiber-Motijheel'), ('NS', 'NS'), ('NOC', 'NOC'), ('NTN', 'NTN'), ('WAN', 'WAN'), ('HR', 'HR'), ('Billing', 'Billing'), 
+         ('Accounts', 'Accounts'), ('Sales', 'Sales')]
+roles = [('Team', 'Team'), ('Supervisor', 'Supervisor'), ('Manager', 'Manager'), ('Head', 'Head')]
+access = [('User', 'User'), ('Admin', 'Admin'), ('None', 'None')]
 
 class Employeecreate(FlaskForm):
     username = StringField('Username', render_kw={'class': 'input-field'}, validators=[InputRequired()])
@@ -309,6 +317,9 @@ def upload():
     return render_template('forms.html', form_type='attendance_upload', form=form)
 
 #Attendance query
+class Attnquery(Monthyear):
+    pass
+
 class Attnqueryfullname(Monthyear):
     fullname = StringField('Name', render_kw={'class': 'input-field'}, validators=[InputRequired()])
 
@@ -517,8 +528,11 @@ def duty_schedule(action):
     elif action == 'delete':
         form = Dutyscheduledelete()
         teams = Team.query.filter_by(empid=session['empid']).all()
-        form.teams.choices = [(team.name) for team in teams]
+        form.teams.choices = [(team.name, team.name) for team in teams]
         return render_template('forms.html', type='duty_schedule', action='delete', form=form)
+    
+    # This should never be reached, but just in case
+    return render_template('base.html')
         
 
 #Duty shift - create
@@ -555,7 +569,7 @@ def duty_shift_create():
 
 
 #Search applications
-application_types = ['All', 'Casual', 'Medical', 'In', 'Out', 'Both', 'Casual adjust']
+application_types = [('All', 'All'), ('Casual', 'Casual'), ('Medical', 'Medical'), ('In', 'In'), ('Out', 'Out'), ('Both', 'Both'), ('Casual adjust', 'Casual adjust')]
 
 class Searchapplication(FlaskForm):
     name = StringField('Name', render_kw={'class': 'input-field'}, validators=[Optional()])
