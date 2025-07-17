@@ -2,11 +2,11 @@ from attendance.forms import ApplicationCasual, ApplicationFiberAttendance, Appl
 from flask import Blueprint, flash, render_template, url_for, session, redirect, current_app, request, send_from_directory
 from attendance.auth import login_required
 from attendance.db import db, Applications, Employee, Team
-from attendance.functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end, update_available_leave
+from attendance.functions import check_authorization, check_attendance_summary, check_available_leave, get_emails, delete_files, check_application_dates, check_holiday_dates, save_files, check_view_permission, check_data_access, send_mail, get_fiscal_year_start_end, update_available_leave, get_fiscal_year
 import datetime
 import re
 from sqlalchemy import extract
-import copy
+from attendance.schemas import EmployeeFiscalYear
 
 application = Blueprint('application', __name__)
 
@@ -40,7 +40,7 @@ def submit(application_type):
         flash(application_dates_exist, category='error')
         return render_template('forms.html', type='application', application_type=application_type, form=form)
     
-    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data != 'No':
+    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data != 'No': # type: ignore
         holiday_dates_exist = check_holiday_dates(form, application_type)
         if holiday_dates_exist:
             flash(holiday_dates_exist, category='error')
@@ -48,18 +48,18 @@ def submit(application_type):
     
     attendance_summary_exist = check_attendance_summary(form.start_date.data, form.end_date.data)
     if attendance_summary_exist:
-        msg = f'Attendance summary prepared. You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}' 
+        msg = f'Attendance summary prepared. You cannot submit leave for {form.start_date.data.strftime("%B")},{form.start_date.data.year}'  # type: ignore
         flash(msg, category='error')
         return redirect(request.url)
 
     if not form.end_date.data:
         form.end_date.data = form.start_date.data
     
-    leave_duration = (form.end_date.data - form.start_date.data).days + 1
+    leave_duration = (form.end_date.data - form.start_date.data).days + 1 # type: ignore
     
     if application_type in ('fiber_casual', 'fiber_medical', 'fiber_attendance'):
         if re.search('^Fiber', session['team']) and session['role'] == 'Supervisor':
-            employee_id = form.empid.data
+            employee_id = form.empid.data # type: ignore
             status = 'Approved'
         else:
             current_app.logger.error(' submit(): "%s" trying to approve fiber team application', session['username'])
@@ -72,14 +72,14 @@ def submit(application_type):
     if application_type in ('attendance', 'fiber_attendance'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status) # type: ignore
     elif application_type in ('casual', 'fiber_casual'):
-        if form.holiday_duty_type.data != 'No':
+        if form.holiday_duty_type.data != 'No': # type: ignore
             form.type.data = 'Casual adjust'
 
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, holiday_duty_type=form.holiday_duty_type.data, holiday_duty_start_date=form.holiday_duty_start_date.data, holiday_duty_end_date=form.holiday_duty_end_date.data, submission_date=datetime.datetime.now(), status=status) # type: ignore
     elif application_type in ('medical', 'fiber_medical'):
         application = Applications(empid=employee_id, type=form.type.data, start_date=form.start_date.data, end_date=form.end_date.data, duration=leave_duration, remark=form.remark.data, submission_date=datetime.datetime.now(), status=status) # type: ignore
     
-    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data == 'No':
+    if application_type in ('casual', 'fiber_casual') and form.holiday_duty_type.data == 'No': # type: ignore
         if application_type == 'casual':
             rv = check_available_leave(application)
         elif application_type == 'fiber_casual':
@@ -100,11 +100,11 @@ def submit(application_type):
             return redirect(request.url)
     
     if application_type in ('medical', 'fiber_medical'):
-        files = [form.file1.data]
-        if form.file2.data is not None:
-            files.append(form.file2.data)
-        if form.file3.data is not None:
-            files.append(form.file3.data)
+        files = [form.file1.data] # type: ignore
+        if form.file2.data is not None: # type: ignore
+            files.append(form.file2.data)  # type: ignore
+        if form.file3.data is not None: # type: ignore
+            files.append(form.file3.data)  # type: ignore
 
         filenames = save_files(files, session['username'])
         application.file_url = filenames
@@ -132,7 +132,7 @@ def submit(application_type):
             action = 'submitted'
             
         if application_type in ('casual', 'fiber_casual'):
-            if form.holiday_duty_type.data != 'No':
+            if form.holiday_duty_type.data != 'No': # type: ignore
                 application.type = 'Casual adjust'
     else:
         type = 'attendance'
@@ -237,7 +237,8 @@ def process(action, application_id):
         db.session.commit()
 
         if application.type in ('Casual', 'Medical'):
-            rv = update_available_leave(employees, application.start_date) # type: ignore
+            (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year(application.start_date)
+            rv = update_available_leave(EmployeeFiscalYear(employee=employees[0], fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date))
             if rv:
                 flash('Failed to update leave summary', category='warning')
                 return redirect(url_for('application.search', application_for=application_for))
@@ -295,10 +296,10 @@ def search(application_for):
     if form.name.data:
         name_string = f'%{form.name.data}%'
     else:
-        name_string = f'%'
+        name_string = '%'
 
     if form.type.data == 'All':
-        application_type_string = f'%'
+        application_type_string = '%'
     else:
         application_type_string = f'{form.type.data}'
     
@@ -307,10 +308,6 @@ def search(application_for):
         
     if application_for == 'team':
         teams = Team.query.filter_by(empid=session['empid']).all()
-        
-        
-        if session['role'].lower() == 'manager': 
-            exclude_role = 'Manager'
         
         applications = []
 
