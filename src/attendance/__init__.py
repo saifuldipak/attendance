@@ -80,7 +80,7 @@ def create_app(test_config=None):
     db.init_app(app)
     
     # Initialize Flask-Migrate
-    migrate = Migrate(app, db)
+    Migrate(app, db)
 
     #registering database initialization command
     from . import initdb
