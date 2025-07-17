@@ -96,6 +96,8 @@
                 <th>User Name</th>
                 <th>Full Name</th>
                 <th>Department</th>
+                <th>Team</th>
+                <th>Role</th>
                 {% for employee in employees %}
                     <tr>
                         {% if employee %}
@@ -103,6 +105,8 @@
                             <td><a href="{{ url_for('employee.details', id=employee['id']) }}">{{ employee['username'] }}</a></td>
                             <td>{{ employee['fullname'] }}</td>        
                             <td>{{ employee['department'] }}</td>
+                            <td>{{ employee['teams'] }}</td>
+                            <td>{{ employee['role'] }}</td>
                         {% endif %}
                     </tr>
                 {% endfor %}

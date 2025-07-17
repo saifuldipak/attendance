@@ -46,22 +46,35 @@ def search():
         string = f'{form.string.data}%' # type: ignore
         
         if form.type.data.lower() == 'username': # type: ignore
-            employees = Employee.query.filter(Employee.username.like(string)).all()
+            employees = Employee.query.join(Team).filter(Employee.username.like(string)).all()
         elif form.type.data.lower() == 'fullname': # type: ignore
             string = f'%{form.string.data}%' # type: ignore
-            employees = Employee.query.filter(Employee.fullname.like(string)).all()
+            employees = Employee.query.join(Team).filter(Employee.fullname.like(string)).all()
         elif form.type.data.lower() == 'department': # type: ignore
             employees = Employee.query.filter(Employee.department.like(string)).all()
         elif form.type.data.lower() == 'team': # type: ignore
             employees = Employee.query.join(Team).filter(Team.name.like(string)).all()
         elif form.type.data.lower() == 'designation': # type: ignore
-            employees = Employee.query.filter(Employee.designation.like(string)).all()
+            employees = Employee.query.join(Team).filter(Employee.designation.like(string)).all()
         elif form.type.data.lower() == 'access': # type: ignore
-            employees = Employee.query.filter(Employee.access.like(string)).all()
+            employees = Employee.query.join(Team).filter(Employee.access.like(string)).all()
         else:
             employees = Employee.query.all()
 
-        return render_template('data.html', action='employee_search', form=form, employees=employees)
+        # Convert to dict format with team information
+        employee_data = []
+        for emp in employees:
+            emp_dict = {
+                'id': emp.id,
+                'username': emp.username,
+                'fullname': emp.fullname,
+                'department': emp.department,
+                'role': emp.role,
+                'teams': [team.name for team in emp.teams]  # Convert teams to list of dicts
+            }
+            employee_data.append(emp_dict)
+
+        return render_template('data.html', action='employee_search', form=form, employees=employee_data)
     
     return render_template('data.html', action='employee_search', form=form)
 
@@ -363,5 +376,4 @@ def password_self():
 @login_required
 def details_self():
     employee = Employee.query.filter_by(username=session['username']).first()
-
     return render_template('data.html', type='employee_details', employee=employee)
