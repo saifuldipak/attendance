@@ -489,34 +489,48 @@
     {% endif %}
 
     {% if type == 'search_application' %}
-            <div class="form-style-2-heading">Search Applications</div>
-                {% if application_for=='self' %}
-                    <form method="post" action="{{ url_for('application.search', application_for='self') }}">
-                {% endif %} 
-                {% if application_for=='team' %}
-                    <form method="post" action="{{ url_for('application.search', application_for='team') }}">
-                {% endif %}
-                {% if application_for=='department' %}
-                    <form method="post" action="{{ url_for('application.search', application_for='department') }}">
-                {% endif %}
-                {% if application_for=='all' %}
-                    <form method="post" action="{{ url_for('application.search', application_for='all') }}">
-                {% endif %} 
+        <div class="search-form-container">
+            <div class="search-form-heading">Search Applications</div>
+            {% if application_for=='self' %}
+                <form method="post" action="{{ url_for('application.search', application_for='self') }}">
+            {% endif %} 
+            {% if application_for=='team' %}
+                <form method="post" action="{{ url_for('application.search', application_for='team') }}">
+            {% endif %}
+            {% if application_for=='department' %}
+                <form method="post" action="{{ url_for('application.search', application_for='department') }}">
+            {% endif %}
+            {% if application_for=='all' %}
+                <form method="post" action="{{ url_for('application.search', application_for='all') }}">
+            {% endif %} 
 
-                {{ form.csrf_token }}
-                        <table>
-                            <tr>
-                                {% if application_for != 'self' %}
-                                    <td>{{ form.name.label }}</td><td>{{ form.name }}</td>
-                                {% endif %}
-                                <td>{{ form.type.label }}</td><td>{{ form.type }}</td>
-                                <td>{{ form.month.label }}</td><td>{{ form.month }}</td>
-                                <td>{{ form.year.label }}</td><td>{{ form.year }}</td>
-                                <td></td><td><input type="submit" value="Search" /></td>
-                            </tr>
-                        </table>
-                            
-                    </form>
+            {{ form.csrf_token }}
+            <div class="search-form-grid">
+                {% if application_for != 'self' %}
+                    <div class="search-form-field">
+                        {{ form.name.label }}
+                        {{ form.name }}
+                    </div>
+                {% endif %}
+                <div class="search-form-field">
+                    {{ form.type.label }}
+                    {{ form.type }}
+                </div>
+                <div class="search-form-field">
+                    {{ form.month.label }}
+                    {{ form.month }}
+                </div>
+                <div class="search-form-field">
+                    {{ form.year.label }}
+                    {{ form.year }}
+                </div>
+                <div class="search-form-field">
+                    <label>&nbsp;</label>
+                    <input type="submit" value="Search" class="search-form-button" />
+                </div>
+            </div>
+            </form>
+        </div>
     {% endif %}
 
     {% if type == 'attendance_summary' %}

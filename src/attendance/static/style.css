@@ -892,3 +892,118 @@ p.footnote {
         font-size: 13px;
     }
 }
+
+/* Modern search form styling */
+.search-form-container {
+    max-width: 800px;
+    margin: 30px auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    border: none;
+}
+
+.search-form-heading {
+    font-weight: 600;
+    color: #333;
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.search-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 120px;
+    gap: 15px;
+    margin-bottom: 25px;
+    align-items: end;
+}
+
+.search-form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.search-form-field label {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.search-form-field input,
+.search-form-field select {
+    padding: 12px;
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #333;
+    transition: all 0.3s ease;
+    outline: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.search-form-field input:focus,
+.search-form-field select:focus {
+    background-color: white;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.search-form-button {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-width: 120px;
+}
+
+.search-form-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* Search form responsive design */
+@media (max-width: 1024px) {
+    .search-form-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .search-form-container {
+        margin: 15px;
+        padding: 20px;
+    }
+    
+    .search-form-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    
+    .search-form-heading {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
