@@ -264,7 +264,7 @@ def application(application_type):
 teams = [('Customer Care', 'Customer Care'), ('Support-Dhanmondi', 'Support-Dhanmondi'), ('Support-Gulshan', 'Support-Gulshan'), ('Support-Motijheel', 'Support-Motijheel'), 
          ('Support-Nationwide', 'Support-Nationwide'), ('Support-Uttara', 'Support-Uttara'), ('Implementation', 'Implementation'), ('Fiber-Implementation', 'Fiber-Implementation'), 
          ('Fiber-Dhanmondi', 'Fiber-Dhanmondi'), ('Fiber-Gulshan', 'Fiber-Gulshan'), ('Fiber-Motijheel', 'Fiber-Motijheel'), ('NS', 'NS'), ('NOC', 'NOC'), ('NTN', 'NTN'), ('WAN', 'WAN'), ('HR', 'HR'), ('Billing', 'Billing'), 
-         ('Accounts', 'Accounts'), ('Sales', 'Sales')]
+         ('Accounts', 'Accounts'), ('Sales', 'Sales'), ('Network Support', 'Network Support')]
 roles = [('Team', 'Team'), ('Supervisor', 'Supervisor'), ('Manager', 'Manager'), ('Head', 'Head')]
 access = [('User', 'User'), ('Admin', 'Admin'), ('None', 'None')]
 
