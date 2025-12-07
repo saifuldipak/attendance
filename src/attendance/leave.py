@@ -39,9 +39,14 @@ def deduction():
     for summary in all_summary:
         leave_deducted = 0
         salary_deducted = 0
-                
+            
         if summary.late > 2 or summary.early > 2 or summary.holiday_leave > 0:
             leave_available = LeaveAvailable.query.filter(LeaveAvailable.empid==summary.empid, LeaveAvailable.fiscal_year_start_date==year_start_date, LeaveAvailable.fiscal_year_end_date==year_end_date).first() # type: ignore
+            if not leave_available:
+                employee = Employee.query.filter_by(id=summary.empid).first()
+                current_app.logger.error('No leave available record found for %s - from %s to %s', employee.fullname, year_start_date, year_end_date) # type: ignore
+                flash(f'Annual leave record not found for {employee.fullname} for {year_start_date} to {year_end_date}', category='error') # type: ignore
+                return redirect(url_for('forms.leave_deduction'))
             leave_available_casual_earned = leave_available.casual + leave_available.earned # type: ignore
             leave_deducted = int(summary.late/3) + int(summary.early/3) + summary.holiday_leave
             
