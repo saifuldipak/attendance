@@ -1,36 +1,67 @@
-import secrets
-from flask import Blueprint, current_app, request, flash, redirect, render_template, session, url_for
-from .db import db, Employee, Team, LeaveAvailable, LeaveAllocation
-from .forms import (Changeselfpass, Employeecreate, Employeedelete, Employeesearch, Resetpass, Updateaccess, Updatedept, Updatedesignation, Updateemail, Updatefullname, Updatejoiningdate, Updatephone, Updaterole, Updateteam)
-from werkzeug.security import generate_password_hash
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from .auth import admin_required, login_required
 import random
+import secrets
 import string
 from datetime import datetime
-import attendance.functions as fn
-from attendance.functions import calculate_annual_leave, get_fiscal_year
-import attendance.schemas as schemas
+
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from werkzeug.security import generate_password_hash
+
+import attendance.functions as fn
+from attendance import schemas
+from attendance.functions import (
+    MailDeliveryError,
+    calculate_annual_leave,
+    get_fiscal_year,
+)
+
+from .auth import admin_required, login_required
+from .db import Employee, LeaveAllocation, LeaveAvailable, Team, db
+from .forms import (
+    Changeselfpass,
+    Employeecreate,
+    Employeedelete,
+    Employeesearch,
+    Resetpass,
+    Updateaccess,
+    Updatedept,
+    Updatedesignation,
+    Updateemail,
+    Updatefullname,
+    Updatejoiningdate,
+    Updatephone,
+    Updaterole,
+    Updateteam,
+)
 
 employee = Blueprint('employee', __name__)
 
-#Generate random string for password
+# Generate random string for password
 def random_string_generator():
     allowed_chars = string.ascii_letters
     str_size = 8
-    return ''.join(random.choice(allowed_chars) for x in range(str_size))
+    return ''.join(random.choice(allowed_chars) for _ in range(str_size))
 
-#making string for fiscal year
+# Making string for fiscal year
 def fiscalyear():
-    currentyear = int(datetime.now().strftime('%Y'))
-    month = int(datetime.now().strftime('%m'))
+    currentyear = int(datetime.now().strftime('%Y'))  # noqa: DTZ005
+    month = int(datetime.now().strftime('%m'))  # noqa: DTZ005
     if month >= 6:
         nextyear = currentyear + 1
-        year = str(currentyear) + '-' + str(nextyear)
+        year = f"{currentyear}-{nextyear}"
     else:
         lastyear = currentyear - 1
-        year = str(lastyear) + '-' + str(currentyear)
+        year = f"{lastyear}-{currentyear}"
     
     return year    
 
@@ -42,37 +73,36 @@ def search():
     form = Employeesearch()
     
     if form.validate_on_submit():
-        #creating string for sql like query
-        string = f'{form.string.data}%' # type: ignore
+        string_val = f'{form.string.data}%' # type: ignore
+        search_type = form.type.data.lower() if form.type.data else '' # type: ignore
         
-        if form.type.data.lower() == 'username': # type: ignore
-            employees = Employee.query.join(Team).filter(Employee.username.like(string)).all()
-        elif form.type.data.lower() == 'fullname': # type: ignore
-            string = f'%{form.string.data}%' # type: ignore
-            employees = Employee.query.join(Team).filter(Employee.fullname.like(string)).all()
-        elif form.type.data.lower() == 'department': # type: ignore
-            employees = Employee.query.filter(Employee.department.like(string)).all()
-        elif form.type.data.lower() == 'team': # type: ignore
-            employees = Employee.query.join(Team).filter(Team.name.like(string)).all()
-        elif form.type.data.lower() == 'designation': # type: ignore
-            employees = Employee.query.join(Team).filter(Employee.designation.like(string)).all()
-        elif form.type.data.lower() == 'access': # type: ignore
-            employees = Employee.query.join(Team).filter(Employee.access.like(string)).all()
+        if search_type == 'username':
+            employees = Employee.query.join(Team).filter(Employee.username.like(string_val)).all()
+        elif search_type == 'fullname':
+            string_val = f'%{form.string.data}%' # type: ignore
+            employees = Employee.query.join(Team).filter(Employee.fullname.like(string_val)).all()
+        elif search_type == 'department':
+            employees = Employee.query.filter(Employee.department.like(string_val)).all()
+        elif search_type == 'team':
+            employees = Employee.query.join(Team).filter(Team.name.like(string_val)).all()
+        elif search_type == 'designation':
+            employees = Employee.query.join(Team).filter(Employee.designation.like(string_val)).all()
+        elif search_type == 'access':
+            employees = Employee.query.join(Team).filter(Employee.access.like(string_val)).all()
         else:
             employees = Employee.query.all()
 
-        # Convert to dict format with team information
-        employee_data = []
-        for emp in employees:
-            emp_dict = {
+        employee_data = [
+            {
                 'id': emp.id,
                 'username': emp.username,
                 'fullname': emp.fullname,
                 'department': emp.department,
                 'role': emp.role,
-                'teams': [team.name for team in emp.teams]  # Convert teams to list of dicts
+                'teams': [team.name for team in emp.teams]
             }
-            employee_data.append(emp_dict)
+            for emp in employees
+        ]
 
         return render_template('data.html', action='employee_search', form=form, employees=employee_data)
     
@@ -83,9 +113,8 @@ def search():
 @login_required
 @admin_required
 def details(id):
-    employee = Employee.query.filter_by(id=id).first()
-
-    return render_template('data.html', type='employee_details', employee=employee)
+    employee_record = Employee.query.filter_by(id=id).first()
+    return render_template('data.html', type='employee_details', employee=employee_record)
             
 ## Create employee record ##
 @employee.route('/employee/create', methods=['GET', 'POST'])
@@ -94,74 +123,64 @@ def details(id):
 def create():
     form = Employeecreate()
     if form.validate_on_submit():
-        username = Employee.query.filter_by(username=form.username.data).first()   # type: ignore
-        if username:
+        existing_user = Employee.query.filter_by(username=form.username.data).first()   # type: ignore
+        if existing_user:
             flash('Username exists', category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
 
-        #check if email already exists in database
         if form.email.data: # type: ignore
-            employee = Employee.query.filter_by(email=form.email.data).first() # type: ignore
-            
-            if employee:
+            existing_email = Employee.query.filter_by(email=form.email.data).first() # type: ignore
+            if existing_email:
                 flash('Email exists', category='error')
                 return render_template('forms.html', form_type='employee_create', form=form)
 
-        #setting team name based on role
-        if form.role.data=='Head': # type: ignore
-            name = 'All'
-        else:
-            name = form.team.data # type: ignore
+        name = 'All' if form.role.data == 'Head' else form.team.data # type: ignore
 
         try:
-            (casual_leave, medical_leave, earned_leave) = calculate_annual_leave(schemas.AnnualLeave(joining_date=form.joining_date.data)) # type: ignore
+            casual_leave, medical_leave, earned_leave = calculate_annual_leave(schemas.AnnualLeave(joining_date=form.joining_date.data)) # type: ignore
         except ValidationError as e:
-            error_message = f"create(): {form.fullname.data}: {e}" # type: ignore
-            current_app.logger.error(error_message)
+            current_app.logger.error("create(): %s: %s", form.fullname.data, e) # type: ignore
             flash('Failed to calculate annual leave', category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
         
         try:
-            (fiscal_year_start_date, fiscal_year_end_date) = get_fiscal_year(form.joining_date.data) # type: ignore
+            fiscal_year_start_date, fiscal_year_end_date = get_fiscal_year(form.joining_date.data) # type: ignore
         except TypeError as e:
             current_app.logger.error(e)
             flash('Failed to calculate joining fiscal year', category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
 
-        error = False
         try:
-            employee = Employee(username=form.username.data, fullname=form.fullname.data, password=generate_password_hash(form.password.data), phone=form.phone.data, email=form.email.data, joining_date=form.joining_date.data, department=form.department.data, designation=form.designation.data, role=form.role.data, access=form.access.data) # type: ignore
-            db.session.add(employee)
+            new_employee = Employee()
+            new_employee.username=form.username.data, 
+            new_employee.fullname=form.fullname.data, 
+            new_employee.password=generate_password_hash(form.password.data), 
+            new_employee.phone=form.phone.data, 
+            new_employee.email=form.email.data, 
+            new_employee.joining_date=form.joining_date.data, 
+            new_employee.department=form.department.data, 
+            new_employee.designation=form.designation.data, 
+            new_employee.role=form.role.data, 
+            new_employee.access=form.access.data            
+            db.session.add(new_employee)
             db.session.flush()
         
-            team = Team(empid=employee.id, name=name) # type: ignore
+            team = Team(empid=new_employee.id, name=name) # type: ignore
             db.session.add(team)
-            leave_allocation = LeaveAllocation(empid=employee.id, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date, casual=casual_leave, medical=medical_leave, earned=earned_leave) # type: ignore
+            leave_allocation = LeaveAllocation(empid=new_employee.id, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date, casual=casual_leave, medical=medical_leave, earned=earned_leave) # type: ignore
             db.session.add(leave_allocation)
-            leave_available = LeaveAvailable(empid=employee.id, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date, casual=casual_leave, medical=medical_leave, earned=earned_leave) # type: ignore
+            leave_available = LeaveAvailable(empid=new_employee.id, fiscal_year_start_date=fiscal_year_start_date, fiscal_year_end_date=fiscal_year_end_date, casual=casual_leave, medical=medical_leave, earned=earned_leave) # type: ignore
             db.session.add(leave_available)
             db.session.commit()
-        except TypeError as e:
+        except (TypeError, IntegrityError, SQLAlchemyError) as e:
             db.session.rollback()
-            current_app.logger.error(f"create(): Type error: {str(e)}, session rolled back")
-            error = True
-        except IntegrityError as e:
-            db.session.rollback()
-            current_app.logger.error(f"create(): Integrity error: {str(e)}, session rolled back")
-            error = True
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            current_app.logger.error(f"create(): Database error: {str(e)}, session rolled back")
-            error = True
-
-        if error:
+            current_app.logger.exception("create(): Error creating employee, session rolled back: %s", e)
             flash("Failed to create employee", category='error')
             return render_template('forms.html', form_type='employee_create', form=form)
         
         flash("Employee record created.", category='message')
         return redirect(url_for('forms.employee', action='create'))
     
-    # If form doesn't validate, return the form with errors
     return render_template('forms.html', form_type='employee_create', form=form)
 
 ## Delete employee record ##
@@ -172,24 +191,22 @@ def delete():
     form = Employeedelete()
 
     if form.validate_on_submit():
-        employee = Employee.query.filter_by(id=form.empid.data).first()
+        emp = Employee.query.filter_by(id=form.empid.data).first()
         error = ''
 
-        #At least one 'Admin' role employee must exists in the 'employee' table
-        if employee:
-            if employee.role == 'Admin':
+        if emp:
+            if emp.role == 'Admin':
                 admincount = Employee.query.filter_by(role='Admin').count()
                 if admincount < 2:
-                    error = 'Your are trying to delete last "Admin" user'
+                    error = 'You are trying to delete the last "Admin" user'
         else:
             error = 'Employee ID not found'
 
-        if error != '':
+        if error:
             flash(error, category='error')
             return render_template('forms.html', form_type='employee_delete', form=form)
         
-        #Finally delete 'employee' table entry
-        db.session.delete(employee)
+        db.session.delete(emp)
         db.session.commit()
         
         flash('Employee deleted', category='message')
@@ -203,154 +220,173 @@ def delete():
 def update_menu():
     return render_template('emp_update.html')
 
-## Update employee record  ##
+## Update employee record ##
 @employee.route('/employee/update/<action>', methods=['GET', 'POST'])
 @login_required
 @admin_required     
 def update(action):
-    
-    if action == 'team':
-        form = Updateteam()
-    elif action == 'dept':
-        form = Updatedept()
-    elif action == 'designation':
-        form = Updatedesignation()
-    elif action == 'joining_date':
-        form = Updatejoiningdate()
-    elif action == 'email':
-        form = Updateemail()
-    elif action == 'fullname':
-        form = Updatefullname()
-    elif action == 'phone':
-        form = Updatephone()
-    elif action == 'role':
-        form = Updaterole()
-    elif action == 'access':
-        form = Updateaccess()
-    elif action == 'pass':
-        form = Resetpass()
-    else:
+    action_form_map = {
+        'team': Updateteam,
+        'dept': Updatedept,
+        'designation': Updatedesignation,
+        'joining_date': Updatejoiningdate,
+        'email': Updateemail,
+        'fullname': Updatefullname,
+        'phone': Updatephone,
+        'role': Updaterole,
+        'access': Updateaccess,
+        'pass': Resetpass,
+    }
+
+    form_class = action_form_map.get(action)
+    if not form_class:
         flash('Function not found', category='error')
         return redirect(url_for('employee.update_menu'))
 
+    form = form_class()
+
     if form.validate_on_submit():
-        employee = Employee.query.filter_by(username=form.username.data).first()
+        emp = Employee.query.filter_by(username=form.username.data).first()
         
-        if not employee:
+        if not emp:
             flash('Username not found.', category='error')
             return redirect(request.url)
         
-        #add or delete team
+        # Add or delete team
         if action == 'team':
-            team = Team.query.filter_by(empid=employee.id, name=form.team.data).first()  # type: ignore
+            team = Team.query.filter_by(empid=emp.id, name=form.team.data).first()  # type: ignore
 
             if form.action.data == 'Add':  # type: ignore
                 if not team:
-                    team = Team(empid=employee.id, name=form.team.data)  # type: ignore
+                    team = Team(empid=emp.id, name=form.team.data)  # type: ignore
                     db.session.add(team)
                     flash('Team added', category='info')
                 else:
                     flash('Team name already exists', category='error')
                     return redirect(url_for('forms.update_team'))
             
-            if form.action.data == 'Delete':  # type: ignore
+            elif form.action.data == 'Delete':  # type: ignore
                 if team:
                     db.session.delete(team)
                     flash('Team deleted', category='info')
                 else:
                     flash('Team name not found', category='error')
         
-        #update department
+        # Update department
         elif action == 'dept':
-            if employee.department == form.dept.data:  # type: ignore
-                flash('Current and new department is same', category='warning')
+            if emp.department == form.dept.data:  # type: ignore
+                flash('Current and new department is the same', category='warning')
             else:
-                employee.department = form.dept.data  # type: ignore
+                emp.department = form.dept.data  # type: ignore
                 flash('Department updated', category='info')
         
+        # Update designation
         elif action == 'designation':
-            if employee.designation == form.designation.data:  # type: ignore
-                flash('Current and new designation is same', category='warning')
+            if emp.designation == form.designation.data:  # type: ignore
+                flash('Current and new designation is the same', category='warning')
             else:
-                employee.designation = form.designation.data  # type: ignore
+                emp.designation = form.designation.data  # type: ignore
                 flash('Designation updated', category='info')
         
-        #update joining date
+        # Update joining date
         elif action == 'joining_date':
-            if employee.joining_date == form.joining_date.data:  # type: ignore
-                flash('Current and new joining date is same', category='warning')
+            if emp.joining_date == form.joining_date.data:  # type: ignore
+                flash('Current and new joining date is the same', category='warning')
             else:
-                employee.joining_date = form.joining_date.data  # type: ignore
+                emp.joining_date = form.joining_date.data  # type: ignore
                 flash('Joining date updated', category='info')
 
-        #update email
+        # Update email
         elif action == 'email':
-            if employee.email == form.email.data:  # type: ignore
-                flash('Current and new email is same', category='warning')
+            if emp.email == form.email.data:  # type: ignore
+                flash('Current and new email is the same', category='warning')
             else:
-                employee.email = form.email.data  # type: ignore
+                emp.email = form.email.data  # type: ignore
                 flash('Email updated', category='info')
         
-        #update fullname
+        # Update fullname
         elif action == 'fullname':
-            if employee.fullname == form.fullname.data:  # type: ignore
-                flash('Current and new fullname is same', category='warning')
+            if emp.fullname == form.fullname.data:  # type: ignore
+                flash('Current and new fullname is the same', category='warning')
             else:
-                employee.fullname = form.fullname.data  # type: ignore
+                emp.fullname = form.fullname.data  # type: ignore
                 flash('Fullname updated', category='info')
 
-        #update phone
+        # Update phone
         elif action == 'phone':
-            if employee.phone == form.phone.data:  # type: ignore
-                flash('Current and new phone is same', category='warning')
+            if emp.phone == form.phone.data:  # type: ignore
+                flash('Current and new phone is the same', category='warning')
             else:
-                employee.phone = form.phone.data  # type: ignore
+                emp.phone = form.phone.data  # type: ignore
                 flash('Phone updated', category='info')
 
-        #update role
+        # Update role
         elif action == 'role':
-            if employee.role != form.role.data:  # type: ignore
-                employee.role = form.role.data  # type: ignore
+            if emp.role != form.role.data:  # type: ignore
+                emp.role = form.role.data  # type: ignore
                 flash('Role updated', category='info')
             else:
-                flash('Current and new role is same', category='warning')
+                flash('Current and new role is the same', category='warning')
         
-        #update access
+        # Update access
         elif action == 'access':
-            if employee.access != form.access.data:  # type: ignore
-                employee.access = form.access.data  # type: ignore
+            if emp.access != form.access.data:  # type: ignore
+                emp.access = form.access.data  # type: ignore
                 flash('Access updated', category='info')
             else:
-                flash('Current and new access is same', category='warning')
+                flash('Current and new access is the same', category='warning')
 
-        #reset password
+        # Reset password
         elif action == 'pass':
-            password = ''
-            for _ in range(3):
-                password += secrets.choice(string.ascii_lowercase)
-                password += secrets.choice(string.ascii_uppercase)
-                password += secrets.choice(string.digits)
-            
-            employee.password = generate_password_hash(password)
-            
-            if not session['email']:
-                flash('Admin email not found', category='error')
+            admin_email = session.get('email')
+            if not admin_email:
+                flash('Admin email not found in session', category='error')
                 return redirect(url_for('employee.update_menu'))
             
-            if not employee.email:
+            if not emp.email:
                 flash('Employee email not found', category='error')
                 return redirect(url_for('employee.update_menu'))
 
-            rv = fn.send_mail(sender=session['email'], receiver=employee.email, type='reset', extra=password)
-            if rv:
-                current_app.logger.error(' update(): %s', rv)
-                flash('Failed to send mail', category='error')
+            # Generate random password
+            # ✅ Yields individual characters sequentially to .join()
+            new_password = ''.join(
+            char 
+            for _ in range(3) 
+            for char in (
+                secrets.choice(string.ascii_lowercase),
+                secrets.choice(string.ascii_uppercase),
+                secrets.choice(string.digits)
+            )
+)
+            
+            # Dispatch password reset email
+            try:
+                fn.send_mail(
+                    sender=admin_email, 
+                    receiver=emp.email, 
+                    mail_type='reset', 
+                    extra=new_password
+                )
+            except MailDeliveryError as e:
+                current_app.logger.warning(
+                    "Failed to send password reset email to employee '%s' (ID %s): %s", 
+                    emp.username, 
+                    emp.id, 
+                    e
+                )
+                flash('Failed to send password reset email. Password was not changed.', category='error')
                 return redirect(url_for('employee.update_menu'))
 
-            flash('Password reset', category='info')
+            emp.password = generate_password_hash(new_password)
+            flash('Password reset and sent via email', category='info')
 
-        db.session.commit()
-        
+        try:
+            db.session.commit()
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.exception("Database commit failed during employee update for '%s': %s", emp.username, e)
+            flash('Failed to commit employee update to database', category='error')
+
     return redirect(url_for('employee.update_menu'))
 
 
@@ -361,11 +397,16 @@ def password_self():
     form = Changeselfpass()
 
     if form.validate_on_submit():
-        employee = Employee.query.filter_by(username=session['username']).first()
-        if employee and form.password.data:  # type: ignore
-            employee.password = generate_password_hash(form.password.data)  # type: ignore
-            db.session.commit()
-            flash('Password changed', category='message')
+        emp = Employee.query.filter_by(username=session['username']).first()
+        if emp and form.password.data:  # type: ignore
+            try:
+                emp.password = generate_password_hash(form.password.data)  # type: ignore
+                db.session.commit()
+                flash('Password changed', category='message')
+            except SQLAlchemyError as e:
+                db.session.rollback()
+                current_app.logger.exception("Failed to change password for user '%s': %s", session.get('username'), e)
+                flash('Error updating password in database', category='error')
         else:
             flash('Error updating password', category='error')
 
@@ -375,5 +416,5 @@ def password_self():
 @employee.route('/employee/details/self', methods=['GET', 'POST'])
 @login_required
 def details_self():
-    employee = Employee.query.filter_by(username=session['username']).first()
-    return render_template('data.html', type='employee_details', employee=employee)
+    emp = Employee.query.filter_by(username=session['username']).first()
+    return render_template('data.html', type='employee_details', employee=emp)
