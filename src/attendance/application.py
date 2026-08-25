@@ -143,7 +143,6 @@ def submit(application_type):
     
     rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
-        current_app.logger.warning(' submit(): %s',rv)
         flash('Failed to send mail', category='warning')
 
     return redirect(url_for('forms.application', application_type=application_type, form=form))
@@ -266,7 +265,6 @@ def process(action, application_id):
 
     rv = send_mail(sender=emails['sender'], receiver=emails['receiver'], cc=emails['cc'], application=application, type=type, action=action)
     if rv:
-        current_app.logger.warning(' process():', rv)
         flash('Failed to send mail', category='warning')        
     
     flash(msg, category='info')
