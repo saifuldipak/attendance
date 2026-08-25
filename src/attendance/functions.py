@@ -3,7 +3,15 @@ import os
 import re
 from datetime import date, datetime, timedelta
 from email.message import EmailMessage
-from smtplib import SMTP, SMTPException, SMTPServerDisconnected
+from smtplib import (
+    SMTP,
+    SMTPAuthenticationError,
+    SMTPDataError,
+    SMTPException,
+    SMTPRecipientsRefused,
+    SMTPSenderRefused,
+    SMTPServerDisconnected,
+)
 from typing import Optional, Tuple  # noqa: UP035
 
 from flask import current_app, session
@@ -839,6 +847,15 @@ def send_mail(sender, receiver, type, **kwargs):
     except ConnectionRefusedError:
         current_app.logger.error("SMTP connection refused.")
         return "SMTP connection refused."
+    except SMTPAuthenticationError:
+        return "Authentication failed: Check SMTP credentials."
+    except SMTPSenderRefused:
+        return f"Sender address '{sender}' was rejected by the server."
+    except SMTPRecipientsRefused as e:
+        # e.recipients returns a dict of rejected addresses and error tuples
+        return f"Recipient address rejected: {e.recipients}"
+    except SMTPDataError as e:
+        return f"Message content rejected by server (Code {e.smtp_code}): {e.smtp_error}"
     except SMTPServerDisconnected:
         current_app.logger.error("SMTP server disconnected unexpectedly.")
         return "SMTP server disconnected unexpectedly."
