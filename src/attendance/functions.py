@@ -6,6 +6,7 @@ from email.message import EmailMessage
 from smtplib import (
     SMTP,
     SMTPAuthenticationError,
+    SMTPConnectError,
     SMTPDataError,
     SMTPException,
     SMTPRecipientsRefused,
@@ -747,126 +748,112 @@ def save_files(files, username):
     return file_names
 
 
-def send_mail(sender, receiver, type, **kwargs): 
-    #checking if required arguments are passed or not
-    if not (sender or receiver or type):
-        return 'You must provide host, port, sender email, receiver email and type arguments'
-    
-    if 'action' in kwargs:
-        action = kwargs['action']
-    
-    if 'application' in kwargs:
-        application = kwargs['application']
-    
-    if type == 'leave' or type =='attendance':
-        if not (action or application):
-            return 'If "type" argument is "leave" or "attendance", you must provide "action" and\
-                     "application" argument'
-    
-    #creating receiver email list
+class MailDeliveryError(Exception):
+    """Custom exception raised when email delivery or validation fails."""
+
+def send_mail(sender: str, receiver: str, mail_type: str, **kwargs) -> None:
+    # 1. Parameter Validation
+    if not (sender and receiver and mail_type):
+        raise MailDeliveryError('Missing required parameters: sender, receiver, or mail_type.')
+
+    action = kwargs.get('action')
+    application = kwargs.get('application')
+
+    if mail_type in ('leave', 'attendance') and not (action and application):
+        raise MailDeliveryError('Arguments "action" and "application" are required for leave or attendance emails.')
+
+    # 2. Build Recipient List & Headers
     receivers = [receiver]
-    
-    if 'cc' in kwargs:
-        for cc in kwargs['cc']:
-            receivers.append(cc)
+    cc_list = kwargs.get('cc', [])
+    if isinstance(cc_list, (list, tuple)):
+        receivers.extend(cc_list)
 
-    #creating email subject
-    if type == 'leave':
-        subject = f"[{application.employee.fullname}] {application.type} leave application id -'{application.id}' {action}"
-    elif type == 'attendance':
+    # 3. Construct Subject & Body
+    if mail_type == 'leave':
+        assert application is not None
+        subject = f"[{application.employee.fullname}] {application.type} leave application id - '{application.id}' {action}"
+        body_prefix = f"Leave: {application.type}"
+    elif mail_type == 'attendance':
+        assert application is not None
         subject = f"[{application.employee.fullname}] {application.type} attendance application id - '{application.id}' {action}"
-    elif type == 'reset':
-        subject = 'Your Attendance app password has been reset'
-    else:
-        msg = f'Unknown type {type}'
-        return msg
-
-    #creating email body for leave and attendance
-    if type == 'leave' or type == 'attendance':
-        if type == 'leave':
-            name = f"Leave: {application.type}"
-
-        if type == 'attendance':
-            name = f"Attendance: {application.type}"
-
-        body = f"""
-        Application ID: {application.id}
-        Name: {application.employee.fullname}
-        {name}
-        Start date: {application.start_date}
-        End date: {application.end_date}"""
-
-        if application.holiday_duty_start_date:
-            body += f"""
-        Holiday duty start: {application.holiday_duty_start_date}
-        Holiday duty end: {application.holiday_duty_end_date}"""
-        
-        body += f"""
-        Remark: {application.remark} 
-        Status: {application.status}"""
-
-    
-    #creating email body for password reset
-    if type == 'reset':
+        body_prefix = f"Attendance: {application.type}"
+    elif mail_type == 'reset':
         if 'extra' not in kwargs:
-            return 'If "type" argument is "reset", you must provide "extra" argument'
-        else:
-            body = f"New password : {kwargs['extra']}"
-    
-    #creating email with header and body
+            raise MailDeliveryError('Argument "extra" (new password) is required for password reset emails.')
+        subject = 'Your Attendance app password has been reset'
+        body = f"New password: {kwargs['extra']}"
+    else:
+        raise MailDeliveryError(f"Unknown email type: '{mail_type}'.")
+
+    if mail_type in ('leave', 'attendance'):
+        assert application is not None
+        body = f"""Application ID: {application.id}
+Name: {application.employee.fullname}
+{body_prefix}
+Start date: {application.start_date}
+End date: {application.end_date}"""
+
+        if getattr(application, 'holiday_duty_start_date', None):
+            body += f"""
+Holiday duty start: {application.holiday_duty_start_date}
+Holiday duty end: {application.holiday_duty_end_date}"""
+
+        body += f"""
+Remark: {application.remark} 
+Status: {application.status}"""
+
+    # 4. Construct Email Object
     msg = EmailMessage()
-    msg.add_header('from', sender)
-    msg.add_header('to', receiver)
-    
-    if (type == 'leave' or type == 'attendance') and 'cc' in kwargs:
-        cc_list = ','.join(kwargs['cc'])
-        msg.add_header('cc', cc_list)
-    
-    msg.add_header('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    msg.add_header('subject', subject)
+    msg['From'] = sender
+    msg['To'] = receiver
+    if cc_list and mail_type in ('leave', 'attendance'):
+        msg['Cc'] = ', '.join(cc_list)
+    msg['Date'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z')  # noqa: DTZ005
+    msg['Subject'] = subject
     msg.set_content(body)
 
+    # 5. Dispatch Email (Logs Technical Error & Raises Exception)
     try:
         with SMTP(
             host=current_app.config['SMTP_HOST'], 
             port=current_app.config['SMTP_PORT'], 
             timeout=5
         ) as server:
-            # Perform optional EHLO or TLS upgrades here if required
             # server.ehlo()
             # server.starttls()
-            
-            # Send the message
             server.send_message(msg, from_addr=sender, to_addrs=receivers)
-            
-            # Context manager automatically calls server.quit() upon normal exit
-            return "Email sent successfully"
-    except TimeoutError:
-        current_app.logger.error("SMTP connection timed out.")
-        return "SMTP connection timed out."
-    except ConnectionRefusedError:
-        current_app.logger.error("SMTP connection refused.")
-        return "SMTP connection refused."
-    except SMTPAuthenticationError:
-        return "Authentication failed: Check SMTP credentials."
-    except SMTPSenderRefused:
-        return f"Sender address '{sender}' was rejected by the server."
+    except (TimeoutError) as e:
+        current_app.logger.error("SMTP connection timed out for host %s: %s", current_app.config['SMTP_HOST'], e)
+        raise MailDeliveryError("SMTP connection timed out.") from e
+    except ConnectionRefusedError as e:
+        current_app.logger.error("SMTP connection refused by host %s: %s", current_app.config['SMTP_HOST'], e)
+        raise MailDeliveryError("SMTP connection refused.") from e
+    except SMTPAuthenticationError as e:
+        current_app.logger.error("SMTP authentication error: %s", e)
+        raise MailDeliveryError("Authentication failed: Check SMTP credentials.") from e
+    except SMTPSenderRefused as e:
+        current_app.logger.error("Sender address '%s' was rejected by server: %s", sender, e)
+        raise MailDeliveryError(f"Sender address '{sender}' was rejected.") from e
     except SMTPRecipientsRefused as e:
-        # e.recipients returns a dict of rejected addresses and error tuples
-        return f"Recipient address rejected: {e.recipients}"
+        current_app.logger.error("Recipient addresses rejected by SMTP server: %s", e.recipients)
+        raise MailDeliveryError(f"Recipient address rejected: {e.recipients}") from e
     except SMTPDataError as e:
-        return f"Message content rejected by server (Code {e.smtp_code}): {e.smtp_error}"
-    except SMTPServerDisconnected:
-        current_app.logger.error("SMTP server disconnected unexpectedly.")
-        return "SMTP server disconnected unexpectedly."
+        error_msg = e.smtp_error.decode('utf-8') if isinstance(e.smtp_error, bytes) else e.smtp_error
+        current_app.logger.error("SMTP Data Error (Code %s): %s", e.smtp_code, error_msg)
+        raise MailDeliveryError(f"Message content rejected by server (Code {e.smtp_code}): {error_msg}") from e
+    except SMTPServerDisconnected as e:
+        current_app.logger.error("SMTP server disconnected unexpectedly: %s", e)
+        raise MailDeliveryError("SMTP server disconnected unexpectedly.") from e
+    except SMTPConnectError as e:
+        current_app.logger.error("Failed to connect to SMTP server: %s", e)
+        raise MailDeliveryError("Failed to connect to the SMTP server.") from e
     except SMTPException as e:
-        current_app.logger.error(f"SMTP protocol error: {e}")
-        return f"SMTP protocol error: {e}"
+        current_app.logger.error("Generic SMTP exception: %s", e)
+        raise MailDeliveryError(f"SMTP protocol error: {e}") from e
     except Exception as e:
-        current_app.logger.error(f"Unexpected error sending email: {e}", exc_info=True)
-        return f"Unexpected error: {e}"
-
-
+        current_app.logger.exception("Unexpected error sending email: %s", e)
+        raise MailDeliveryError(f"Unexpected error: {e}") from e
+    
 def check_office_time_dates(form):
     if not form.start_date.data:
         return 'Start date must be given'
