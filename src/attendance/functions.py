@@ -1,19 +1,34 @@
-from datetime import datetime, timedelta, date
 import math
-import re
-from flask import session, current_app
-from sqlalchemy import extract, func, or_
 import os
-from werkzeug.utils import secure_filename
+import re
+from datetime import date, datetime, timedelta
 from email.message import EmailMessage
-from smtplib import SMTP, SMTPException
-import socket
-from math import ceil
-from typing import Tuple, Optional
-from attendance.db import db, Employee, ApplicationsHolidays, Holidays, Applications, Team, Attendance, DutySchedule, DutyShift, AttendanceSummary, LeaveAvailable, OfficeTime, LeaveDeductionSummary, LeaveAllocation
-from attendance.schemas import AnnualLeave
-from attendance.schemas import EmployeeFiscalYear
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError, NoResultFound
+from smtplib import SMTP, SMTPException, SMTPServerDisconnected
+from typing import Optional, Tuple  # noqa: UP035
+
+from flask import current_app, session
+from sqlalchemy import extract, func, or_
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
+from werkzeug.utils import secure_filename
+
+from attendance.db import (
+    Applications,
+    ApplicationsHolidays,
+    Attendance,
+    AttendanceSummary,
+    DutySchedule,
+    DutyShift,
+    Employee,
+    Holidays,
+    LeaveAllocation,
+    LeaveAvailable,
+    LeaveDeductionSummary,
+    OfficeTime,
+    Team,
+    db,
+)
+from attendance.schemas import AnnualLeave, EmployeeFiscalYear
+
 
 #Check holiday in holidays table
 def check_holidays(name, start_date, end_date=None):
@@ -57,10 +72,7 @@ def check_team_access(application_id):
         return True
 
     head = Employee.query.filter_by(username=session['username'], department=employee.department, role='Head').first() # type: ignore
-    if head:
-        return True
-
-    return False
+    return bool(head)
 
 def check_edit_permission(application, employee):
     team = Team.query.filter_by(empid=employee.id).first()
@@ -798,30 +810,44 @@ def send_mail(sender, receiver, type, **kwargs):
     msg.add_header('from', sender)
     msg.add_header('to', receiver)
     
-    if type == 'leave' or type == 'attendance':
-        if 'cc' in kwargs:
-            cc_list = ','.join(kwargs['cc'])
-            msg.add_header('cc', cc_list)
+    if (type == 'leave' or type == 'attendance') and 'cc' in kwargs:
+        cc_list = ','.join(kwargs['cc'])
+        msg.add_header('cc', cc_list)
     
     msg.add_header('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     msg.add_header('subject', subject)
     msg.set_content(body)
-    
-    #connecting to host
-    try: 
-        server = SMTP(host=current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'], local_hostname=None, timeout=5)
-    except socket.timeout:
-        return 'SMTP server not reachable'
-    except SMTPException as e:
-        return e
-    
-    #sending message
+
     try:
-        server.send_message(msg, from_addr=sender, to_addrs=receivers)
+        with SMTP(
+            host=current_app.config['SMTP_HOST'], 
+            port=current_app.config['SMTP_PORT'], 
+            timeout=5
+        ) as server:
+            # Perform optional EHLO or TLS upgrades here if required
+            # server.ehlo()
+            # server.starttls()
+            
+            # Send the message
+            server.send_message(msg, from_addr=sender, to_addrs=receivers)
+            
+            # Context manager automatically calls server.quit() upon normal exit
+            return "Email sent successfully"
+    except TimeoutError:
+        current_app.logger.error("SMTP connection timed out.")
+        return "SMTP connection timed out."
+    except ConnectionRefusedError:
+        current_app.logger.error("SMTP connection refused.")
+        return "SMTP connection refused."
+    except SMTPServerDisconnected:
+        current_app.logger.error("SMTP server disconnected unexpectedly.")
+        return "SMTP server disconnected unexpectedly."
     except SMTPException as e:
-        return e
-    else:
-        server.quit()
+        current_app.logger.error(f"SMTP protocol error: {e}")
+        return f"SMTP protocol error: {e}"
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error sending email: {e}", exc_info=True)
+        return f"Unexpected error: {e}"
 
 
 def check_office_time_dates(form):
