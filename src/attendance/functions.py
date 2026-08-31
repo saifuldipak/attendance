@@ -1,7 +1,7 @@
 import math
 import os
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from smtplib import (
     SMTP,
@@ -732,7 +732,7 @@ def check_holiday_dates(form, application_type):
 # with all the file names for storing in database 
 def save_files(files, username):
     file_names = ''
-    file_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    file_id = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d%H%M%S")
     file_count = 1
                 
     for file in files:
@@ -808,7 +808,7 @@ Status: {application.status}"""
     msg['To'] = receiver
     if cc_list and mail_type in ('leave', 'attendance'):
         msg['Cc'] = ', '.join(cc_list)
-    msg['Date'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z')  # noqa: DTZ005
+    msg['Date'] = datetime.now(timezone.utc).astimezone().strftime('%a, %d %b %Y %H:%M:%S %z')
     msg['Subject'] = subject
     msg.set_content(body)
 
