@@ -152,16 +152,16 @@ def create():
 
         try:
             new_employee = Employee()
-            new_employee.username=form.username.data, 
-            new_employee.fullname=form.fullname.data, 
-            new_employee.password=generate_password_hash(form.password.data), 
-            new_employee.phone=form.phone.data, 
-            new_employee.email=form.email.data, 
-            new_employee.joining_date=form.joining_date.data, 
-            new_employee.department=form.department.data, 
-            new_employee.designation=form.designation.data, 
-            new_employee.role=form.role.data, 
-            new_employee.access=form.access.data            
+            new_employee.username = form.username.data
+            new_employee.fullname = form.fullname.data
+            new_employee.password = generate_password_hash(form.password.data)
+            new_employee.phone = form.phone.data
+            new_employee.email = form.email.data
+            new_employee.joining_date = form.joining_date.data
+            new_employee.department = form.department.data
+            new_employee.designation = form.designation.data
+            new_employee.role = form.role.data
+            new_employee.access = form.access.data
             db.session.add(new_employee)
             db.session.flush()
         
